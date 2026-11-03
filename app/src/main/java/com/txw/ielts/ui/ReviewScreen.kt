@@ -93,7 +93,8 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
             }
         }
     }
-    val pending = sessions.filter { it.status != "done" }
+    // abandoned = 既无文本也无音频的中断记录，无法评分，不应占用待处理列表。
+    val pending = sessions.filter { it.status != "done" && it.status != "abandoned" }
     val dailyCard: @Composable () -> Unit = { DailyBarsCard(sessions) }
     val errorsSection: @Composable () -> Unit = {
         Text("高频问题（按你历史批注统计）", style = MaterialTheme.typography.titleMedium)

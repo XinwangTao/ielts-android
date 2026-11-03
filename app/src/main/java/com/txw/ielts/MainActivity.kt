@@ -266,6 +266,32 @@ private fun App(
                 it.id, it.transcript, it.essayText, it.scoresJson, it.fixesJson, it.polished, "pending_eval",
             )
         }
+
+        // 清理「无可救药」记录：既无文本也无音频的未完成记录永远不可能评分成功，
+        // 会一直卡在「待处理」里（实测有 2026-10-29 遗留的记录挂了 5 天）。
+        // 30 分钟阈值：正常评分/转写在几分钟内就会写入文本，超时即视为中断。
+        db.sessions().recent(50)
+            .filter { s ->
+                s.status in setOf("pending_eval", "pending_local", "asr_empty") &&
+                    s.transcript.isBlank() && s.essayText.isBlank() && s.audioPath.isNullOrBlank() &&
+                    System.currentTimeMillis() - s.startedAt > 30 * 60_000L
+            }
+            .forEach { s ->
+                Log.i(TAG, "archive empty record id=${s.id} status=${s.status}")
+                db.sessions().updateResult(
+                    s.id, s.transcript, s.essayText, s.scoresJson, s.fixesJson, s.polished, "abandoned",
+                )
+            }
+
+        // 录音清理：转写/评分后的 wav 只在结果页回放时用，长期堆积会吃满空间
+        // （实测 files/ 下残留 2.3MB 的 partner_*.wav 十余个）。保留 session 仍引用的文件与 7 天内新文件。
+        runCatching {
+            val referenced = db.sessions().recent(200).mapNotNull { it.audioPath }.toSet()
+            val cutoff = System.currentTimeMillis() - 7 * 86_400_000L
+            context.filesDir.listFiles { f -> f.isFile && f.name.endsWith(".wav", ignoreCase = true) }
+                ?.filter { it.absolutePath !in referenced && it.lastModified() < cutoff }
+                ?.forEach { f -> if (f.delete()) Log.i(TAG, "cleanup recording ${f.name}") }
+        }
     }
 
     // ---- 语料积累 ----
