@@ -26,6 +26,12 @@ data class Session(
     val fixesJson: String = "",
     val polished: String = "",
     val status: String = "done",
+    /**
+     * 题型："task1" / "task2"。旧数据（v2 及之前）为空串，读时回退到猜题。
+     * 此前题型不入库，Ray 页/评分/重试全靠 `guessTask(topic)` 正则猜和
+     * scoresJson 是否含 "TA" 反推——猜错就把 Task 1 图表作文按 Task 2 议论文评分。
+     */
+    val task: String = "",
 )
 
 @Dao
@@ -46,7 +52,7 @@ interface SessionDao {
     suspend fun updateResult(id: Long, t: String, e: String, s: String, f: String, p: String, st: String)
 }
 
-@Database(entities = [Session::class, Card::class], version = 2, exportSchema = false)
+@Database(entities = [Session::class, Card::class], version = 3, exportSchema = false)
 abstract class AppDb : RoomDatabase() {
     abstract fun sessions(): SessionDao
     abstract fun cards(): CardDao
@@ -68,10 +74,16 @@ abstract class AppDb : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : androidx.room.migration.Migration(2, 3) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `sessions` ADD COLUMN `task` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         fun get(context: Context): AppDb = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext, AppDb::class.java, "ielts.db"
-            ).addMigrations(MIGRATION_1_2).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
         }
     }
 }

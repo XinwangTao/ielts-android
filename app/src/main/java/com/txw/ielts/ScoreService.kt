@@ -102,7 +102,8 @@ class ScoreService : Service() {
                 .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "ielts:local-score")
                 .apply { setReferenceCounted(false); acquire(12 * 60_000L) }
             try {
-                val task = if (s.module == "speaking") "" else guessTaskForService(s.topic)
+                // 题型优先取入库字段（v3），旧数据回退到启发式猜题
+                val task = if (s.module == "speaking") "" else s.task.ifBlank { guessTaskForService(s.topic) }
                 runScore(s.id, s.module, text, task)
             } catch (e: Exception) {
                 Log.e("ScoreService", "resume fail: ${e.message}")

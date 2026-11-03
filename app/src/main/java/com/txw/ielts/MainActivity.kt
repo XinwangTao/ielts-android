@@ -289,6 +289,9 @@ private fun guessTask(topic: String): String {
     return if (looksChart && !t.contains("discuss")) "task1" else "task2"
 }
 
+/** 题型优先取字段（v3 起入库），旧数据回退到启发式猜题。 */
+private fun Session.resolvedTask(): String = task.ifBlank { guessTask(topic) }
+
 @Composable
 private fun App(
     prefs: Prefs,
@@ -339,7 +342,7 @@ private fun App(
                 )
                 return@forEach
             }
-            val task = guessTask(s.topic)
+            val task = s.task.ifBlank { guessTask(s.topic) }
             val m = runCatching { JSONObject(prefs.localScoreStarted) }.getOrDefault(JSONObject())
             m.put(s.id.toString(), System.currentTimeMillis())
             prefs.localScoreStarted = m.toString()
@@ -355,17 +358,20 @@ private fun App(
             )
         }
 
-        // 清理「无可救药」记录：既无文本也无音频的未完成记录永远不可能评分成功，
-        // 会一直卡在「待处理」里（实测有 2026-10-29 遗留的记录挂了 5 天）。
+        // 清理「无可救药」记录：既无文本、又无法重新转写（无音频或音频文件已丢失）的未完成记录
+        // 永远不可能评分成功，会一直卡在「学习统计 → 待处理」里（实测有 2026-10-29 遗留的记录挂了 5 天）。
+        // 只判 audioPath 是否为空还不够：session 10 指向的 /sdcard/retry_test.wav 早已不存在，
+        // 而 session 5 的 essay16k.wav 还在、重试就能救回来，两者不能混为一谈。
         // 30 分钟阈值：正常评分/转写在几分钟内就会写入文本，超时即视为中断。
         db.sessions().recent(50)
             .filter { s ->
-                s.status in setOf("pending_eval", "pending_local", "asr_empty") &&
-                    s.transcript.isBlank() && s.essayText.isBlank() && s.audioPath.isNullOrBlank() &&
-                    System.currentTimeMillis() - s.startedAt > 30 * 60_000L
+                if (s.status !in setOf("pending_eval", "pending_local", "asr_empty")) return@filter false
+                if (s.transcript.isNotBlank() || s.essayText.isNotBlank()) return@filter false
+                if (System.currentTimeMillis() - s.startedAt < 30 * 60_000L) return@filter false
+                s.audioPath.isNullOrBlank() || !File(s.audioPath).exists()
             }
             .forEach { s ->
-                Log.i(TAG, "archive empty record id=${s.id} status=${s.status}")
+                Log.i(TAG, "archive unrecoverable record id=${s.id} status=${s.status} audio=${s.audioPath}")
                 db.sessions().updateResult(
                     s.id, s.transcript, s.essayText, s.scoresJson, s.fixesJson, s.polished, "abandoned",
                 )
@@ -807,7 +813,7 @@ private fun App(
         val duration = audio?.let { (it.length() / 32000).toInt() }?.takeIf { it > 0 } ?: seconds
         val id = db.sessions().insert(
             Session(topic = topic, durationSec = duration, audioPath = audioPath,
-                essayText = typedText, status = "pending_eval")
+                essayText = typedText, status = "pending_eval", task = task)
         )
         val session = db.sessions().byId(id) ?: return
         val text = try {
@@ -835,13 +841,13 @@ private fun App(
         try {
             stage = "模考评分中：Task 1…"
             val id1 = db.sessions().insert(
-                Session(topic = t1Topic, essayText = t1Text, status = "pending_eval")
+                Session(topic = t1Topic, essayText = t1Text, status = "pending_eval", task = "task1")
             )
             db.sessions().byId(id1)?.let { evaluateWriting(it, t1Text, "task1") }
 
             stage = "模考评分中：Task 2…"
             val id2 = db.sessions().insert(
-                Session(topic = t2Topic, essayText = t2Text, status = "pending_eval")
+                Session(topic = t2Topic, essayText = t2Text, status = "pending_eval", task = "task2")
             )
             db.sessions().byId(id2)?.let { evaluateWriting(it, t2Text, "task2") }
 
@@ -1536,7 +1542,7 @@ private fun App(
                                             }
                                             evaluateSpeaking(session, spText)
                                         } else {
-                                            val isTask1 = runCatching { JSONObject(session.scoresJson).has("TA") }.getOrDefault(false)
+                                            val isTask1 = session.resolvedTask() == "task1"
                                             var text = session.transcript.ifBlank { session.essayText }
                                             if (text.isBlank() && session.audioPath != null) {
                                                 text = transcribe(java.io.File(session.audioPath))   // 同上：补转写
@@ -1568,7 +1574,7 @@ private fun App(
                                     topic = if (isSpeaking) session.topic.substringAfter(" · ", session.topic)
                                     else session.topic,
                                     fixes = fixes,
-                                    task = if (runCatching { JSONObject(session.scoresJson).has("TA") }.getOrDefault(false)) "task1" else "task2",
+                                    task = if (isSpeaking) "task2" else session.resolvedTask(),
                                     part = if (isSpeaking) session.topic.substringBefore(" · ").trim() else "Part 2",
                                 )
                                 route = if (isSpeaking) Route.Speaking else Route.Writing
