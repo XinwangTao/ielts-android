@@ -19,3 +19,6 @@ samples/
 # 可下载的数据产物（ECDICT 词库 92MB，来源见 dict-assets/README.md）
 dict-assets/*
 !dict-assets/README.md
+
+# Kotlin/Gradle 编译会话临时文件
+.kotlin/
