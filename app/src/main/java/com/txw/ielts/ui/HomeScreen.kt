@@ -114,6 +114,10 @@ fun HomeScreen(
         }
         val recentBands = sessions.mapNotNull { bandValue(it.scoresJson) }.take(5)
         val avgBand = if (recentBands.isNotEmpty()) recentBands.average() else null
+        val profile = remember(sessions) { skillProfile(sessions) }
+        // 达标判定用四科换算（官方口径），不再拿写作口语的平均分冒充总分：
+        // 写作 8 分、口语 6 分混在一起平均 7.0，看着像达标，实际四科缺两科根本还算不出总分。
+        val profileOverall = remember(profile) { profile.overall() }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 "目标 Band %.1f".format(target),
@@ -121,13 +125,15 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.primary,
             )
             Text(
-                if (avgBand != null) {
-                    if (avgBand >= target) "  ·  最近 ${recentBands.size} 次平均 %.1f，已达标".format(avgBand)
-                    else "  ·  最近 ${recentBands.size} 次平均 %.1f，还差 %.1f".format(
-                        avgBand, (target - avgBand).coerceAtLeast(0.0)
-                    )
-                } else {
-                    "  ·  还没有评分记录"
+                when {
+                    profileOverall != null ->
+                        if (profileOverall >= target - 0.001) "  ·  四科换算 %.1f，已达标".format(profileOverall)
+                        else "  ·  四科换算 %.1f，还差 %.1f".format(
+                            profileOverall, (target - profileOverall).coerceAtLeast(0.0)
+                        )
+                    // 四科还没凑齐（新手/只练过写作口语）时退回旧口径，但要写明这是写/说的平均。
+                    avgBand != null -> "  ·  写/说最近 ${recentBands.size} 次平均 %.1f".format(avgBand)
+                    else -> "  ·  还没有评分记录"
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -145,14 +151,15 @@ fun HomeScreen(
         // 四科 profile：L/R 按正确率映射，W/S 按最近 5 次 overall 平均；
         // 带目标时每科直接标出「差多少 / 已达标」，省得自己拿总分去猜哪科拖后腿。
         Text(
-            skillProfile(sessions).line(skillTargets),
+            profile.line(skillTargets),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 2.dp),
         )
         // 四科目标不等于总分目标时，把换算结果写出来：官方是先平均再向上取 0.5，
         // 四科都考 6.5 才是 6.5，一科 6.0 总分就掉到 6.0。
-        subTargetLine(skillTargets, target)?.let {            Text(
+        subTargetLine(skillTargets, target)?.let {
+            Text(
                 it,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

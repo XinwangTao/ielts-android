@@ -27,6 +27,33 @@ data class SkillProfile(
         return if (gap <= 0.001) "%.1f✓".format(value)
         else "%.1f↓%.1f".format(value, gap)
     }
+
+    /** 四科估值换算总分；缺任何一科返回 null（同官方规则，见 ExamTarget.overallBand）。 */
+    fun overall(): Double? = ExamTarget.overallBand(listening, reading, writing, speaking)
+}
+
+/** 离目标还差的一科：module 用于跳转，label 用于文案。 */
+data class SkillGap(val module: String, val label: String, val gap: Double)
+
+/**
+ * 哪一科最拖后腿。
+ *
+ * 只看已经有数据的科目：听力从没练过时差 6.5 分，但那是「没练」不是「偏弱」，
+ * 把它排在写作（真差 0.5 分）前面，首页就会天天推一个用户根本不熟的入口。
+ * 全科都达标返回 null，此时今日任务保持原来的节奏提醒。
+ */
+fun weakestGap(profile: SkillProfile, targets: SkillTargets): SkillGap? {
+    val pairs = listOf(
+        Triple("listening", "听力", profile.listening to targets.listening),
+        Triple("reading", "阅读", profile.reading to targets.reading),
+        Triple("writing", "写作", profile.writing to targets.writing),
+        Triple("speaking", "口语", profile.speaking to targets.speaking),
+    )
+    return pairs.mapNotNull { (module, label, pair) ->
+        val value = pair.first ?: return@mapNotNull null
+        val gap = pair.second - value
+        if (gap > 0.001) SkillGap(module, label, gap) else null
+    }.maxByOrNull { it.gap }
 }
 
 /** 四科目标分（来自设置）。换算总分与判断达标都走这一份，避免首页和设置页各算一套。 */

@@ -3,6 +3,7 @@ package com.txw.ielts
 import com.txw.ielts.data.Session
 import com.txw.ielts.ui.SkillProfile
 import com.txw.ielts.ui.SkillTargets
+import com.txw.ielts.ui.weakestGap
 import com.txw.ielts.ui.skillProfile
 import com.txw.ielts.ui.subTargetLine
 import org.junit.Assert.assertEquals
@@ -86,5 +87,34 @@ class SkillProfileTest {
         assertNull(p.listening)
         assertNull(p.reading)
         assertNull(p.speaking)
+    }
+
+    @Test
+    fun `最弱科取差距最大且有数据的那科`() {
+        val gap = weakestGap(SkillProfile(6.0, 6.5, 5.5, null), SkillTargets(6.5, 6.5, 6.5, 6.5))!!
+        assertEquals("writing", gap.module)
+        assertEquals(1.0, gap.gap, 1e-9)
+    }
+
+    @Test
+    fun `没练过的科目不参与排名`() {
+        // 听力从没练过「差 6.5 分」，但那是没数据，不能压过写作真差的 0.5 分
+        val gap = weakestGap(SkillProfile(null, null, 6.0, null), SkillTargets(6.5, 6.5, 6.5, 6.5))!!
+        assertEquals("writing", gap.module)
+        assertEquals(0.5, gap.gap, 1e-9)
+    }
+
+    @Test
+    fun `全科达标时没有最弱科`() {
+        assertNull(weakestGap(SkillProfile(7.0, 7.0, 7.0, 7.0), SkillTargets(6.5, 6.5, 6.5, 6.5)))
+        assertNull(weakestGap(SkillProfile(null, null, null, null), SkillTargets(6.5, 6.5, 6.5, 6.5)))
+    }
+
+    @Test
+    fun `四科凑齐才给换算总分`() {
+        assertNull(SkillProfile(6.5, 6.5, 6.5, null).overall())
+        assertEquals(7.0, SkillProfile(7.0, 7.0, 7.0, 7.0).overall()!!, 1e-9)
+        // 6.5+6.5+6.5+6.0 = 25.5 → 平均 6.375 → 总分 6.5
+        assertEquals(6.5, SkillProfile(6.5, 6.5, 6.5, 6.0).overall()!!, 1e-9)
     }
 }

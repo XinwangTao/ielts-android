@@ -31,8 +31,10 @@ fun BankScreen(
     onOpen: (String) -> Unit,
     onOpenTimed: (String, Int) -> Unit = { _, _ -> },
     onBack: () -> Unit,
+    // 今日任务点了「听力差 0.8 分」直接落到对应模块，别再让人自己切一次 tab。
+    initialFilter: String = "all",
 ) {
-    var filter by remember { mutableStateOf("all") }
+    var filter by remember(initialFilter) { mutableStateOf(initialFilter) }
     val shown = sets.filter { filter == "all" || it.module == filter }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
