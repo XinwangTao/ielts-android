@@ -189,6 +189,11 @@ object LocalLlmEngine {
         context: Context, model: String, system: String, user: String,
     ): String = generate(context, model, system, user)
 
+    /** 仅预加载模型而不生成（诊断用：验证加载后的 RSS 与 release 是否真的释放）。 */
+    suspend fun preload(context: Context, model: String) {
+        loaded(context, model)
+    }
+
     /** 阻塞生成一整段文本；native 回调是流式的，这里拼成完整输出。串行执行避免并发调用 native。 */
     private suspend fun generate(context: Context, model: String, system: String, user: String): String =
         generationMutex.withLock {

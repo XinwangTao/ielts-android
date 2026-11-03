@@ -94,6 +94,7 @@ import kotlin.coroutines.resume
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 
 private const val TAG = "E2E"
 
@@ -224,6 +225,8 @@ class MainActivity : ComponentActivity() {
         Log.i(TAG, "start_route=$startRoute result_session_id=$resultSessionId")
         val bankAuto = intent?.getBooleanExtra("bank_auto", false) == true
         val e2eTts = intent?.getBooleanExtra("e2e_tts", false) == true
+        // 诊断：只加载本地模型不生成，用于测「加载后 RSS / release 是否真释放」。
+        val e2eLoadModel = intent?.getBooleanExtra("e2e_loadmodel", false) == true
 
         // 本地评分完成通知（Android 13+ 需要运行时授权；拒绝只影响通知，不影响评分）
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -246,6 +249,7 @@ class MainActivity : ComponentActivity() {
                         bankAuto,
                         e2eTts,
                         freshStart,
+                        e2eLoadModel,
                     )
                 }
             }
@@ -301,6 +305,7 @@ private fun App(
     bankAuto: Boolean = false,
     e2eTts: Boolean = false,
     freshStart: Boolean = true,
+    e2eLoadModel: Boolean = false,
 ) {
     val context = LocalContext.current
     val isWide = LocalConfiguration.current.screenWidthDp >= 600
@@ -500,18 +505,67 @@ private fun App(
         if (route is Route.Corpus) refreshCorpus()
     }
 
+    /**
+     * 端侧 LLM（qwen3-4b 约 2.5GB）评分后是常驻缓存的，此时再加载 Whisper 会让两个模型
+     * 同时驻留，被 lmkd 直接杀进程（表现：转写中途闪退，记录停在 pending_eval）。
+     * 转写前先把 LLM 内存腾出来；下次评分会按需重新加载。
+     */
+    /**
+     * 端侧 LLM（qwen3-4b 约 2.5GB）评分后是常驻缓存的，转写前必须先把它让出来，否则只用 Whisper 就会
+     * 撞到 lmkd。两条实测结论决定了这里的策略：
+     * 1) 空闲时 release() 后 RSS 不会立刻降（权重是 mmap 的干净页，仍计入 RSS），但内核在 ASR 分配时
+     *    直接回收——实测 2909MB → 转写中 768MB，安全。
+     * 2) 正在生成时硬加载 Whisper 会被杀：权重是活跃脏页，回收不及时（实测峰值 3.67GB，thrashing 38%
+     *    后 lmkd 杀掉本进程）。所以宁可不转写，也不能在生成中加载 ASR。
+     *
+     * @return true 表示可以安全加载 ASR。
+     */
+    suspend fun freeLlmMemoryForAsr(): Boolean {
+        val before = Diag.rssMb()
+        if (LocalLlmEngine.release()) {
+            Log.i(TAG, "asr mem: llm released rss_before=${before}MB rss_now=${Diag.rssMb()}MB")
+            return true
+        }
+        // 本地评分正在生成：给它 60 秒收尾的机会（用户此时本来也在等着），等不到就报错而不是冒险。
+        val saved = stage
+        stage = "本地评分收尾中，稍后自动转写…"
+        val t0 = System.currentTimeMillis()
+        val deadline = t0 + 60_000L
+        while (System.currentTimeMillis() < deadline) {
+            delay(1_000)
+            if (LocalLlmEngine.release()) {
+                Log.i(TAG, "asr mem: llm released after ${System.currentTimeMillis() - t0}ms wait")
+                stage = saved
+                return true
+            }
+        }
+        stage = saved
+        Log.w(TAG, "asr mem: local scoring still running after 60s (rss=${before}MB), refuse to load whisper")
+        return false
+    }
+
     suspend fun transcribe(audio: File): String {
         stage = "转写中（端侧 ${prefs.asrModel}）…"
+        if (!freeLlmMemoryForAsr()) {
+            stage = null
+            throw IOException("本地评分正在使用端侧模型，请等它结束后再转写（一次评分约 1-4 分钟）")
+        }
         val dir = withContext(Dispatchers.IO) { ModelStore.ensure(context, prefs.asrModel) }
         val asr = withContext(Dispatchers.Default) { WhisperAsr(context, dir, prefs.asrModel) }
         try {
             val loadMs = withContext(Dispatchers.Default) { asr.load() }
+            val rssAfterLoad = Diag.rssMb()
             val (text, ms) = withContext(Dispatchers.Default) { asr.transcribe(audio) }
-            Log.i(TAG, "asr load_ms=$loadMs transcribe_ms=$ms chars=${text.length}")
+            Log.i(
+                TAG,
+                "asr load_ms=$loadMs transcribe_ms=$ms chars=${text.length} " +
+                    "rss_after_asr_load=${rssAfterLoad}MB rss_peak=${Diag.rssMb()}MB",
+            )
             return text
         } finally {
             // 失败路径也必须释放 native recognizer，否则反复重试会泄漏内存。
             withContext(Dispatchers.Default) { asr.release() }
+            Log.i(TAG, "asr mem: rss_after_asr_release=${Diag.rssMb()}MB")
             // 转写结束清掉 stage，避免调用方（如口语对练）被残留的「转写中」锁住按钮。
             stage = null
         }
@@ -868,6 +922,12 @@ private fun App(
         stage = "模考转写中…"
         try {
             // 三段转写复用同一个 recognizer：每次 new 会重复加载模型，首段之后两段白等。
+            if (!freeLlmMemoryForAsr()) {
+                error = "本地评分正在使用端侧模型，请等它结束后再做口语模考"
+                stage = null
+                route = Route.Speaking
+                return
+            }
             val dir = withContext(Dispatchers.IO) { ModelStore.ensure(context, prefs.asrModel) }
             val asr = withContext(Dispatchers.Default) { WhisperAsr(context, dir, prefs.asrModel) }
             val text = try {
@@ -1241,6 +1301,17 @@ private fun App(
                 .map { BankWrong(it.prompt, bankRepo.correctAnswerText(it), it.explain) }
             val added = repo.addBankWrong(wrong, set.module)
             Log.i(TAG, "RESULT bank scores=${latest?.scoresJson} cards_added=$added total_cards=${db.cards().countAll()}")
+        }
+    }
+
+    LaunchedEffect(e2eLoadModel) {
+        if (!e2eLoadModel) return@LaunchedEffect
+        try {
+            Log.i(TAG, "LOADMODEL before rss=${Diag.rssMb()}MB model=${prefs.localModel}")
+            LocalLlmEngine.preload(context, prefs.localModel)
+            Log.i(TAG, "LOADMODEL loaded rss=${Diag.rssMb()}MB")
+        } catch (e: Exception) {
+            Log.e(TAG, "LOADMODEL fail=${e.javaClass.simpleName}:${e.message}")
         }
     }
 
