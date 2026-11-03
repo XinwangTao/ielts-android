@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
+import com.txw.ielts.data.Session
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -87,7 +88,7 @@ private fun defaultBookBorder(): BorderStroke = BorderStroke(1.dp, bookRuleColor
  * 原本在首页与统计页各存一份完全相同的拷贝，且首页那份从未被调用。
  */
 @Composable
-fun DailyBarsCard(sessions: List<com.txw.ielts.data.Session>) {
+fun DailyBarsCard(sessions: List<Session>) {
     val primary = MaterialTheme.colorScheme.primary
     val today = LocalDate.now()
     val counts = remember(sessions) {
