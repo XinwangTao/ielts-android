@@ -32,6 +32,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -121,6 +123,85 @@ sealed interface Route {
     data class Result(val id: Long) : Route
 }
 
+/**
+ * Route 的字符串编解码：用于 rememberSaveable（旋转屏 / 进程被回收后恢复页面）。
+ * 没有它，`remember` 会在 Activity 重建时回到首页——用户写作到一半转个屏就丢页。
+ * 未知/损坏的串一律回首页，不抛异常。
+ */
+private fun Route.encode(): String = when (this) {
+    Route.Home -> "home"
+    Route.Writing -> "writing"
+    Route.Speaking -> "speaking"
+    Route.Settings -> "settings"
+    Route.Review -> "review"
+    Route.Corpus -> "corpus"
+    Route.Study -> "study"
+    Route.Bank -> "bank"
+    Route.AiGen -> "aigen"
+    Route.Shadow -> "shadow"
+    Route.Topics -> "topics"
+    Route.Arguments -> "arguments"
+    Route.ModelEssays -> "modelessays"
+    Route.WritingMock -> "writingmock"
+    Route.ChartGen -> "chartgen"
+    Route.SpeakingPartner -> "speakingpartner"
+    Route.SpeakingMock -> "speakingmock"
+    is Route.Quiz -> "quiz:$setId"
+    // setId 理论上不含冒号，取最后一个分隔符之前的全部内容即可
+    is Route.BankResult -> "bankresult:$sessionId:$setId"
+    is Route.MockResult -> "mockresult:${ids.joinToString(",")}"
+    is Route.ShadowStudy -> "shadowstudy:$passageId"
+    is Route.ShadowResult -> "shadowresult:$sessionId"
+    is Route.Result -> "result:$id"
+}
+
+private fun decodeRoute(s: String): Route {
+    if (!s.contains(':')) {
+        return when (s) {
+            "writing" -> Route.Writing
+            "speaking" -> Route.Speaking
+            "settings" -> Route.Settings
+            "review" -> Route.Review
+            "corpus" -> Route.Corpus
+            "study" -> Route.Study
+            "bank" -> Route.Bank
+            "aigen" -> Route.AiGen
+            "shadow" -> Route.Shadow
+            "topics" -> Route.Topics
+            "arguments" -> Route.Arguments
+            "modelessays" -> Route.ModelEssays
+            "writingmock" -> Route.WritingMock
+            "chartgen" -> Route.ChartGen
+            "speakingpartner" -> Route.SpeakingPartner
+            "speakingmock" -> Route.SpeakingMock
+            else -> Route.Home
+        }
+    }
+    val prefix = s.substringBefore(':')
+    val rest = s.substringAfter(':')
+    return when (prefix) {
+        "quiz" -> Route.Quiz(rest)
+        "bankresult" -> {
+            val id = rest.substringBefore(':').toLongOrNull()
+            val setId = rest.substringAfter(':', "")
+            if (id != null) Route.BankResult(id, setId) else Route.Home
+        }
+        "mockresult" -> {
+            val ids = rest.split(',').mapNotNull { it.trim().toLongOrNull() }
+            if (ids.isEmpty()) Route.Home else Route.MockResult(ids)
+        }
+        "shadowstudy" -> rest.takeIf { it.isNotBlank() }?.let { Route.ShadowStudy(it) } ?: Route.Home
+        "shadowresult" -> rest.toLongOrNull()?.let { Route.ShadowResult(it) } ?: Route.Home
+        "result" -> rest.toLongOrNull()?.let { Route.Result(it) } ?: Route.Home
+        else -> Route.Home
+    }
+}
+
+private val RouteSaver: Saver<Route, String> = Saver(
+    save = { it.encode() },
+    restore = { decodeRoute(it) },
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -137,6 +218,9 @@ class MainActivity : ComponentActivity() {
         val resultSessionId = intent?.getLongExtra("result_session_id", -1L) ?: -1L
         val startRoute = intent?.getStringExtra("route")
             ?: if (resultSessionId > 0) "result:$resultSessionId" else null
+        // 只有全新启动才应用深链（通知点击/调试直达）；旋转屏或进程重建时交给 rememberSaveable 恢复原页面，
+        // 否则同一个 intent 会在每次重建时把用户从当前页踢回结果页。
+        val freshStart = savedInstanceState == null
         Log.i(TAG, "start_route=$startRoute result_session_id=$resultSessionId")
         val bankAuto = intent?.getBooleanExtra("bank_auto", false) == true
         val e2eTts = intent?.getBooleanExtra("e2e_tts", false) == true
@@ -161,6 +245,7 @@ class MainActivity : ComponentActivity() {
                         startRoute,
                         bankAuto,
                         e2eTts,
+                        freshStart,
                     )
                 }
             }
@@ -212,6 +297,7 @@ private fun App(
     initialRoute: String? = null,
     bankAuto: Boolean = false,
     e2eTts: Boolean = false,
+    freshStart: Boolean = true,
 ) {
     val context = LocalContext.current
     val isWide = LocalConfiguration.current.screenWidthDp >= 600
@@ -222,7 +308,9 @@ private fun App(
     val sessionsOrNull by db.sessions().observeAll().collectAsState(initial = null)
     val sessions = sessionsOrNull ?: emptyList()
 
-    var route by remember { mutableStateOf<Route>(Route.Home) }
+    var route by rememberSaveable(stateSaver = RouteSaver) { mutableStateOf<Route>(Route.Home) }
+    // 页面跳转诊断：旋转屏 / 进程重建 / 深链时用它确认 route 是否符合预期。
+    LaunchedEffect(route) { Log.i(TAG, "route=${route.encode()} (freshStart=$freshStart)") }
     var stage by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var practiceFocus by remember { mutableStateOf<PracticeFocus?>(null) }
@@ -1127,6 +1215,7 @@ private fun App(
 
     LaunchedEffect(initialRoute) {
         val r = initialRoute ?: return@LaunchedEffect
+        if (!freshStart) return@LaunchedEffect
         when {
             r == "bank" -> route = Route.Bank
             r.startsWith("quiz:") -> openSet(r.removePrefix("quiz:"))
