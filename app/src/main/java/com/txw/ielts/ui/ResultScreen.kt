@@ -15,7 +15,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -117,7 +116,7 @@ fun ResultScreen(
         }
 
         if (session.status == "pending_local") {
-            Card {
+            BookCard {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -211,7 +210,7 @@ fun ResultScreen(
         }
 
         if (sameTopicHistory.isNotEmpty()) {
-            Card {
+            BookCard {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("同一题的历史", style = MaterialTheme.typography.titleSmall)
                     sameTopicHistory.takeLast(4).forEach { s ->
@@ -240,7 +239,7 @@ fun ResultScreen(
         }
 
         if (fixes.isNotEmpty()) {
-            Card {
+            BookCard {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("最该改的三点", style = MaterialTheme.typography.titleSmall)
                     fixes.forEachIndexed { i, f -> Text("${i + 1}. $f", style = MaterialTheme.typography.bodyMedium) }
@@ -262,7 +261,7 @@ fun ResultScreen(
         }
 
         if (sentenceFixes.isNotEmpty()) {
-            Card {
+            BookCard {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
                         if (speaking) "逐句打磨（说错的句子逐条改）" else "逐句打磨（写错的句子逐条改）",
@@ -349,7 +348,7 @@ fun ResultScreen(
 
 @Composable
 private fun ScoreChip(label: String, value: Double, modifier: Modifier = Modifier, highlight: Boolean = false) {
-    Card(modifier) {
+    BookCard(modifier) {
         Column(Modifier.padding(vertical = 10.dp, horizontal = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally) {
             Text(label, style = MaterialTheme.typography.labelSmall)
@@ -363,7 +362,7 @@ private fun ScoreChip(label: String, value: Double, modifier: Modifier = Modifie
 
 @Composable
 private fun Pane(title: String, body: String, modifier: Modifier = Modifier, serifBody: Boolean = false) {
-    Card(modifier) {
+    BookCard(modifier) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(
@@ -380,7 +379,7 @@ private fun Pane(title: String, body: String, modifier: Modifier = Modifier, ser
 /** 改写面板：与原文做词级 diff，改动的词用主题色标出。 */
 @Composable
 private fun PaneDiff(title: String, original: String, polished: String, modifier: Modifier = Modifier, serifBody: Boolean = true) {
-    Card(modifier) {
+    BookCard(modifier) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(

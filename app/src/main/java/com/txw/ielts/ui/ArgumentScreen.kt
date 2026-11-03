@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -59,7 +58,7 @@ fun ArgumentScreen(
 
         topics.forEach { t ->
             val open = expanded == t.id
-            Card(
+            BookCard(
                 Modifier.fillMaxWidth().clickable { expanded = if (open) null else t.id },
             ) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

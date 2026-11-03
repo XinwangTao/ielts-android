@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -136,7 +135,7 @@ fun SpeakingMockScreen(
 
         questions.forEachIndexed { i, pair ->
             val (part, q) = pair
-            Card(Modifier.fillMaxWidth()) {
+            BookCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         "$part · ${if (i == 1) "准备 1 分钟，陈述 2 分钟" else if (i == 0) "每题 20-40 秒" else "每题 1-1.5 分钟"}",

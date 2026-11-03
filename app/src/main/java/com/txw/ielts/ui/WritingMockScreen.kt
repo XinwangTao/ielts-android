@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -93,7 +92,7 @@ fun WritingMockScreen(
         }
 
         if (!started) {
-            Card(
+            BookCard(
                 Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
             ) {
@@ -141,7 +140,7 @@ fun WritingMockScreen(
                         )
                     }
                 }
-                Card(Modifier.fillMaxWidth()) {
+                BookCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Task 1 · 图表描述（150 词以上）", style = MaterialTheme.typography.labelLarge)
                         t1Item.image?.let { path ->
@@ -176,7 +175,7 @@ fun WritingMockScreen(
                         )
                     }
                 }
-                Card(Modifier.fillMaxWidth()) {
+                BookCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Task 2 · 议论文（250 词以上）", style = MaterialTheme.typography.labelLarge)
                         Text(t2Topic, style = MaterialTheme.typography.bodyMedium)

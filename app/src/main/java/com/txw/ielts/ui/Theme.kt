@@ -11,6 +11,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
@@ -125,6 +126,18 @@ private val BookTypography = Typography(
     labelMedium = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium),
     labelSmall = TextStyle(fontSize = 11.sp, lineHeight = 14.sp),
 )
+
+/** 「纸片」细线色：实测设备像素 #C6BCA4（浅）/ #4A423A（深）。
+ *  卡片填充与纸底的对比只有 1.28:1（浅）/ 1.25:1（深），单靠填充分不开，
+ *  靠这道线把边缘对比抬到 1.82:1 / 1.68:1，且线始终是最暗的一层。 */
+private val RuleLight = Color(0xFFC6BCA4)
+private val RuleDark = Color(0xFF4A423A)
+
+/** 页面根是 `Surface`（默认 surface 色），卡片填充也派生自 surface 家族，
+ *  所以用 surface 而不是 background 作明暗判据。 */
+@Composable
+fun bookRuleColor(): Color =
+    if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) RuleLight else RuleDark
 
 @Composable
 fun IeltsTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {

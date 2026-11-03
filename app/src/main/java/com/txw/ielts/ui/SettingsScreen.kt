@@ -10,10 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -262,7 +259,7 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
         )
 
-        Card(Modifier.fillMaxWidth()) {
+        BookCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("关于", style = MaterialTheme.typography.labelLarge)
                 listOf(

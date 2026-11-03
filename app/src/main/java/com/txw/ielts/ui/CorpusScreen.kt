@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -70,7 +69,7 @@ fun CorpusHomeScreen(
             Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+        BookCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("今天", style = MaterialTheme.typography.labelLarge)
                 Text(
@@ -109,7 +108,7 @@ fun CorpusHomeScreen(
         }
 
         Text("内容构成", style = MaterialTheme.typography.titleMedium)
-        Card {
+        BookCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 typeCounts.sortedByDescending { it.second }.forEach { (t, n) ->
                     Row(Modifier.fillMaxWidth()) {
@@ -132,7 +131,7 @@ fun CorpusHomeScreen(
 
 @Composable
 private fun MiniStat(label: String, value: String, modifier: Modifier) {
-    Card(modifier) {
+    BookCard(modifier) {
         Column(Modifier.padding(12.dp)) {
             Text(label, style = MaterialTheme.typography.labelSmall)
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
@@ -173,7 +172,7 @@ fun StudyScreen(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        Card(Modifier.fillMaxWidth()) {
+        BookCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(card.front, fontSize = 26.sp, fontWeight = FontWeight.SemiBold, fontFamily = FontFamily.Serif)
                 if (card.tags.isNotBlank()) {
@@ -196,7 +195,7 @@ fun StudyScreen(
                 Button(onClick = onReveal, modifier = Modifier.fillMaxWidth()) { Text("显示答案") }
             } else {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    Card(Modifier.fillMaxWidth()) {
+                    BookCard(Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Text(card.back, style = MaterialTheme.typography.bodyLarge)
                             if (card.example.isNotBlank()) {

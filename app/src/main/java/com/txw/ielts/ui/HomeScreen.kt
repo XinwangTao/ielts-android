@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +20,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,10 +31,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.txw.ielts.data.Session
+import com.txw.ielts.data.StreakCalc
 import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -72,7 +72,7 @@ fun HomeScreen(
     targetBand: Float = 6.5f,
     examDate: String = "",
 ) {
-    val streak = remember(sessions) { streakDays(sessions) }
+    val streak = remember(sessions) { StreakCalc.currentStreak(sessions) }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 24.dp),
@@ -208,7 +208,7 @@ fun HomeScreen(
         // —— AI 生成状态（书页脚注式）——
         if (aiGenBusy || aiGenReadyId != null || aiGenError != null) {
             Spacer(Modifier.height(16.dp))
-            Card(Modifier.fillMaxWidth()) {
+            BookCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         when {
@@ -306,49 +306,6 @@ private fun ChapterRow(num: String, title: String, note: String, onClick: () -> 
     )
 }
 
-/** 最近 14 天做题量柱状图（书页脚注风格，深色柱=今天）。 */
-@Composable
-private fun DailyBarsCard(sessions: List<Session>) {
-    val primary = MaterialTheme.colorScheme.primary
-    val today = LocalDate.now()
-    val counts = remember(sessions) {
-        sessions.groupBy {
-            java.time.Instant.ofEpochMilli(it.startedAt)
-                .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
-        }.mapValues { it.value.size }
-    }
-    val max = (counts.values.maxOrNull() ?: 0).coerceAtLeast(1)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("最近 14 天做题量", style = MaterialTheme.typography.titleSmall)
-            Row(Modifier.fillMaxWidth().height(120.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                (0..13).forEach { i ->
-                    val date = today.minusDays((13 - i).toLong())
-                    val c = counts[date.toString()] ?: 0
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.weight(1f).fillMaxWidth()) {
-                            Box(
-                                Modifier.align(Alignment.BottomCenter)
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(if (c == 0) 0.02f else c.toFloat() / max)
-                                    .background(
-                                        if (date == today) primary else primary.copy(alpha = 0.4f),
-                                        RoundedCornerShape(4.dp),
-                                    ),
-                            )
-                        }
-                        Text(
-                            if (date == today) "今" else "${date.dayOfMonth}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (date == today) primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 /** GitHub 风格打卡热力图：最近 12 周，格子深浅 = 当天练习次数。 */
 @Composable
 private fun StreakCalendar(sessions: List<Session>) {
@@ -364,7 +321,7 @@ private fun StreakCalendar(sessions: List<Session>) {
     if (counts[d.toString()] == null) d = d.minusDays(1)
     while (counts[d.toString()] != null) { streak++; d = d.minusDays(1) }
 
-    Card(Modifier.fillMaxWidth()) {
+    BookCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("打卡", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -415,11 +372,18 @@ private fun heatColor(count: Int): Color = when {
 @Composable
 private fun SessionRow(s: Session, onClick: () -> Unit) {
     val fmt = remember { SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()) }
-    Card(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 14.dp)) {
+    BookCard(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        // 色条要跟内容一样高：原来是写死的 46dp，标题+两行正文通常 80dp 以上，
+        // 色条只盖住上半截，看起来像没对齐。用 IntrinsicSize.Min 让行高由内容决定，
+        // 色条 fillMaxHeight 跟着撑满。
+        Row(
+            Modifier
+                .height(IntrinsicSize.Min)
+                .padding(start = 14.dp, end = 14.dp, top = 14.dp, bottom = 14.dp),
+        ) {
             Box(
                 Modifier.width(4.dp)
-                    .height(46.dp)
+                    .fillMaxHeight()
                     .background(moduleColor(s.module), RoundedCornerShape(2.dp)),
             )
             Spacer(Modifier.width(11.dp))
@@ -485,15 +449,3 @@ internal fun bandValue(scoresJson: String): Double? = runCatching {
     if (o.has("overall")) o.optDouble("overall", 0.0) else null
 }.getOrNull()
 
-private fun streakDays(sessions: List<Session>): Int {
-    if (sessions.isEmpty()) return 0
-    val days = sessions.map {
-        java.time.Instant.ofEpochMilli(it.startedAt)
-            .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
-    }.toSet()
-    var streak = 0
-    var d = LocalDate.now()
-    if (days.contains(d.toString()) == false) d = d.minusDays(1)
-    while (days.contains(d.toString())) { streak++; d = d.minusDays(1) }
-    return streak
-}

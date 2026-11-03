@@ -13,12 +13,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -69,7 +67,7 @@ fun BankResultScreen(
     ) {
         IosNavBar(if (module == "listening") "听力结果" else "阅读结果", onBack = onBack)
 
-        Card(
+        BookCard(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         ) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -94,7 +92,7 @@ fun BankResultScreen(
 
         if (passage.isNotBlank()) {
             val allKeys = items.flatMap { it.keys }.distinct()
-            Card(modifier = Modifier.fillMaxWidth()) {
+            BookCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("原文对照（答案定位处已高亮）", style = MaterialTheme.typography.labelLarge)
                     Text(
@@ -107,7 +105,7 @@ fun BankResultScreen(
         }
 
         items.forEach { item ->
-            Card(modifier = Modifier.fillMaxWidth()) {
+            BookCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Top) {
                         Box(
@@ -175,7 +173,7 @@ fun BankResultScreen(
         }
 
         if (module == "listening" && transcript.isNotBlank()) {
-            Card {
+            BookCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("听力原文", style = MaterialTheme.typography.labelLarge)
                     Text(transcript, style = MaterialTheme.typography.bodySmall)

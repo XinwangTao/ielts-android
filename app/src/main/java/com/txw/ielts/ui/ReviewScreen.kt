@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,14 +17,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
@@ -37,8 +32,8 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.txw.ielts.data.Session
+import com.txw.ielts.data.StreakCalc
 import org.json.JSONObject
-import java.time.LocalDate
 import java.util.Calendar
 
 private data class Point(val index: Int, val band: Double, val speaking: Boolean)
@@ -66,7 +61,7 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
     }.sortedBy { it.first.startedAt }   // Room 返回倒序，画图前必须转成时间正序
     val thisWeek = bands.count { it.first.startedAt >= weekStart() }
     val avg = if (bands.isEmpty()) 0.0 else bands.sumOf { it.second } / bands.size
-    val streak = streakDays(sessions)
+    val streak = StreakCalc.currentStreak(sessions)
     val buckets = topErrors(sessions)
     val isWide = LocalConfiguration.current.screenWidthDp >= 600
 
@@ -78,7 +73,7 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
         }
     }
     val trendCard: @Composable () -> Unit = {
-        Card(Modifier.fillMaxWidth()) {
+        BookCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Band 趋势（最近 ${minOf(bands.size, 20)} 次）", style = MaterialTheme.typography.titleSmall)
                 if (bands.size < 2) {
@@ -101,7 +96,7 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
         if (buckets.isEmpty()) {
             Text("还没有足够的批注数据。", style = MaterialTheme.typography.bodySmall)
         } else {
-            Card(Modifier.fillMaxWidth()) {
+            BookCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     val max = buckets.maxOf { it.count }.coerceAtLeast(1)
                     buckets.take(6).forEach { b -> ErrorBar(b, max) }
@@ -114,7 +109,7 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
             Text("待处理", style = MaterialTheme.typography.titleMedium)
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(180.dp)) {
                 items(pending, key = { it.id }) { s ->
-                    Card(onClick = { onOpen(s.id) }, modifier = Modifier.fillMaxWidth()) {
+                    BookCard(onClick = { onOpen(s.id) }, modifier = Modifier.fillMaxWidth()) {
                         Column(Modifier.padding(12.dp)) {
                             Text(s.topic.take(60), style = MaterialTheme.typography.bodyMedium, maxLines = 2)
                             Text(s.status, style = MaterialTheme.typography.labelSmall)
@@ -155,7 +150,7 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
 
 @Composable
 private fun StatTile(label: String, value: String, unit: String, modifier: Modifier, highlight: Boolean = false) {
-    Card(
+    BookCard(
         modifier,
         colors = CardDefaults.cardColors(
             containerColor = if (highlight) MaterialTheme.colorScheme.primaryContainer
@@ -268,49 +263,6 @@ private fun ErrorBar(bucket: ErrorBucket, max: Int) {
     }
 }
 
-/** 最近 14 天做题量柱状图（自绘 Canvas 思路，零依赖；深色柱=今天）。 */
-@Composable
-private fun DailyBarsCard(sessions: List<Session>) {
-    val primary = MaterialTheme.colorScheme.primary
-    val today = LocalDate.now()
-    val counts = remember(sessions) {
-        sessions.groupBy {
-            java.time.Instant.ofEpochMilli(it.startedAt)
-                .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
-        }.mapValues { it.value.size }
-    }
-    val max = (counts.values.maxOrNull() ?: 0).coerceAtLeast(1)
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("最近 14 天做题量", style = MaterialTheme.typography.titleSmall)
-            Row(Modifier.fillMaxWidth().height(120.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                (0..13).forEach { i ->
-                    val date = today.minusDays((13 - i).toLong())
-                    val c = counts[date.toString()] ?: 0
-                    Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(Modifier.weight(1f).fillMaxWidth()) {
-                            Box(
-                                Modifier.align(Alignment.BottomCenter)
-                                    .fillMaxWidth()
-                                    .fillMaxHeight(if (c == 0) 0.02f else c.toFloat() / max)
-                                    .background(
-                                        if (date == today) primary else primary.copy(alpha = 0.4f),
-                                        RoundedCornerShape(4.dp),
-                                    ),
-                            )
-                        }
-                        Text(
-                            if (date == today) "今" else "${date.dayOfMonth}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (date == today) primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
 private fun weekStart(): Long {
     val cal = Calendar.getInstance().apply {
         firstDayOfWeek = Calendar.MONDAY
@@ -319,29 +271,6 @@ private fun weekStart(): Long {
         set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
     }
     return cal.timeInMillis
-}
-
-private fun streakDays(sessions: List<Session>): Int {
-    if (sessions.isEmpty()) return 0
-    val days = sessions.map {
-        Calendar.getInstance().apply { timeInMillis = it.startedAt }.let { c ->
-            "${c.get(Calendar.YEAR)}-${c.get(Calendar.DAY_OF_YEAR)}"
-        }
-    }.toSet()
-    var streak = 0
-    val cal = Calendar.getInstance()
-    // 今天还没练时从昨天开始续算，与首页打卡规则一致（此前两处同日显示不同数字）。
-    if (!days.contains("${cal.get(Calendar.YEAR)}-${cal.get(Calendar.DAY_OF_YEAR)}")) {
-        cal.add(Calendar.DAY_OF_YEAR, -1)
-    }
-    while (true) {
-        val key = "${cal.get(Calendar.YEAR)}-${cal.get(Calendar.DAY_OF_YEAR)}"
-        if (days.contains(key)) {
-            streak++
-            cal.add(Calendar.DAY_OF_YEAR, -1)
-        } else break
-    }
-    return streak
 }
 
 internal fun topErrors(sessions: List<Session>): List<ErrorBucket> {

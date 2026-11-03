@@ -12,9 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -67,7 +65,7 @@ fun ShadowHomeScreen(
 
         passages.forEach { p ->
             val last = lastScores[p.id]
-            Card(modifier = Modifier.fillMaxWidth()) {
+            BookCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(p.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
@@ -139,7 +137,7 @@ fun ShadowStudyScreen(
             Text("第 ${index + 1} / ${passage.sentences.size} 句", style = MaterialTheme.typography.labelLarge)
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+        BookCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("参考句", style = MaterialTheme.typography.labelLarge)
                 Text(sentence, style = MaterialTheme.typography.titleMedium)
@@ -154,7 +152,7 @@ fun ShadowStudyScreen(
             }
         }
 
-        Card {
+        BookCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     when {
@@ -191,7 +189,7 @@ fun ShadowStudyScreen(
         }
 
         if (lastResult != null) {
-            Card {
+            BookCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("准确率 ${"%.0f".format(lastResult.accuracy * 100)}%",
@@ -264,7 +262,7 @@ fun ShadowResultScreen(
             Text("跟读结果", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         }
 
-        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+        BookCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(title, style = MaterialTheme.typography.titleMedium, fontFamily = FontFamily.Serif)
                 Text(
@@ -285,7 +283,7 @@ fun ShadowResultScreen(
         }
 
         items.forEachIndexed { i, item ->
-            Card(modifier = Modifier.fillMaxWidth()) {
+            BookCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("${i + 1}. ${item.ref}", style = MaterialTheme.typography.bodyMedium)
                     Text("你的转写：${item.hyp.ifBlank { "（空）" }}", style = MaterialTheme.typography.bodySmall)
@@ -295,7 +293,7 @@ fun ShadowResultScreen(
         }
 
         if (missedAll.isNotEmpty()) {
-            Card {
+            BookCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("漏读/读错词（${missedAll.size}）", style = MaterialTheme.typography.labelLarge)
                     Text(missedAll.joinToString("  "), style = MaterialTheme.typography.bodyMedium)

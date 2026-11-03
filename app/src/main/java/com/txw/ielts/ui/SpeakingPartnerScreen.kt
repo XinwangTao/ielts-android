@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -24,7 +23,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -231,7 +229,7 @@ fun SpeakingPartnerScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             if (phase == "done") {
-                Card(Modifier.fillMaxWidth()) {
+                BookCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         Text("本轮对练完成", style = MaterialTheme.typography.titleSmall)
                         Text("共 ${turns.size} 轮，累计回答 $totalSeconds 秒。", style = MaterialTheme.typography.bodySmall)
@@ -277,7 +275,7 @@ fun SpeakingPartnerScreen(
         }
 
         currentQuestion?.let { q ->
-            Card(Modifier.fillMaxWidth()) {
+            BookCard(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("考官问题", style = MaterialTheme.typography.labelLarge)
                     Text(q, style = MaterialTheme.typography.bodyLarge, fontFamily = FontFamily.Serif)
@@ -324,7 +322,7 @@ fun SpeakingPartnerScreen(
         if (turns.isNotEmpty()) {
             Text("对话记录", style = MaterialTheme.typography.labelLarge)
             turns.forEachIndexed { i, t ->
-                Card(Modifier.fillMaxWidth()) {
+                BookCard(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Q${i + 1} ${t.question}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("A: ${t.answer}", style = MaterialTheme.typography.bodyMedium)

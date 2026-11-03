@@ -14,15 +14,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -215,7 +211,7 @@ private fun ReadingCard(
         }
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    BookCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("阅读原文", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
@@ -425,7 +421,7 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
         }
     }
 
-    Card {
+    BookCard {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("听力音频", style = MaterialTheme.typography.labelLarge)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -499,7 +495,7 @@ private fun MediaPlayer.setPlaybackSpeedCompat(speed: Float) {
 
 @Composable
 private fun QuestionCard(index: Int, q: BankQuestion, answer: String?, onChange: (String) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    BookCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "$index. ${q.prompt}",

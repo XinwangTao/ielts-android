@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -64,7 +63,7 @@ fun ChartGenScreen(
             },
             modifier = Modifier.fillMaxWidth(),
         )
-        Card(Modifier.fillMaxWidth()) {
+        BookCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 ChartView(spec)
                 Text(spec.prompt(), style = MaterialTheme.typography.bodyMedium)
