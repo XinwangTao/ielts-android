@@ -79,6 +79,7 @@ import com.txw.ielts.ui.TopicScreen
 import com.txw.ielts.ui.ResultScreen
 import com.txw.ielts.ui.ReviewScreen
 import com.txw.ielts.ui.SettingsScreen
+import com.txw.ielts.ui.SkillTargets
 import com.txw.ielts.ui.SpeakingScreen
 import com.txw.ielts.ui.SpeakingMockScreen
 import com.txw.ielts.ui.SpeakingPartnerScreen
@@ -1402,6 +1403,12 @@ private fun App(
                     plan = dailyPlan,
                     targetBand = prefs.targetBand,
                     examDate = prefs.examDate,
+                    skillTargets = SkillTargets(
+                        listening = prefs.targetListening.toDouble(),
+                        reading = prefs.targetReading.toDouble(),
+                        writing = prefs.targetWriting.toDouble(),
+                        speaking = prefs.targetSpeaking.toDouble(),
+                    ),
                 )
 
                 is Route.Writing -> WritingScreen(

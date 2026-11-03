@@ -50,6 +50,48 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_EXAM_DATE, "") ?: ""
         set(v) = sp.edit().putString(KEY_EXAM_DATE, v.trim()).apply()
 
+    /**
+     * 四科目标分。从未设置过时先按总分目标兜底（新装机不必先配四遍），
+     * 保存过设置就各科独立：总分调高后四科不会偷偷跟着变，
+     * 首页会把「四科换算总分」摆出来提醒，是否齐平由用户自己决定。
+     */
+    private fun skillTarget(key: String): Float {
+        val saved = sp.getFloat(key, UNSET)
+        return if (saved == UNSET) targetBand else ExamTarget.snapBand(saved)
+    }
+
+    val targetListening: Float
+        get() = skillTarget(KEY_TARGET_L)
+
+    val targetReading: Float
+        get() = skillTarget(KEY_TARGET_R)
+
+    val targetWriting: Float
+        get() = skillTarget(KEY_TARGET_W)
+
+    val targetSpeaking: Float
+        get() = skillTarget(KEY_TARGET_S)
+
+    /**
+     * 一次性写入四科目标（null 表示这一科没填，保持原值不动）。
+     *
+     * 逐科 setter 会让「只改总分」也把四科钉在旧值上，所以只在保存时整体写；
+     * 也不做「等于总分就删掉」的自动跟随——用户特意把口语压到 6.0 保底时，
+     * 那个 6.0 是决策，不是默认值，不该被规则抹掉。
+     */
+    fun setSkillTargets(listening: Float?, reading: Float?, writing: Float?, speaking: Float?) {
+        val editor = sp.edit()
+        fun put(key: String, value: Float?) {
+            val snapped = value?.takeIf { it.isFinite() }?.let { ExamTarget.snapBand(it) } ?: return
+            editor.putFloat(key, snapped)
+        }
+        put(KEY_TARGET_L, listening)
+        put(KEY_TARGET_R, reading)
+        put(KEY_TARGET_W, writing)
+        put(KEY_TARGET_S, speaking)
+        editor.apply()
+    }
+
     // ---- API 用量控制：防止后台或误触频繁调用大模型 ----
     var dailyCallLimit: Int
         get() = sp.getInt(KEY_LIMIT, 20)
@@ -135,6 +177,13 @@ class Prefs(context: Context) {
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
         private const val KEY_TARGET_BAND = "target_band"
         private const val KEY_EXAM_DATE = "exam_date"
+        private const val KEY_TARGET_L = "target_band_listening"
+        private const val KEY_TARGET_R = "target_band_reading"
+        private const val KEY_TARGET_W = "target_band_writing"
+        private const val KEY_TARGET_S = "target_band_speaking"
+
+        /** 四科目标「未设置」哨兵：比任何合法分数都小，snapBand 不可能产出。 */
+        private const val UNSET = -1f
         const val DEFAULT_BASE = "https://open.bigmodel.cn/api/paas/v4"
         const val DEFAULT_MODEL = "glm-5.3-flash"
     }

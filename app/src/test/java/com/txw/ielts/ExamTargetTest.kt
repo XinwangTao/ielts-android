@@ -89,4 +89,29 @@ class ExamTargetTest {
         assertEquals(6.5f, ExamTarget.snapBand(Float.NaN))
         assertEquals(7.5f, ExamTarget.snapBand(null, fallback = 7.5f))
     }
+
+    @Test
+    fun `overallBand 四科齐平直接等于该分`() {
+        assertEquals(6.5, ExamTarget.overallBand(6.5, 6.5, 6.5, 6.5)!!, 1e-9)
+        assertEquals(7.0, ExamTarget.overallBand(7.0, 7.0, 7.0, 7.0)!!, 1e-9)
+    }
+
+    @Test
+    fun `overallBand 落在半档正好时向上进`() {
+        // 6.125 → 6.5? 不是：6.125 离 6.0 更近，官方给 6.0。向上取整会白送半档。
+        assertEquals(6.0, ExamTarget.overallBand(6.0, 6.0, 6.0, 6.5)!!, 1e-9)
+        // 6.375（四科 6.5/6.5/6.5/6.0 与 6.0/6.5/6.5/6.5 都是 6.375）→ 6.5
+        assertEquals(6.5, ExamTarget.overallBand(6.5, 6.5, 6.5, 6.0)!!, 1e-9)
+        // 6.25 正好卡在中间（6+6+6+7=25），官方向上 → 6.5
+        assertEquals(6.5, ExamTarget.overallBand(6.0, 6.0, 6.0, 7.0)!!, 1e-9)
+        // 6.75 → 7.0
+        assertEquals(7.0, ExamTarget.overallBand(6.5, 7.0, 7.0, 6.5)!!, 1e-9)
+    }
+
+    @Test
+    fun `overallBand 缺科返回 null`() {
+        assertNull(ExamTarget.overallBand(6.5, null, 6.5, 6.5))
+        assertNull(ExamTarget.overallBand(null, null, null, null))
+        assertNull(ExamTarget.overallBand(6.5, 6.5, 6.5, Double.NaN))
+    }
 }

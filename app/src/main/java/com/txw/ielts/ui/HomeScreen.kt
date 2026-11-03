@@ -71,6 +71,7 @@ fun HomeScreen(
     plan: List<Pair<String, () -> Unit>> = emptyList(),
     targetBand: Float = 6.5f,
     examDate: String = "",
+    skillTargets: SkillTargets? = null,
 ) {
     val streak = remember(sessions) { StreakCalc.currentStreak(sessions) }
 
@@ -141,13 +142,22 @@ fun HomeScreen(
                 else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        // 四科 profile：L/R 按正确率映射，W/S 按最近 5 次 overall 平均
+        // 四科 profile：L/R 按正确率映射，W/S 按最近 5 次 overall 平均；
+        // 带目标时每科直接标出「差多少 / 已达标」，省得自己拿总分去猜哪科拖后腿。
         Text(
-            skillProfile(sessions).line(),
+            skillProfile(sessions).line(skillTargets),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 2.dp),
         )
+        // 四科目标不等于总分目标时，把换算结果写出来：官方是先平均再向上取 0.5，
+        // 四科都考 6.5 才是 6.5，一科 6.0 总分就掉到 6.0。
+        subTargetLine(skillTargets, target)?.let {            Text(
+                it,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         Spacer(Modifier.height(10.dp))
 
         // —— 今日任务：基于数据的推荐，碎片时间不用自己想练什么 ——
@@ -309,17 +319,15 @@ private fun ChapterRow(num: String, title: String, note: String, onClick: () -> 
 /** GitHub 风格打卡热力图：最近 12 周，格子深浅 = 当天练习次数。 */
 @Composable
 private fun StreakCalendar(sessions: List<Session>) {
-    val dayFmt = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    // 打卡 heatmap 与首页顶部「连续打卡」必须同一套日期归一：这里原先是自己用
+    // SimpleDateFormat 拼 key、自己 while 数连续，跨年/时区跟 StreakCalc 对不上时
+    // 同一屏会显示两个不一样的连续天数。统一走 StreakCalc。
     val counts = remember(sessions) {
-        sessions.groupBy { dayFmt.format(Date(it.startedAt)) }.mapValues { it.value.size }
+        sessions.groupBy { StreakCalc.dayKey(it.startedAt) }.mapValues { it.value.size }
     }
     val today = LocalDate.now()
     val start = today.minusWeeks(11).with(DayOfWeek.MONDAY)
-
-    var streak = 0
-    var d = today
-    if (counts[d.toString()] == null) d = d.minusDays(1)
-    while (counts[d.toString()] != null) { streak++; d = d.minusDays(1) }
+    val streak = remember(counts, today) { StreakCalc.currentStreak(counts.keys, today) }
 
     BookCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

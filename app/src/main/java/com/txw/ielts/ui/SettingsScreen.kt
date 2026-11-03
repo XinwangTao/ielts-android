@@ -37,10 +37,15 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
     var localModel by remember { mutableStateOf(prefs.localModel) }
     var limit by remember { mutableStateOf(prefs.dailyCallLimit.toString()) }
     var targetBand by remember { mutableStateOf("%.1f".format(prefs.targetBand)) }
+    // 四科目标：留空/不动就跟随总分目标，改过才单独生效（见 Prefs.skillTarget）。
+    var targetL by remember { mutableStateOf("%.1f".format(prefs.targetListening)) }
+    var targetR by remember { mutableStateOf("%.1f".format(prefs.targetReading)) }
+    var targetW by remember { mutableStateOf("%.1f".format(prefs.targetWriting)) }
+    var targetS by remember { mutableStateOf("%.1f".format(prefs.targetSpeaking)) }
     var examDate by remember { mutableStateOf(prefs.examDate) }
     var saved by remember { mutableStateOf(false) }
     // 任一字段再编辑就撤销「已保存」标记，避免用户以为改动已生效。
-    LaunchedEffect(base, key, model, asr, channel, localModel, limit, targetBand, examDate) {
+    LaunchedEffect(base, key, model, asr, channel, localModel, limit, targetBand, examDate, targetL, targetR, targetW, targetS) {
         if (saved) saved = false
     }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -77,6 +82,39 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
                 )
             },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
+        )
+
+        // —— 四科目标：总分不是四科随便平均，官方是平均后向上取到 0.5，
+        // 所以给某一科留保底（比如口语 6.0）时，总分目标要跟着重算，不能只看总分输入框 ——
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            IosTextField(
+                targetL, { targetL = it.filter { c -> c.isDigit() || c == '.' }.take(4) },
+                label = "听力 L", modifier = Modifier.weight(1f), singleLine = true,
+            )
+            IosTextField(
+                targetR, { targetR = it.filter { c -> c.isDigit() || c == '.' }.take(4) },
+                label = "阅读 R", modifier = Modifier.weight(1f), singleLine = true,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            IosTextField(
+                targetW, { targetW = it.filter { c -> c.isDigit() || c == '.' }.take(4) },
+                label = "写作 W", modifier = Modifier.weight(1f), singleLine = true,
+            )
+            IosTextField(
+                targetS, { targetS = it.filter { c -> c.isDigit() || c == '.' }.take(4) },
+                label = "口语 S", modifier = Modifier.weight(1f), singleLine = true,
+            )
+        }
+        val overallPreview = com.txw.ielts.data.ExamTarget.overallBand(
+            targetL.toDoubleOrNull(), targetR.toDoubleOrNull(),
+            targetW.toDoubleOrNull(), targetS.toDoubleOrNull(),
+        )
+        Text(
+            if (overallPreview != null) "四科换算总分 %.1f（四科平均后向上取 0.5）".format(overallPreview)
+            else "四科都填才换算；调总分不会自动改这四科，不一致时自己对齐",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
         IosTextField(base, { base = it }, label = "Base URL", modifier = Modifier.fillMaxWidth(), singleLine = true)
@@ -247,8 +285,17 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
                 prefs.localModel = localModel
                 limit.toIntOrNull()?.let { prefs.dailyCallLimit = it }
                 prefs.targetBand = com.txw.ielts.data.ExamTarget.snapBand(targetBand.toFloatOrNull(), prefs.targetBand)
+                // 四科目标独立写入：调总分不会自动改四科，上面的换算提示会暴露两者不一致。
+                prefs.setSkillTargets(
+                    targetL.toFloatOrNull(), targetR.toFloatOrNull(),
+                    targetW.toFloatOrNull(), targetS.toFloatOrNull(),
+                )
                 prefs.examDate = examDate
                 targetBand = "%.1f".format(prefs.targetBand)
+                targetL = "%.1f".format(prefs.targetListening)
+                targetR = "%.1f".format(prefs.targetReading)
+                targetW = "%.1f".format(prefs.targetWriting)
+                targetS = "%.1f".format(prefs.targetSpeaking)
                 saved = true
             },
         ) { Text(if (saved) "已保存" else "保存") }

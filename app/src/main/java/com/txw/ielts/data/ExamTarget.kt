@@ -38,4 +38,23 @@ object ExamTarget {
         val v = value?.takeIf { it.isFinite() } ?: return fallback
         return ((v * 2).toInt() / 2f).coerceIn(4f, 9f)
     }
+
+    /**
+     * 四科目标/成绩换算总分。
+     *
+     * 官方规则：四科求平均后取最近的 0.5 档，正好落在 .25/.75 时向上进
+     * （6.375 → 6.5，6.125 → 6.0）。所以是 floor(avg*2 + 0.5)/2，
+     * 既不是向上取整（那会把 6.125 抬到 6.5，白送半档），也不是普通的
+     * 四舍五入到整数（6.25 会被算成 6.0）。
+     * 加 1e-9 防浮点误差：6.5*4/4 在 double 下可能算出 6.499999999999999，
+     * 正好踩在边界上时会往下掉半档。
+     *
+     * 四科缺任意一科返回 null：缺项按 0 算或按其余三科平均，都会给出假的达标结论。
+     */
+    fun overallBand(listening: Double?, reading: Double?, writing: Double?, speaking: Double?): Double? {
+        val values = listOf(listening, reading, writing, speaking)
+        if (values.any { it == null || !it.isFinite() }) return null
+        val avg = values.sumOf { it!! } / 4.0
+        return kotlin.math.floor(avg * 2 + 0.5 + 1e-9) / 2.0
+    }
 }
