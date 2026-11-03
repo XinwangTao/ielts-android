@@ -128,7 +128,7 @@ sealed interface Route {
  * 没有它，`remember` 会在 Activity 重建时回到首页——用户写作到一半转个屏就丢页。
  * 未知/损坏的串一律回首页，不抛异常。
  */
-private fun Route.encode(): String = when (this) {
+internal fun Route.encode(): String = when (this) {
     Route.Home -> "home"
     Route.Writing -> "writing"
     Route.Speaking -> "speaking"
@@ -155,7 +155,7 @@ private fun Route.encode(): String = when (this) {
     is Route.Result -> "result:$id"
 }
 
-private fun decodeRoute(s: String): Route {
+internal fun decodeRoute(s: String): Route {
     if (!s.contains(':')) {
         return when (s) {
             "writing" -> Route.Writing
@@ -283,14 +283,14 @@ private fun hasNetwork(context: Context): Boolean = runCatching {
 }.getOrDefault(true)
 
 /** 无法从空 scoresJson 判断题型时的启发式：图表/流程图题干 → task1（Task2 议论文题干一般含 discuss）。 */
-private fun guessTask(topic: String): String {
+internal fun guessTask(topic: String): String {
     val t = topic.lowercase()
     val looksChart = Regex("\\b(chart|graph|table|diagram|maps?)\\b").containsMatchIn(t)
     return if (looksChart && !t.contains("discuss")) "task1" else "task2"
 }
 
 /** 题型优先取字段（v3 起入库），旧数据回退到启发式猜题。 */
-private fun Session.resolvedTask(): String = task.ifBlank { guessTask(topic) }
+internal fun Session.resolvedTask(): String = task.ifBlank { guessTask(topic) }
 
 @Composable
 private fun App(

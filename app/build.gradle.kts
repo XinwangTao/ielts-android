@@ -62,4 +62,9 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
     implementation("androidx.core:core-ktx:1.13.1")
+
+    // 单元测试：纯函数（题型判定 / 评分规则 / Route 编解码）跑 JVM，不依赖设备。
+    // org.json 必须在 android.jar 的 stub 之前生效，否则 JSONObject 会抛 "not mocked"。
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20231013")
 }
