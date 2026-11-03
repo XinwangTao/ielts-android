@@ -1,0 +1,160 @@
+{
+  "topics": [
+    {
+      "id": "topic-1",
+      "title": "一个你敬佩的人",
+      "prompt": "Describe a person you admire. You should say who this person is, how you know them, what qualities they have, and explain why you admire them.",
+      "sentences": [
+        "The person I'd like to talk about is my grandfather, who has influenced me more than anyone else.",
+        "He spent over thirty years working as a village teacher, often walking miles to reach his students.",
+        "What I admire most is his patience — he never lost his temper, even when things went badly wrong.",
+        "He taught me that persistence matters far more than talent, and I still carry that lesson with me today.",
+        "Looking back, I realise how much of my own attitude towards work comes from simply watching him."
+      ],
+      "tips": "人物题结构：是谁 → 怎么认识 → 两个品质（用具体小故事）→ 为什么敬佩（一句感悟）。"
+    },
+    {
+      "id": "topic-2",
+      "title": "一个有趣的地方",
+      "prompt": "Describe an interesting place you have visited. You should say where it is, when you went there, what you did there, and explain why it was interesting.",
+      "sentences": [
+        "The place I want to describe is a small coastal town about two hours from my city.",
+        "I went there last summer with a couple of friends, mainly to escape the noise of the city.",
+        "We spent most of our time walking along the old harbour and trying local seafood.",
+        "What made it special was the pace of life — nobody seemed to be in a hurry.",
+        "It reminded me that sometimes the best trips are the ones with no fixed plan at all."
+      ],
+      "tips": "地点题结构：在哪 → 何时去 → 做了什么（2-3 个细节）→ 为什么有趣（对比日常）。"
+    },
+    {
+      "id": "topic-3",
+      "title": "一次难忘的旅行",
+      "prompt": "Describe a trip you remember well. You should say where you went, who you went with, what happened during the trip, and explain why you remember it.",
+      "sentences": [
+        "One trip that stands out is a three-day hike I did with my cousin in the mountains.",
+        "We started early in the morning and completely underestimated how steep the path would be.",
+        "Halfway up it started raining, so we sheltered in a small hut and shared our food with another group.",
+        "By the time we reached the top, the clouds had cleared and the view was absolutely worth it.",
+        "What I remember most is not the scenery but the feeling of finishing something genuinely hard."
+      ],
+      "tips": "旅行题结构：去哪 → 和谁 → 发生了什么（一个小意外）→ 为什么难忘（感受）。"
+    },
+    {
+      "id": "topic-4",
+      "title": "一个你喜欢的礼物",
+      "prompt": "Describe a gift you received that you liked. You should say what it was, who gave it to you, when you received it, and explain why you liked it.",
+      "sentences": [
+        "The gift I'd like to talk about is a pair of running shoes my sister gave me two years ago.",
+        "At the time I had just started jogging, and I was using an old pair that hurt my knees.",
+        "She noticed, did some research, and picked a model that suited my running style.",
+        "What made it special wasn't the price but the fact that she had clearly paid attention.",
+        "I still wear them every weekend, and they remind me that good gifts are about thought, not money."
+      ],
+      "tips": "礼物题结构：是什么 → 谁送的 → 何时 → 为什么喜欢（细节+情感）。"
+    },
+    {
+      "id": "topic-5",
+      "title": "一项你学会的技能",
+      "prompt": "Describe a skill you learned that was difficult at first. You should say what it was, how you learned it, why it was difficult, and explain how you feel about it now.",
+      "sentences": [
+        "The skill I'd like to describe is swimming, which I only learned properly in my late twenties.",
+        "As a child I was afraid of deep water, so I avoided pools whenever I could.",
+        "I finally signed up for adult lessons and practised twice a week for about three months.",
+        "The hardest part was breathing rhythm — for weeks I would panic after two strokes.",
+        "Now I swim a kilometre a week, and it has become the most relaxing part of my routine."
+      ],
+      "tips": "技能题结构：是什么 → 怎么学 → 难在哪（具体细节）→ 现在感受（对比过去）。"
+    },
+    {
+      "id": "topic-6",
+      "title": "一本你喜欢的书或电影",
+      "prompt": "Describe a book or film you enjoyed. You should say what it is, when you first read or watched it, what it is about, and explain why you enjoyed it.",
+      "sentences": [
+        "The book I want to talk about is a novel called The Remains of the Day.",
+        "I first read it during a long train journey and finished it in one sitting.",
+        "It tells the story of an English butler looking back on decades of service and missed chances.",
+        "What struck me was how quietly powerful it is — the emotions are hidden between the lines.",
+        "It made me think about how people often realise what matters most far too late."
+      ],
+      "tips": "书影题结构：是什么 → 何时接触 → 内容一句话 → 为什么喜欢（手法/主题）+ 一句感悟。"
+    },
+    {
+      "id": "topic-7",
+      "title": "一次帮助别人的经历",
+      "prompt": "Describe a time you helped someone. You should say who you helped, what you did, how they reacted, and explain how you felt about it.",
+      "sentences": [
+        "I'd like to talk about an evening when I helped an elderly neighbour with his phone.",
+        "He had bought a new smartphone but couldn't work out how to make video calls.",
+        "I spent about an hour setting it up and writing down simple steps in large letters.",
+        "He was genuinely grateful, and a few days later he called his granddaughter for the first time.",
+        "It was a small thing, but it reminded me how much technology can isolate people who are left behind."
+      ],
+      "tips": "帮助题结构：帮谁 → 做了什么（具体步骤）→ 对方反应 → 你的感受/启发。"
+    },
+    {
+      "id": "topic-8",
+      "title": "一个你常去的安静地方",
+      "prompt": "Describe a quiet place you like to go. You should say where it is, how often you go there, what you do there, and explain why you like it.",
+      "sentences": [
+        "The place I'd like to describe is a small teahouse hidden behind an old temple near my home.",
+        "I go there roughly once a week, usually on Sunday afternoons.",
+        "I take a book, order a pot of tea, and simply read for a couple of hours.",
+        "What I like most is that the owner never plays music and nobody talks on the phone.",
+        "In a city this noisy, silence has become something you have to actively look for."
+      ],
+      "tips": "安静地点题结构：在哪 → 多久去一次 → 做什么 → 为什么喜欢（氛围对比）。"
+    },
+    {
+      "id": "topic-9",
+      "title": "一件你买过的重要物品",
+      "prompt": "Describe something important you bought. You should say what it was, where you bought it, why you bought it, and explain why it is important to you.",
+      "sentences": [
+        "The item I'd like to talk about is my first proper laptop, which I bought five years ago.",
+        "I saved for almost a year and finally ordered it during a sale online.",
+        "I needed it for work, but it also became the tool I used to learn programming.",
+        "It was expensive for me at the time, which made me take care of it and use it well.",
+        "Looking back, that laptop opened the door to the career I have today."
+      ],
+      "tips": "物品题结构：是什么 → 在哪买 → 为什么买 → 为什么重要（改变/意义）。"
+    },
+    {
+      "id": "topic-10",
+      "title": "一个你参加过的活动或节日",
+      "prompt": "Describe an event or festival you attended. You should say what it was, when and where it happened, who you went with, and explain what you enjoyed about it.",
+      "sentences": [
+        "The event I want to describe is a lantern festival I attended in a small town last winter.",
+        "I went with my family, and we arrived just before sunset when the streets were already crowded.",
+        "There were handmade lanterns along the river, street food stalls, and a short fireworks display.",
+        "What I enjoyed most was watching children run around trying to guess the riddles on each lantern.",
+        "It was simple and a bit chaotic, but it felt much warmer than any big commercial event."
+      ],
+      "tips": "活动题结构：是什么 → 何时何地 → 和谁 → 最喜欢什么（一个具体画面）。"
+    },
+    {
+      "id": "topic-11",
+      "title": "一次改变计划的经历",
+      "prompt": "Describe a time when your plans changed. You should say what the original plan was, why it changed, what you did instead, and explain how you felt about the change.",
+      "sentences": [
+        "I'd like to talk about a weekend when a planned trip was cancelled at the last minute.",
+        "My friends and I had booked train tickets, but a sudden storm closed the line.",
+        "Instead of going home, we decided to explore our own city as if we were tourists.",
+        "We visited a museum we had never entered and tried a restaurant we'd walked past for years.",
+        "It turned out to be one of the best weekends of that year, purely because we stayed flexible."
+      ],
+      "tips": "改变计划题结构：原计划 → 为什么变 → 改做了什么 → 感受（意外收获）。"
+    },
+    {
+      "id": "topic-12",
+      "title": "一次克服困难的经历",
+      "prompt": "Describe a difficult situation you dealt with successfully. You should say what the situation was, why it was difficult, what you did, and explain what you learned from it.",
+      "sentences": [
+        "The situation I'd like to describe is preparing for a professional exam while working full-time.",
+        "I had only two months, and most of my evenings were already taken up by overtime.",
+        "I started getting up an hour earlier and studied in short, focused blocks before work.",
+        "The hardest part was staying consistent when I was exhausted and tempted to skip a day.",
+        "In the end I passed, and the main lesson was that small daily progress beats occasional bursts."
+      ],
+      "tips": "困难题结构：什么困难 → 为什么难 → 怎么解决（具体方法）→ 学到什么（一句总结）。"
+    }
+  ]
+}

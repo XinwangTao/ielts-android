@@ -1,0 +1,21 @@
+# Android / Gradle
+.gradle/
+build/
+app/build/
+local.properties
+captures/
+*.iml
+.idea/
+
+# 密钥与个人配置
+.secret/
+*.env
+
+# 录音与临时产物
+*.m4a
+*.wav
+samples/
+
+# 可下载的数据产物（ECDICT 词库 92MB，来源见 dict-assets/README.md）
+dict-assets/*
+!dict-assets/README.md

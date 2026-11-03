@@ -1,0 +1,1716 @@
+{
+ "version": 1,
+ "generated_at": 1793261638,
+ "count": 168,
+ "cards": [
+  {
+   "type": "word",
+   "front": "sustainable",
+   "back": "adj. 可持续的",
+   "example": "Sustainable policies balance economic growth with environmental protection.",
+   "example_cn": "可持续政策要在经济增长与环保之间取得平衡。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "mitigate",
+   "back": "v. 缓解，减轻",
+   "example": "Governments can mitigate traffic congestion by investing in public transport.",
+   "example_cn": "政府可通过投资公共交通来缓解拥堵。",
+   "tags": [
+    "environment",
+    "city"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "alleviate",
+   "back": "v. 减轻（痛苦/问题）",
+   "example": "Free childcare would alleviate the financial burden on young families.",
+   "example_cn": "免费托育能减轻年轻家庭的经济负担。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "exacerbate",
+   "back": "v. 使恶化",
+   "example": "Cutting funding for schools would exacerbate existing inequality.",
+   "example_cn": "削减学校经费会加剧已有的不平等。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "infrastructure",
+   "back": "n. 基础设施",
+   "example": "Poor infrastructure limits economic development in rural areas.",
+   "example_cn": "基础设施落后限制了农村的经济发展。",
+   "tags": [
+    "city",
+    "economy"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "curriculum",
+   "back": "n. 课程体系",
+   "example": "The national curriculum should include practical financial literacy.",
+   "example_cn": "国家课程应纳入实用的金融素养。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "compulsory",
+   "back": "adj. 强制的，必修的",
+   "example": "Education is compulsory until the age of sixteen in many countries.",
+   "example_cn": "许多国家教育义务制到十六岁。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "vocational",
+   "back": "adj. 职业的",
+   "example": "Vocational training offers a faster route into skilled employment.",
+   "example_cn": "职业培训提供更快进入技术岗位的路径。",
+   "tags": [
+    "education",
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "cognitive",
+   "back": "adj. 认知的",
+   "example": "Regular exercise improves cognitive performance in teenagers.",
+   "example_cn": "规律运动能提升青少年的认知表现。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "nurture",
+   "back": "v. 培养，养育",
+   "example": "Schools should nurture curiosity rather than simply reward memorisation.",
+   "example_cn": "学校应培养好奇心，而非只奖励记忆。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "incentive",
+   "back": "n. 激励，动机",
+   "example": "Tax incentives encourage companies to adopt cleaner technology.",
+   "example_cn": "税收激励促使企业采用更清洁的技术。",
+   "tags": [
+    "economy"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "subsidise",
+   "back": "v. 补贴",
+   "example": "Many governments subsidise renewable energy to lower its cost.",
+   "example_cn": "许多政府补贴可再生能源以降低成本。",
+   "tags": [
+    "environment",
+    "economy"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "allocate",
+   "back": "v. 分配",
+   "example": "Funds should be allocated according to local need, not population size.",
+   "example_cn": "资金应按地方需求而非人口规模分配。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "enhance",
+   "back": "v. 提升，增强",
+   "example": "Collaborative projects enhance students' communication skills.",
+   "example_cn": "合作项目能提升学生的沟通能力。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "deteriorate",
+   "back": "v. 恶化",
+   "example": "Air quality has deteriorated sharply in fast-growing cities.",
+   "example_cn": "快速发展的城市空气质量明显恶化。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "beneficial",
+   "back": "adj. 有益的",
+   "example": "Moderate screen time can be beneficial for interactive learning.",
+   "example_cn": "适度使用屏幕对互动学习有益。",
+   "tags": [
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "detrimental",
+   "back": "adj. 有害的",
+   "example": "Excessive testing has a detrimental effect on young learners.",
+   "example_cn": "过度考试对低龄学习者有害。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "inevitable",
+   "back": "adj. 不可避免的",
+   "example": "Some job displacement is inevitable as automation spreads.",
+   "example_cn": "随着自动化普及，部分岗位流失不可避免。",
+   "tags": [
+    "work",
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "prioritise",
+   "back": "v. 优先处理",
+   "example": "Policymakers should prioritise preventive healthcare.",
+   "example_cn": "政策制定者应优先发展预防性医疗。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "feasible",
+   "back": "adj. 可行的",
+   "example": "A complete ban is not feasible in the short term.",
+   "example_cn": "短期内全面禁止并不可行。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "coherent",
+   "back": "adj. 连贯的，有条理的",
+   "example": "A coherent argument needs one clear position throughout.",
+   "example_cn": "有说服力的论证需要贯穿全篇的明确立场。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "concise",
+   "back": "adj. 简洁的",
+   "example": "Concise sentences are usually clearer than long ones.",
+   "example_cn": "简洁的句子通常比长句更清楚。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "compelling",
+   "back": "adj. 有说服力的",
+   "example": "The report offers compelling evidence for early intervention.",
+   "example_cn": "该报告为早期干预提供了有力证据。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "rigorous",
+   "back": "adj. 严谨的",
+   "example": "The study used a rigorous methodology with a large sample.",
+   "example_cn": "该研究采用了大样本的严谨方法。",
+   "tags": [
+    "research"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "negligible",
+   "back": "adj. 微不足道的",
+   "example": "The difference between the two groups was negligible.",
+   "example_cn": "两组之间的差异微乎其微。",
+   "tags": [
+    "research"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "substantial",
+   "back": "adj. 大量的，可观的",
+   "example": "A substantial proportion of graduates work outside their field.",
+   "example_cn": "相当比例的毕业生从事与本专业无关的工作。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "predominant",
+   "back": "adj. 占主导的",
+   "example": "Cars remain the predominant form of transport in suburbs.",
+   "example_cn": "在郊区，汽车仍是主要交通方式。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "prevalent",
+   "back": "adj. 普遍存在的",
+   "example": "Smartphone addiction is increasingly prevalent among teenagers.",
+   "example_cn": "手机成瘾在青少年中日益普遍。",
+   "tags": [
+    "health",
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "controversial",
+   "back": "adj. 有争议的",
+   "example": "Standardised testing remains a controversial policy.",
+   "example_cn": "标准化考试仍是一项有争议的政策。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "impartial",
+   "back": "adj. 公正的",
+   "example": "Judges must remain impartial when assessing evidence.",
+   "example_cn": "法官评估证据时必须保持公正。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "rational",
+   "back": "adj. 理性的",
+   "example": "Consumers do not always make rational decisions.",
+   "example_cn": "消费者并不总是做出理性决策。",
+   "tags": [
+    "economy"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "arbitrary",
+   "back": "adj. 武断的，任意的",
+   "example": "An arbitrary deadline can harm the quality of research.",
+   "example_cn": "武断的期限会损害研究质量。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "advocate",
+   "back": "v. 主张，提倡",
+   "example": "Many educators advocate smaller class sizes.",
+   "example_cn": "许多教育者主张缩小班级规模。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "undermine",
+   "back": "v. 削弱，损害",
+   "example": "Constant criticism undermines children's confidence.",
+   "example_cn": "持续的批评会削弱孩子的自信。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "reinforce",
+   "back": "v. 强化",
+   "example": "Repetition reinforces vocabulary retention.",
+   "example_cn": "重复能强化词汇记忆。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "facilitate",
+   "back": "v. 促进，使便利",
+   "example": "Online platforms facilitate collaboration across borders.",
+   "example_cn": "在线平台促进了跨国协作。",
+   "tags": [
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "hinder",
+   "back": "v. 阻碍",
+   "example": "Poor internet access hinders rural students' learning.",
+   "example_cn": "网络条件差会阻碍农村学生学习。",
+   "tags": [
+    "education",
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "implement",
+   "back": "v. 实施",
+   "example": "The policy will be implemented in stages over five years.",
+   "example_cn": "该政策将在五年内分阶段实施。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "integrate",
+   "back": "v. 整合，融入",
+   "example": "Schools should integrate technology into everyday teaching.",
+   "example_cn": "学校应把技术融入日常教学。",
+   "tags": [
+    "education",
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "transparent",
+   "back": "adj. 透明的",
+   "example": "Transparent hiring reduces the risk of discrimination.",
+   "example_cn": "透明的招聘能降低歧视风险。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "accountability",
+   "back": "n. 问责，责任",
+   "example": "Public accountability is essential for trust in institutions.",
+   "example_cn": "公共问责是机构信任的基础。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "resilience",
+   "back": "n. 韧性，复原力",
+   "example": "Community networks build resilience against natural disasters.",
+   "example_cn": "社区网络能增强抵御自然灾害的韧性。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "inequality",
+   "back": "n. 不平等",
+   "example": "Income inequality has widened over the past two decades.",
+   "example_cn": "过去二十年收入不平等扩大了。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "disparity",
+   "back": "n. 差距",
+   "example": "There is a stark disparity in health outcomes between regions.",
+   "example_cn": "各地区健康状况差距明显。",
+   "tags": [
+    "health",
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "urbanisation",
+   "back": "n. 城市化",
+   "example": "Rapid urbanisation puts pressure on housing and transport.",
+   "example_cn": "快速城市化给住房和交通带来压力。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "congestion",
+   "back": "n. 拥堵",
+   "example": "Congestion charges have reduced traffic in central London.",
+   "example_cn": "拥堵费减少了伦敦市中心的交通量。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "emission",
+   "back": "n. 排放",
+   "example": "Vehicle emissions are a major source of urban pollution.",
+   "example_cn": "车辆排放是城市污染的主要来源。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "renewable",
+   "back": "adj. 可再生的",
+   "example": "Renewable energy now accounts for a third of electricity supply.",
+   "example_cn": "可再生能源目前占电力供应的三分之一。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "conservation",
+   "back": "n. 保护（自然）",
+   "example": "Wildlife conservation requires cooperation between countries.",
+   "example_cn": "野生动物保护需要国家间合作。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "biodiversity",
+   "back": "n. 生物多样性",
+   "example": "Deforestation threatens biodiversity in tropical regions.",
+   "example_cn": "森林砍伐威胁热带地区的生物多样性。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "nutrition",
+   "back": "n. 营养",
+   "example": "School meals shape children's long-term nutrition habits.",
+   "example_cn": "学校餐食影响孩子的长期营养习惯。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "obesity",
+   "back": "n. 肥胖",
+   "example": "Childhood obesity has become a public health crisis.",
+   "example_cn": "儿童肥胖已成为公共卫生危机。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "sedentary",
+   "back": "adj. 久坐的",
+   "example": "A sedentary lifestyle increases the risk of heart disease.",
+   "example_cn": "久坐生活方式增加心脏病风险。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "epidemic",
+   "back": "n. 流行病",
+   "example": "The country struggled to contain the epidemic.",
+   "example_cn": "该国难以控制这场流行病。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "vaccination",
+   "back": "n. 疫苗接种",
+   "example": "Widespread vaccination reduced mortality dramatically.",
+   "example_cn": "广泛接种大幅降低了死亡率。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "diagnosis",
+   "back": "n. 诊断",
+   "example": "Early diagnosis significantly improves survival rates.",
+   "example_cn": "早期诊断显著提高存活率。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "recruit",
+   "back": "v. 招聘",
+   "example": "Companies struggle to recruit skilled engineers.",
+   "example_cn": "企业难以招到熟练工程师。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "retain",
+   "back": "v. 留住",
+   "example": "Flexible hours help employers retain experienced staff.",
+   "example_cn": "弹性工时有助于雇主留住有经验的员工。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "productivity",
+   "back": "n. 生产率",
+   "example": "Long working hours do not necessarily raise productivity.",
+   "example_cn": "长时间工作未必提高生产率。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "entrepreneurship",
+   "back": "n. 创业精神",
+   "example": "Universities increasingly encourage entrepreneurship.",
+   "example_cn": "大学越来越鼓励创业。",
+   "tags": [
+    "work",
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "automation",
+   "back": "n. 自动化",
+   "example": "Automation will reshape routine office work.",
+   "example_cn": "自动化将重塑常规办公工作。",
+   "tags": [
+    "work",
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "redundancy",
+   "back": "n. 裁员",
+   "example": "The factory announced hundreds of redundancies.",
+   "example_cn": "该工厂宣布裁员数百人。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "commute",
+   "back": "n./v. 通勤",
+   "example": "Long commutes reduce time available for family life.",
+   "example_cn": "长通勤减少了家庭生活时间。",
+   "tags": [
+    "city",
+    "work"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "affordable",
+   "back": "adj. 负担得起的",
+   "example": "The city lacks affordable housing for young workers.",
+   "example_cn": "该城市缺少年轻工薪族能负担的住房。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "welfare",
+   "back": "n. 福利",
+   "example": "The welfare system supports those unable to work.",
+   "example_cn": "福利制度支持无法工作的人。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "legislation",
+   "back": "n. 立法",
+   "example": "New legislation restricts single-use plastics.",
+   "example_cn": "新立法限制一次性塑料。",
+   "tags": [
+    "environment",
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "regulation",
+   "back": "n. 法规，监管",
+   "example": "Stricter regulation is needed for data privacy.",
+   "example_cn": "数据隐私需要更严格的监管。",
+   "tags": [
+    "technology",
+    "society"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "penalty",
+   "back": "n. 处罚",
+   "example": "Heavy penalties deter illegal waste dumping.",
+   "example_cn": "重罚能遏制非法倾倒垃圾。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "literacy",
+   "back": "n. 素养（读写/数字）",
+   "example": "Digital literacy is now as important as reading.",
+   "example_cn": "数字素养如今与阅读能力同样重要。",
+   "tags": [
+    "education",
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "proficiency",
+   "back": "n. 熟练程度",
+   "example": "Language proficiency develops through regular use.",
+   "example_cn": "语言熟练度通过经常使用而提升。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "immerse",
+   "back": "v. 沉浸",
+   "example": "Learners who immerse themselves in English improve faster.",
+   "example_cn": "沉浸式学习英语的人进步更快。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "motivation",
+   "back": "n. 动机",
+   "example": "Intrinsic motivation predicts long-term achievement better than rewards.",
+   "example_cn": "内在动机比奖励更能预测长期成就。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "wellbeing",
+   "back": "n. 幸福感，身心健康",
+   "example": "Green spaces contribute to residents' wellbeing.",
+   "example_cn": "绿地有助于居民的身心健康。",
+   "tags": [
+    "health",
+    "city"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "workload",
+   "back": "n. 工作量",
+   "example": "Excessive workload is a leading cause of teacher burnout.",
+   "example_cn": "过重的工作量是教师倦怠的主要原因。",
+   "tags": [
+    "work",
+    "education"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "collaboration",
+   "back": "n. 协作",
+   "example": "Cross-disciplinary collaboration drives innovation.",
+   "example_cn": "跨学科协作推动创新。",
+   "tags": [
+    "work",
+    "technology"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "transparency",
+   "back": "n. 透明度",
+   "example": "Transparency in pricing protects consumers.",
+   "example_cn": "定价透明能保护消费者。",
+   "tags": [
+    "economy"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "resilient",
+   "back": "adj. 有韧性的",
+   "example": "Resilient economies recover faster from shocks.",
+   "example_cn": "有韧性的经济体从冲击中恢复更快。",
+   "tags": [
+    "economy"
+   ]
+  },
+  {
+   "type": "word",
+   "front": "counterpart",
+   "back": "n. 对应的人/物",
+   "example": "Rural schools often lack resources available to their urban counterparts.",
+   "example_cn": "农村学校常缺乏城市同类学校拥有的资源。",
+   "tags": [
+    "education",
+    "society"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "a compelling argument for",
+   "back": "支持……的有力论点；写论证段开头用",
+   "example": "There is a compelling argument for investing in early education.",
+   "example_cn": "有充分理由投资早期教育。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "to a large extent",
+   "back": "在很大程度上；表态用",
+   "example": "To a large extent, success depends on consistent practice.",
+   "example_cn": "成功在很大程度上取决于持续练习。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "in the long run",
+   "back": "从长远看；结论段常用",
+   "example": "In the long run, prevention is cheaper than treatment.",
+   "example_cn": "长远看，预防比治疗更省钱。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "play a pivotal role in",
+   "back": "在……中起关键作用",
+   "example": "Parents play a pivotal role in shaping children's habits.",
+   "example_cn": "父母在塑造孩子习惯中起关键作用。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "place emphasis on",
+   "back": "强调，重视",
+   "example": "Schools place too much emphasis on exam results.",
+   "example_cn": "学校过于重视考试结果。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "pose a threat to",
+   "back": "对……构成威胁",
+   "example": "Plastic waste poses a serious threat to marine life.",
+   "example_cn": "塑料垃圾对海洋生物构成严重威胁。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "have a detrimental effect on",
+   "back": "对……有不良影响",
+   "example": "Excessive noise has a detrimental effect on sleep quality.",
+   "example_cn": "过度噪音对睡眠质量有不良影响。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "take into account",
+   "back": "考虑到",
+   "example": "Policies should take into account the needs of older residents.",
+   "example_cn": "政策应考虑到老年居民的需求。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "draw a distinction between",
+   "back": "区分……",
+   "example": "We should draw a distinction between equality and uniformity.",
+   "example_cn": "我们应区分平等与一律。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "in stark contrast",
+   "back": "形成鲜明对比",
+   "example": "In stark contrast, rural areas still lack basic clinics.",
+   "example_cn": "相比之下，农村地区仍缺乏基础诊所。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "a growing body of evidence",
+   "back": "越来越多的证据",
+   "example": "A growing body of evidence links diet to mental health.",
+   "example_cn": "越来越多证据表明饮食与心理健康相关。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "address the root cause",
+   "back": "解决根本原因",
+   "example": "Rehabilitation addresses the root cause of reoffending.",
+   "example_cn": "改造措施解决再犯的根本原因。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "strike a balance between",
+   "back": "在……之间取得平衡",
+   "example": "Cities must strike a balance between growth and liveability.",
+   "example_cn": "城市须在发展与宜居间取得平衡。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "be underpinned by",
+   "back": "以……为基础",
+   "example": "The economy is underpinned by a skilled workforce.",
+   "example_cn": "经济以熟练劳动力为基础。",
+   "tags": [
+    "economy"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "come at the expense of",
+   "back": "以……为代价",
+   "example": "Economic growth should not come at the expense of the environment.",
+   "example_cn": "经济增长不应以环境为代价。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "pave the way for",
+   "back": "为……铺平道路",
+   "example": "Cheap broadband paved the way for remote work.",
+   "example_cn": "廉价宽带为远程办公铺平道路。",
+   "tags": [
+    "technology"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "shed light on",
+   "back": "阐明，揭示",
+   "example": "The survey sheds light on why students drop out.",
+   "example_cn": "该调查揭示了学生辍学的原因。",
+   "tags": [
+    "research"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "in light of",
+   "back": "鉴于",
+   "example": "In light of recent data, the policy should be revised.",
+   "example_cn": "鉴于最新数据，政策应作调整。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "be conducive to",
+   "back": "有助于",
+   "example": "Quiet study spaces are conducive to concentration.",
+   "example_cn": "安静的学习空间有助于专注。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "give rise to",
+   "back": "引起，导致",
+   "example": "Rapid growth has given rise to housing shortages.",
+   "example_cn": "快速增长导致了住房短缺。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "at the expense of",
+   "back": "以牺牲……为代价",
+   "example": "Tourism expanded at the expense of local culture.",
+   "example_cn": "旅游业扩张以牺牲本地文化为代价。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "arguably the most",
+   "back": "可以说是最……",
+   "example": "This is arguably the most effective short-term measure.",
+   "example_cn": "这可以说是最有效的短期措施。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "it is widely acknowledged that",
+   "back": "人们普遍认为",
+   "example": "It is widely acknowledged that early intervention works.",
+   "example_cn": "人们普遍认为早期干预有效。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "there is a growing consensus that",
+   "back": "越来越多人认为",
+   "example": "There is a growing consensus that testing alone is insufficient.",
+   "example_cn": "越来越多人认为仅靠考试不够。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "while it is true that",
+   "back": "尽管……属实（转折开头）",
+   "example": "While it is true that costs rise, the benefits outweigh them.",
+   "example_cn": "尽管成本上升属实，收益仍大于成本。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "this is particularly the case for",
+   "back": "对……尤其如此",
+   "example": "This is particularly the case for low-income families.",
+   "example_cn": "对低收入家庭尤其如此。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "a case in point",
+   "back": "一个恰当的例子",
+   "example": "Singapore's transport system is a case in point.",
+   "example_cn": "新加坡的交通系统就是一例。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "go a long way towards",
+   "back": "大大有助于",
+   "example": "Better teacher training would go a long way towards improving results.",
+   "example_cn": "更好的教师培训大大有助于提高成绩。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "make a significant contribution to",
+   "back": "对……作出重要贡献",
+   "example": "Volunteers make a significant contribution to community care.",
+   "example_cn": "志愿者对社区照护贡献显著。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "be subject to",
+   "back": "受……约束",
+   "example": "All proposals are subject to independent review.",
+   "example_cn": "所有提案都要接受独立审查。",
+   "tags": [
+    "society"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "in the face of",
+   "back": "面对",
+   "example": "In the face of rising costs, families cut spending.",
+   "example_cn": "面对成本上升，家庭削减开支。",
+   "tags": [
+    "economy"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "with regard to",
+   "back": "关于",
+   "example": "With regard to funding, the budget remains unclear.",
+   "example_cn": "关于资金，预算仍不明确。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "from a ... perspective",
+   "back": "从……角度看",
+   "example": "From an economic perspective, prevention saves money.",
+   "example_cn": "从经济角度看，预防更省钱。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "the extent to which",
+   "back": "……的程度",
+   "example": "The extent to which technology helps depends on how it is used.",
+   "example_cn": "技术帮助多大取决于如何使用。",
+   "tags": [
+    "technology"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "not merely ... but also",
+   "back": "不仅是……而且",
+   "example": "The issue is not merely economic but also social.",
+   "example_cn": "这个问题不仅是经济问题，也是社会问题。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "far from being",
+   "back": "远非（反预期）",
+   "example": "Far from being a luxury, internet access is now a necessity.",
+   "example_cn": "网络接入远非奢侈，如今已是必需品。",
+   "tags": [
+    "technology"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "as opposed to",
+   "back": "而不是",
+   "example": "Skills matter more than credentials, as opposed to what many assume.",
+   "example_cn": "与很多人以为的不同，技能比文凭更重要。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "by and large",
+   "back": "总的来说",
+   "example": "By and large, the policy has achieved its aims.",
+   "example_cn": "总的来说，该政策已实现目标。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "on balance",
+   "back": "权衡下来",
+   "example": "On balance, the advantages outweigh the drawbacks.",
+   "example_cn": "权衡下来，利大于弊。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "collocation",
+   "front": "it is worth noting that",
+   "back": "值得注意的是",
+   "example": "It is worth noting that results vary by region.",
+   "example_cn": "值得注意的是，结果因地区而异。",
+   "tags": [
+    "writing"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "教育·大学是否该免费",
+   "back": "Free university education widens access for students from low-income families and raises national skill levels.",
+   "example": "Countries such as Germany abolished tuition fees while maintaining strong enrolment.",
+   "example_cn": "德国等国取消学费的同时保持了较高入学率。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "教育·考试能否衡量能力",
+   "back": "Standardised tests measure a narrow range of skills and often reward memorisation over critical thinking.",
+   "example": "Many employers report graduates with high scores but weak problem-solving.",
+   "example_cn": "许多雇主反映毕业生分数高但解决问题能力弱。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "教育·职业教育价值",
+   "back": "Vocational education gives students a faster, cheaper route into stable employment.",
+   "example": "Apprenticeship schemes in Switzerland produce low youth unemployment.",
+   "example_cn": "瑞士学徒制带来较低的青年失业率。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "教育·技术进课堂",
+   "back": "Technology can personalise learning, but only when teachers are trained to use it.",
+   "example": "Schools that supplied devices without training saw little improvement.",
+   "example_cn": "只发设备不做培训的学校成效甚微。",
+   "tags": [
+    "education",
+    "technology"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "教育·家庭作业",
+   "back": "Homework reinforces classroom learning but excessive amounts harm family time and wellbeing.",
+   "example": "Some countries cap homework at thirty minutes per night.",
+   "example_cn": "一些国家把作业上限定为每晚三十分钟。",
+   "tags": [
+    "education"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "环境·个人还是政府负责",
+   "back": "Individual action matters, yet systemic change requires government regulation.",
+   "example": "Recycling campaigns succeed only where collection infrastructure exists.",
+   "example_cn": "回收运动只有在收集设施到位时才有效。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "环境·经济增长与环保",
+   "back": "Growth and environmental protection are not mutually exclusive when clean technology is subsidised.",
+   "example": "Renewable investment created jobs while cutting emissions.",
+   "example_cn": "可再生能源投资在减排放的同时创造了就业。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "环境·塑料限制",
+   "back": "Bans on single-use plastics reduce waste only if affordable alternatives exist.",
+   "example": "Ireland's plastic bag levy cut usage by over ninety percent.",
+   "example_cn": "爱尔兰塑料袋税使使用量下降九成以上。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "环境·城市绿地",
+   "back": "Urban green spaces improve air quality and residents' mental health.",
+   "example": "Studies link park access to lower stress levels.",
+   "example_cn": "研究把公园可达性与较低压力水平联系起来。",
+   "tags": [
+    "environment",
+    "city"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "环境·气候变化责任",
+   "back": "Richer nations bear greater historical responsibility for emissions and should fund adaptation elsewhere.",
+   "example": "Per-capita emissions in developed countries remain far higher.",
+   "example_cn": "发达国家人均排放仍远高于其他地区。",
+   "tags": [
+    "environment"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "科技·人工智能与就业",
+   "back": "Automation displaces routine jobs but creates demand for new technical roles.",
+   "example": "Bank teller numbers fell while data analyst roles expanded.",
+   "example_cn": "银行柜员减少而数据分析岗位增加。",
+   "tags": [
+    "technology",
+    "work"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "科技·社交媒体影响",
+   "back": "Social media connects people but can amplify anxiety and misinformation.",
+   "example": "Teen mental health indicators declined alongside smartphone adoption.",
+   "example_cn": "青少年心理健康指标随智能手机普及而下降。",
+   "tags": [
+    "technology",
+    "health"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "科技·隐私与便利",
+   "back": "Convenience often requires personal data, so regulation must set clear limits.",
+   "example": "Data protection laws force companies to justify collection.",
+   "example_cn": "数据保护法迫使企业说明收集理由。",
+   "tags": [
+    "technology"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "科技·远程办公",
+   "back": "Remote work broadens opportunities but can weaken team cohesion.",
+   "example": "Hybrid models retain flexibility while preserving collaboration.",
+   "example_cn": "混合办公在保留灵活性的同时维持协作。",
+   "tags": [
+    "technology",
+    "work"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "科技·数字鸿沟",
+   "back": "Unequal access to devices and broadband deepens educational inequality.",
+   "example": "Rural students were most affected during school closures.",
+   "example_cn": "停课期间农村学生受影响最大。",
+   "tags": [
+    "technology",
+    "education"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "健康·公共医疗投入",
+   "back": "Preventive spending reduces long-term costs more than treating advanced illness.",
+   "example": "Vaccination programmes are consistently cost-effective.",
+   "example_cn": "疫苗项目始终具有成本效益。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "健康·垃圾食品税",
+   "back": "Taxes on sugary drinks reduce consumption, especially among low-income groups.",
+   "example": "Mexico's sugar tax lowered purchases of sweetened drinks.",
+   "example_cn": "墨西哥糖税降低了含糖饮料购买量。",
+   "tags": [
+    "health"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "健康·运动与心理健康",
+   "back": "Regular physical activity improves mood and academic performance.",
+   "example": "Schools with daily PE report better concentration.",
+   "example_cn": "每天安排体育课的学校报告专注力更好。",
+   "tags": [
+    "health",
+    "education"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "健康·老龄化社会",
+   "back": "Ageing populations require more care workers and pension reform.",
+   "example": "Japan raised the retirement age to sustain pensions.",
+   "example_cn": "日本提高退休年龄以维持养老金。",
+   "tags": [
+    "health",
+    "society"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "健康·睡眠与屏幕",
+   "back": "Late-night screen use disrupts sleep and harms concentration.",
+   "example": "Sleep studies show delayed melatonin release after blue light exposure.",
+   "example_cn": "睡眠研究显示蓝光暴露延迟褪黑素分泌。",
+   "tags": [
+    "health",
+    "technology"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "工作·四天工作制",
+   "back": "A shorter week can raise productivity by reducing burnout.",
+   "example": "Trials in Iceland reported maintained output with better wellbeing.",
+   "example_cn": "冰岛试验报告产出不变而幸福感提升。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "工作·大学与就业匹配",
+   "back": "Universities should teach transferable skills rather than narrow job training.",
+   "example": "Employers value communication and analysis over specific tools.",
+   "example_cn": "雇主更看重沟通与分析能力而非特定工具。",
+   "tags": [
+    "work",
+    "education"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "工作·跳槽频率",
+   "back": "Frequent job changes can accelerate skill growth but may limit deep expertise.",
+   "example": "Early-career mobility often raises salaries.",
+   "example_cn": "职业早期流动通常提高薪资。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "工作·远程与生产力",
+   "back": "Productivity under remote work depends on task type and management quality.",
+   "example": "Routine tasks suffered while focused work improved.",
+   "example_cn": "常规任务受影响，需要专注的工作反而提升。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "工作·实习价值",
+   "back": "Internships bridge the gap between academic study and workplace expectations.",
+   "example": "Graduates with internships find work faster.",
+   "example_cn": "有实习经历的毕业生更快找到工作。",
+   "tags": [
+    "work"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "城市·公共交通优先",
+   "back": "Investing in public transport reduces congestion more efficiently than building roads.",
+   "example": "Road expansion often induces additional traffic.",
+   "example_cn": "扩建道路往往诱发更多交通量。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "城市·住房可负担性",
+   "back": "Housing costs push young workers away from opportunity-rich cities.",
+   "example": "Rent controls can help tenants but reduce new supply.",
+   "example_cn": "租金管制有助租户但抑制新增供给。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "城市·城市化利弊",
+   "back": "Urbanisation concentrates opportunity but strains infrastructure.",
+   "example": "Rapid growth outpaces water and waste systems.",
+   "example_cn": "快速增长超出供水和垃圾处理能力。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "城市·步行友好",
+   "back": "Walkable neighbourhoods improve health and local business.",
+   "example": "Pedestrianised centres report higher retail turnover.",
+   "example_cn": "步行化中心区零售额更高。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "topic",
+   "front": "城市·老城保护",
+   "back": "Preserving historic districts supports tourism and local identity.",
+   "example": "Heritage-led regeneration attracts visitors year-round.",
+   "example_cn": "以遗产为导向的更新全年吸引游客。",
+   "tags": [
+    "city"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "everyone study",
+   "back": "everyone studies（everyone 作主语是单数，动词加 s。）",
+   "example": "Everyone studies differently.",
+   "example_cn": "每个人学习方式不同。",
+   "tags": [
+    "agreement"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "university is for prepare",
+   "back": "university is to prepare（be for 后接名词/动名词，表目的用 be to do。）",
+   "example": "University is to prepare students for work.",
+   "example_cn": "大学是为了让学生为工作做准备。",
+   "tags": [
+    "grammar"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "more motivate",
+   "back": "more motivated（系动词后要用形容词。）",
+   "example": "Students become more motivated when they choose topics.",
+   "example_cn": "学生自主选题时更有动力。",
+   "tags": [
+    "grammar"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "discuss about",
+   "back": "discuss（discuss 是及物动词，不加 about。）",
+   "example": "We will discuss the issue tomorrow.",
+   "example_cn": "我们明天讨论这个问题。",
+   "tags": [
+    "collocation"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "according to me",
+   "back": "in my opinion（according to 只用于引用他人或数据。）",
+   "example": "In my opinion, the benefits outweigh the costs.",
+   "example_cn": "我认为利大于弊。",
+   "tags": [
+    "collocation"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "the society",
+   "back": "society（泛指社会时不加冠词。）",
+   "example": "Society benefits from better education.",
+   "example_cn": "社会受益于更好的教育。",
+   "tags": [
+    "article"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "informations",
+   "back": "information（information 不可数。）",
+   "example": "The information was useful.",
+   "example_cn": "这些信息很有用。",
+   "tags": [
+    "plural"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "researches show",
+   "back": "research shows（research 作不可数名词。）",
+   "example": "Research shows that sleep affects memory.",
+   "example_cn": "研究表明睡眠影响记忆。",
+   "tags": [
+    "plural"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "economic development is benefit",
+   "back": "economic development is beneficial（be 后接形容词。）",
+   "example": "Development is beneficial to rural areas.",
+   "example_cn": "发展对农村地区有益。",
+   "tags": [
+    "grammar"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "people who is",
+   "back": "people who are（people 是复数，关系从句动词随主语变化。）",
+   "example": "People who are motivated learn faster.",
+   "example_cn": "有动力的人学得更快。",
+   "tags": [
+    "agreement"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "in nowadays",
+   "back": "nowadays（nowadays 是副词，不加介词。）",
+   "example": "Nowadays most students use laptops.",
+   "example_cn": "如今大多数学生使用笔记本电脑。",
+   "tags": [
+    "grammar"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "as we all know that",
+   "back": "as we all know,（as we all know 后直接接逗号，不接 that。）",
+   "example": "As we all know, practice matters.",
+   "example_cn": "众所周知，练习很重要。",
+   "tags": [
+    "grammar"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "very much important",
+   "back": "extremely important（very much 不修饰形容词。）",
+   "example": "Sleep is extremely important for teenagers.",
+   "example_cn": "睡眠对青少年极其重要。",
+   "tags": [
+    "collocation"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "can not",
+   "back": "cannot（正式写作中写成一个词。）",
+   "example": "We cannot ignore climate change.",
+   "example_cn": "我们不能忽视气候变化。",
+   "tags": [
+    "spelling"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "one of the most important thing",
+   "back": "one of the most important things（one of 后接复数名词。）",
+   "example": "Exercise is one of the most important habits.",
+   "example_cn": "运动是最重要的习惯之一。",
+   "tags": [
+    "plural"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "the number of people are",
+   "back": "the number of people is（the number of 作主语视为单数。）",
+   "example": "The number of applicants is rising.",
+   "example_cn": "申请人数在上升。",
+   "tags": [
+    "agreement"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "I think that is depend on",
+   "back": "I think it depends on（depend 需要主语，用 it depends on。）",
+   "example": "It depends on individual circumstances.",
+   "example_cn": "这取决于个人情况。",
+   "tags": [
+    "grammar"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "make a progress",
+   "back": "make progress（progress 不可数，不加 a。）",
+   "example": "Students make progress through feedback.",
+   "example_cn": "学生通过反馈取得进步。",
+   "tags": [
+    "article"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "do a decision",
+   "back": "make a decision（decision 与 make 搭配。）",
+   "example": "Governments must make a decision quickly.",
+   "example_cn": "政府必须迅速作出决定。",
+   "tags": [
+    "collocation"
+   ]
+  },
+  {
+   "type": "error",
+   "front": "afford to buy a house for young people is hard",
+   "back": "it is hard for young people to afford a house（避免过长主语，用 it 作形式主语。）",
+   "example": "It is hard for graduates to afford housing.",
+   "example_cn": "毕业生很难负担住房。",
+   "tags": [
+    "syntax"
+   ]
+  }
+ ]
+}

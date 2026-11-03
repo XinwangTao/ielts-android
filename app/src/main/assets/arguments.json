@@ -1,0 +1,199 @@
+{
+  "topics": [
+    {
+      "id": "arg-1",
+      "title": "教育·选专业",
+      "prompt": "Some people believe university students should study whatever they like. Others think they should only study subjects that will be useful. Discuss both views and give your own opinion.",
+      "arguments": [
+        {
+          "point": "Interest drives sustained effort.",
+          "explain": "Students who choose subjects they genuinely enjoy are far more likely to study consistently and go beyond the syllabus on their own.",
+          "example": "A friend who loved design spent evenings learning software voluntarily and built a strong portfolio before graduating."
+        },
+        {
+          "point": "Practical subjects improve employability.",
+          "explain": "Fields such as engineering, medicine and computer science give graduates concrete skills that employers can immediately use.",
+          "example": "In many countries, graduates in technical disciplines find work within months, while some arts graduates struggle for over a year."
+        }
+      ],
+      "tips": "双观点题：一段支持兴趣（论点+解释+例子），一段支持实用（同上），末段折中：先兴趣、兼顾就业。"
+    },
+    {
+      "id": "arg-2",
+      "title": "健康·运动 vs 饮食",
+      "prompt": "Some people think that the best way to stay healthy is to do regular exercise. Others believe diet is more important. Discuss both views and give your own opinion.",
+      "arguments": [
+        {
+          "point": "Exercise strengthens the body in ways diet cannot.",
+          "explain": "Regular physical activity improves cardiovascular health, builds muscle and reduces stress — benefits that no food alone can provide.",
+          "example": "People who walk briskly for thirty minutes a day show measurably lower rates of heart disease."
+        },
+        {
+          "point": "Diet is the foundation of health.",
+          "explain": "Weight and many chronic conditions are driven mainly by what we eat; a poor diet cannot be out-trained.",
+          "example": "Even athletes who train daily struggle with health problems if their diet is high in processed food."
+        }
+      ],
+      "tips": "双观点题：运动段（心血管/肌肉/压力），饮食段（体重/慢性病），末段认为两者互补、缺一不可。"
+    },
+    {
+      "id": "arg-3",
+      "title": "城市化·乡村到城市",
+      "prompt": "In many countries, people are moving from rural areas to cities. What problems does this cause, and what measures could solve them?",
+      "arguments": [
+        {
+          "point": "Urbanisation creates housing and infrastructure pressure.",
+          "explain": "Rapid population growth in cities outpaces housing supply, pushing rents up and straining transport, schools and hospitals.",
+          "example": "Several megacities now have commutes of over an hour each way because transport systems were not built for their current population."
+        },
+        {
+          "point": "Rural areas lose their workforce.",
+          "explain": "When young people leave, farms and local businesses lose labour, and villages face ageing populations and declining services.",
+          "example": "In parts of Europe, rural schools close because there are not enough children left."
+        },
+        {
+          "point": "Solutions include decentralisation and rural investment.",
+          "explain": "Governments can move administrative and corporate jobs to regional cities and invest in rural infrastructure and services.",
+          "example": "Some countries offer tax breaks to companies that open offices outside capital cities, which has slowed migration."
+        }
+      ],
+      "tips": "问题+措施题：问题两段（城市压力 / 乡村流失），措施一段（分散化+投资），措施要具体。"
+    },
+    {
+      "id": "arg-4",
+      "title": "环境·个人 vs 政府责任",
+      "prompt": "Some people believe individuals should take responsibility for protecting the environment, while others think governments should take the lead. Discuss both views and give your own opinion.",
+      "arguments": [
+        {
+          "point": "Individual choices add up.",
+          "explain": "When millions of people reduce waste, recycle and choose public transport, the combined effect is substantial.",
+          "example": "Curbside recycling programmes succeed only because households sort their waste every day."
+        },
+        {
+          "point": "Governments control the biggest levers.",
+          "explain": "Only governments can regulate industry emissions, set environmental standards and fund large-scale clean energy projects.",
+          "example": "Air quality in several major cities improved sharply only after governments restricted industrial emissions."
+        }
+      ],
+      "tips": "双观点题：个人段（积少成多+例子），政府段（监管/大项目），末段：两者结合，政府定规则、个人落实。"
+    },
+    {
+      "id": "arg-5",
+      "title": "科技·手机与社交",
+      "prompt": "In many countries, people spend more time on their phones than with friends and family. What problems does this cause, and how can they be solved?",
+      "arguments": [
+        {
+          "point": "Smartphones weaken face-to-face relationships.",
+          "explain": "Constant screen use reduces the quality of conversations and makes people feel ignored even when physically together.",
+          "example": "Many families now eat dinner with everyone looking at their own phone."
+        },
+        {
+          "point": "Screen time affects sleep and concentration.",
+          "explain": "Late-night scrolling delays sleep and leaves people tired and less productive the next day.",
+          "example": "Studies link heavy evening phone use with lower academic performance in teenagers."
+        },
+        {
+          "point": "Solutions include clear rules and digital breaks.",
+          "explain": "Households and schools can set screen-free times and zones, while individuals can schedule regular offline periods.",
+          "example": "Some schools now collect phones at the start of the day and report better attention in class."
+        }
+      ],
+      "tips": "问题+措施题：两个问题段落 + 一个措施段落（规则/断网时段/学校政策）。"
+    },
+    {
+      "id": "arg-6",
+      "title": "工作·远程办公",
+      "prompt": "More and more companies allow employees to work from home. Do the advantages of remote work outweigh the disadvantages?",
+      "arguments": [
+        {
+          "point": "Remote work saves time and money.",
+          "explain": "Employees avoid long commutes, and companies can reduce office costs while hiring talent from anywhere.",
+          "example": "A worker who saves two hours of commuting each day can reinvest that time in family or exercise."
+        },
+        {
+          "point": "It can weaken collaboration and onboarding.",
+          "explain": "Casual conversations that generate ideas are harder online, and new employees learn more slowly without nearby colleagues.",
+          "example": "Many firms report that junior staff need extra mentoring when working fully remotely."
+        }
+      ],
+      "tips": "利弊题：优点段（省时间/成本/招聘范围），缺点段（协作/新人培养），末段给出立场：混合办公最平衡。"
+    },
+    {
+      "id": "arg-7",
+      "title": "教育·大学免费",
+      "prompt": "Some people think university education should be free for everyone. To what extent do you agree or disagree?",
+      "arguments": [
+        {
+          "point": "Free university widens access.",
+          "explain": "When tuition is removed, talented students from low-income families can study without taking on debt.",
+          "example": "Countries with tuition-free systems have higher university enrolment among disadvantaged groups."
+        },
+        {
+          "point": "It may strain public budgets and quality.",
+          "explain": "Making university free for all, including wealthy families, is extremely expensive and can force cuts to teaching quality.",
+          "example": "Some governments have had to cap student numbers because free tuition became unaffordable."
+        }
+      ],
+      "tips": "同意与否题：支持段（公平/流动性），反对段（财政/质量），末段折中：按收入提供资助而非全民免费。"
+    },
+    {
+      "id": "arg-8",
+      "title": "社会·老龄化",
+      "prompt": "In many countries, the population is ageing rapidly. What problems does this cause, and what measures could governments take?",
+      "arguments": [
+        {
+          "point": "Ageing increases pressure on healthcare and pensions.",
+          "explain": "A smaller working population must fund the pensions and medical care of a growing number of retirees.",
+          "example": "Several countries have had to raise the retirement age to keep pension systems solvent."
+        },
+        {
+          "point": "Labour shortages slow economic growth.",
+          "explain": "Fewer young workers means businesses struggle to fill positions, which can reduce productivity.",
+          "example": "Some economies now rely on immigration to fill roles in healthcare and construction."
+        },
+        {
+          "point": "Measures include later retirement and family support.",
+          "explain": "Governments can encourage later retirement, support childcare and invest in automation to offset labour shortages.",
+          "example": "Flexible part-time work for older employees keeps experienced staff in the workforce longer."
+        }
+      ],
+      "tips": "问题+措施题：医疗养老压力、劳动力短缺两段，措施段给 2-3 个具体政策。"
+    },
+    {
+      "id": "arg-9",
+      "title": "媒体·事实与观点",
+      "prompt": "Some people think the media should report only facts, while others believe opinion and analysis are also valuable. Discuss both views and give your own opinion.",
+      "arguments": [
+        {
+          "point": "Facts protect public trust.",
+          "explain": "When news is strictly factual, audiences can form their own views without being manipulated by bias.",
+          "example": "Outlets that separate news reporting from opinion commentary are generally rated as more trustworthy."
+        },
+        {
+          "point": "Analysis helps people understand complex issues.",
+          "explain": "Raw facts rarely explain causes and consequences; expert analysis turns information into understanding.",
+          "example": "During economic crises, analysis helps readers see why prices are rising, not just that they are."
+        }
+      ],
+      "tips": "双观点题：事实段（信任/客观），分析段（理解复杂问题），末段：两者都需要，但必须明确区分。"
+    },
+    {
+      "id": "arg-10",
+      "title": "科技·AI 与就业",
+      "prompt": "Artificial intelligence is increasingly used in the workplace. Do the benefits of this development outweigh the drawbacks?",
+      "arguments": [
+        {
+          "point": "AI raises productivity and reduces repetitive work.",
+          "explain": "Automating routine tasks frees workers to focus on creative and interpersonal work that machines cannot do.",
+          "example": "Customer service teams using AI handle routine questions faster and spend more time on complex cases."
+        },
+        {
+          "point": "It can displace workers and widen inequality.",
+          "explain": "Jobs built around predictable tasks are most at risk, and the benefits tend to go to those with capital and advanced skills.",
+          "example": "Some factories now need far fewer workers for the same output."
+        }
+      ],
+      "tips": "利弊题：优点段（效率/释放人力），缺点段（岗位替代/不平等），末段：需要再培训与社会保障配套。"
+    }
+  ]
+}

@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "passages": [
+    {
+      "id": "shadow-1",
+      "title": "Daily routine",
+      "topic": "日常作息",
+      "sentences": [
+        "I usually wake up at seven o'clock and start my day with a cup of tea.",
+        "After breakfast, I spend about an hour checking my emails and planning my work.",
+        "In the evening, I prefer to go for a short walk instead of watching television.",
+        "Getting enough sleep is really important to me, so I try to go to bed before eleven."
+      ]
+    },
+    {
+      "id": "shadow-2",
+      "title": "My hometown",
+      "topic": "家乡",
+      "sentences": [
+        "I was born and raised in a medium-sized city in the north of China.",
+        "My hometown is famous for its old town, which attracts a lot of tourists every summer.",
+        "Compared with big cities, the pace of life there is much slower and more relaxed.",
+        "The one thing I don't like about it is that the public transport is not very convenient."
+      ]
+    },
+    {
+      "id": "shadow-3",
+      "title": "A hobby I enjoy",
+      "topic": "爱好",
+      "sentences": [
+        "In my free time, I enjoy taking photos of street scenes and ordinary people.",
+        "I started this hobby about three years ago, when my friend gave me a second-hand camera.",
+        "Photography teaches me to notice small details that I used to ignore.",
+        "I don't plan to become a professional, but it gives me a lot of pleasure."
+      ]
+    },
+    {
+      "id": "shadow-4",
+      "title": "My favourite season",
+      "topic": "季节",
+      "sentences": [
+        "My favourite season is autumn because the weather is cool and comfortable.",
+        "In autumn, the leaves turn red and gold, and the whole city looks different.",
+        "Autumn is also the season when I feel most energetic and focused on my goals."
+      ]
+    },
+    {
+      "id": "shadow-5",
+      "title": "Using technology",
+      "topic": "科技",
+      "sentences": [
+        "Technology has changed the way I work, study and even relax.",
+        "My smartphone helps me keep in touch with friends who live far away.",
+        "However, I try to limit my screen time in the evening so that I can sleep better.",
+        "I think the key is to use technology as a tool, not to let it control my life."
+      ]
+    },
+    {
+      "id": "shadow-6",
+      "title": "Healthy eating",
+      "topic": "健康饮食",
+      "sentences": [
+        "Eating well does not have to be complicated or expensive.",
+        "I try to cook at home most days and avoid ordering too much fast food.",
+        "A simple meal with vegetables, rice and some fish is both cheap and healthy.",
+        "Drinking enough water is just as important as choosing the right food."
+      ]
+    },
+    {
+      "id": "shadow-7",
+      "title": "Learning English",
+      "topic": "学英语",
+      "sentences": [
+        "I have been learning English for many years, but my speaking is still my weakest point.",
+        "The best way to improve is to practise a little every day instead of studying for hours once a week.",
+        "I find that reading aloud helps me remember new words and sentence patterns.",
+        "Making mistakes is a normal part of learning, so I try not to be afraid of them."
+      ]
+    },
+    {
+      "id": "shadow-8",
+      "title": "A memorable trip",
+      "topic": "旅行",
+      "sentences": [
+        "Last summer, I took a trip to a small island with two of my closest friends.",
+        "We spent most of our days swimming in the sea and walking along the coast.",
+        "One evening, we got lost on our way back to the hotel and had to ask a local for help.",
+        "Although the trip was not perfect, it taught me that travelling together can make friendships stronger.",
+        "I still look at the photos from that trip whenever I feel stressed."
+      ]
+    },
+    {
+      "id": "shadow-9",
+      "title": "My best friend",
+      "topic": "朋友",
+      "sentences": [
+        "My best friend and I have known each other since we were in primary school.",
+        "We share a similar sense of humour, so we can laugh about almost anything.",
+        "What I admire most about her is that she always keeps her promises.",
+        "Even though we now live in different cities, we still talk on the phone every week."
+      ]
+    },
+    {
+      "id": "shadow-10",
+      "title": "Working from home",
+      "topic": "居家办公",
+      "sentences": [
+        "Working from home has both advantages and disadvantages.",
+        "On the positive side, I save a lot of time because I do not have to commute every day.",
+        "On the other hand, it is easy to feel lonely and to work longer than I should.",
+        "To stay productive, I keep a clear schedule and take short breaks between tasks."
+      ]
+    },
+    {
+      "id": "shadow-11",
+      "title": "Protecting the environment",
+      "topic": "环保",
+      "sentences": [
+        "Protecting the environment is everyone's responsibility, not just the government's job.",
+        "Small actions, such as saving water and using public transport, can make a real difference.",
+        "I try to carry a reusable bag and avoid buying products with too much plastic packaging.",
+        "If everyone changes just one habit, the total effect will be enormous."
+      ]
+    },
+    {
+      "id": "shadow-12",
+      "title": "My plans for the future",
+      "topic": "未来规划",
+      "sentences": [
+        "In the future, I would like to study or work abroad for a couple of years.",
+        "My main goal is to improve my English so that I can communicate with confidence.",
+        "I also hope to find a job that lets me keep learning new skills.",
+        "Of course, plans can change, so I try to stay open to new opportunities."
+      ]
+    },
+    {
+      "id": "shadow-13",
+      "title": "Morning Routines",
+      "topic": "日常作息",
+      "sentences": [
+        "I usually wake up around six thirty, even on weekends.",
+        "The first thing I do is drink a large glass of warm water.",
+        "Then I spend twenty minutes jogging around my neighborhood before breakfast.",
+        "A steady morning routine keeps my energy stable for the whole day.",
+        "If I skip it, I feel sluggish and easily distracted at work."
+      ]
+    },
+    {
+      "id": "shadow-14",
+      "title": "Public Libraries",
+      "topic": "公共图书馆",
+      "sentences": [
+        "The library near my home was rebuilt last year, and it is now a quiet, bright space.",
+        "You can borrow up to ten books at a time and keep them for a month.",
+        "Many students go there to study because the reading rooms stay open until nine.",
+        "I like the atmosphere: everyone is focused, and nobody talks on the phone.",
+        "Libraries are no longer just about books; ours also offers free lectures and coding classes."
+      ]
+    },
+    {
+      "id": "shadow-15",
+      "title": "Online Shopping",
+      "topic": "网上购物",
+      "sentences": [
+        "These days I buy almost everything online, from shoes to fresh fruit.",
+        "Delivery is remarkably fast; most orders arrive within twenty-four hours.",
+        "The main risk is that pictures sometimes look better than the real product.",
+        "So I always read the reviews carefully before placing an order.",
+        "Overall, online shopping has saved me a huge amount of time."
+      ]
+    },
+    {
+      "id": "shadow-16",
+      "title": "Keeping Pets",
+      "topic": "养宠物",
+      "sentences": [
+        "My family has kept a golden retriever for five years, and he is part of the family now.",
+        "Walking him every evening has genuinely improved my fitness.",
+        "Pets also teach children responsibility and patience.",
+        "Of course, they are a long-term commitment: food, vaccines and vet visits all cost money.",
+        "I would only recommend a pet to people who can stay at home regularly."
+      ]
+    },
+    {
+      "id": "shadow-17",
+      "title": "Weekend Activities",
+      "topic": "周末活动",
+      "sentences": [
+        "On Saturdays I usually meet friends for badminton in the morning.",
+        "Sundays are quieter: I cook a proper meal and catch up on reading.",
+        "I try to keep at least one afternoon completely free of screens.",
+        "It sounds simple, but it really helps me recharge for the week ahead.",
+        "When the weather is good, we take a short trip to the countryside instead."
+      ]
+    },
+    {
+      "id": "shadow-18",
+      "title": "Social Media",
+      "topic": "社交媒体",
+      "sentences": [
+        "I spend about an hour a day on social media, mostly watching short videos.",
+        "It keeps me connected with old classmates, which I genuinely value.",
+        "However, the endless recommendations can easily eat up your whole evening.",
+        "So I set a daily limit and turn my phone off after ten o'clock.",
+        "Used carefully, social media is a tool; used carelessly, it becomes a habit."
+      ]
+    },
+    {
+      "id": "shadow-19",
+      "title": "Learning Languages",
+      "topic": "学外语",
+      "sentences": [
+        "I have been learning English for several years, mostly on my commute.",
+        "Listening to podcasts works better for me than memorizing word lists.",
+        "The hardest part is speaking, because I rarely meet native speakers.",
+        "So I record myself answering questions and compare it with the original audio.",
+        "Small daily practice matters far more than one long session on the weekend."
+      ]
+    },
+    {
+      "id": "shadow-20",
+      "title": "City Parks",
+      "topic": "城市公园",
+      "sentences": [
+        "Our city has built several small parks in the past few years.",
+        "Research suggests that small, nearby parks matter more than one large one far away.",
+        "Every evening these parks fill with children, dancers and dog walkers.",
+        "They also cool the streets down noticeably in summer.",
+        "To me, a city without parks is like a house without windows."
+      ]
+    },
+    {
+      "id": "shadow-21",
+      "title": "Home Cooking",
+      "topic": "在家做饭",
+      "sentences": [
+        "I started cooking during a busy work period, purely to save money.",
+        "Surprisingly, it became my favorite way to relax after a long day.",
+        "Home cooking is healthier too, because you control the oil and salt.",
+        "My signature dish is a simple tomato and egg stir-fry.",
+        "Nothing beats the smell of fresh food in your own kitchen."
+      ]
+    },
+    {
+      "id": "shadow-22",
+      "title": "Public Transport",
+      "topic": "公共交通",
+      "sentences": [
+        "I take the subway to work every day, and it takes about forty minutes.",
+        "I use that time to listen to English podcasts or read a few pages.",
+        "Public transport is far cheaper than driving once you count parking and fuel.",
+        "The rush hour can be crowded, but the trains run every three minutes.",
+        "For me, it is the most predictable way to cross the city."
+      ]
+    },
+    {
+      "id": "shadow-23",
+      "title": "Mobile Phones",
+      "topic": "手机",
+      "sentences": [
+        "My phone is basically an office, a library and a cinema in my pocket.",
+        "I pay bills, book tickets and even attend meetings on it.",
+        "The downside is that it is hard to put down, especially before bed.",
+        "Recently I started charging it outside the bedroom, and my sleep improved.",
+        "A phone should serve you, not the other way round."
+      ]
+    },
+    {
+      "id": "shadow-24",
+      "title": "Seasons and Weather",
+      "topic": "季节天气",
+      "sentences": [
+        "I love autumn best, because the air is cool and the sky stays clear.",
+        "Summer in my city is hot and humid, and everyone hides indoors at noon.",
+        "Winter is short but the heating makes my room extremely dry.",
+        "Spring is beautiful, though the wind can be strong and dusty.",
+        "People in my hometown always say there are only two seasons: summer and winter."
+      ]
+    },
+    {
+      "id": "shadow-25",
+      "title": "Museums",
+      "topic": "博物馆",
+      "sentences": [
+        "Our city museum reopened last month after two years of renovation.",
+        "Admission is free now, and there is a new gallery for local history.",
+        "Guided tours run every hour and are well worth joining.",
+        "I once found an exhibition about my own neighborhood's past.",
+        "Museums remind people that a city is not just buildings and traffic."
+      ]
+    },
+    {
+      "id": "shadow-26",
+      "title": "Photography",
+      "topic": "摄影",
+      "sentences": [
+        "I got into photography when I bought my first smartphone with a good camera.",
+        "At first I photographed everything; later I learned to wait for the right light.",
+        "Early morning and sunset give the best colors by far.",
+        "Photography has taught me to notice small details in ordinary streets.",
+        "The best camera is simply the one you carry every day."
+      ]
+    },
+    {
+      "id": "shadow-27",
+      "title": "Neighborhood Life",
+      "topic": "邻里生活",
+      "sentences": [
+        "I live in an old neighborhood where everyone knows each other.",
+        "The vegetable seller saves the freshest stock for regular customers.",
+        "When my family moved in, our neighbors brought us dinner for a week.",
+        "Such close ties are rare in new high-rise communities.",
+        "A friendly neighborhood makes a city feel like home."
+      ]
+    },
+    {
+      "id": "shadow-28",
+      "title": "Local Markets",
+      "topic": "本地市场",
+      "sentences": [
+        "The morning market near my home opens at six and is busiest by seven.",
+        "Vendors shout their prices, and bargaining is part of the experience.",
+        "Everything is fresher and cheaper than in the supermarket.",
+        "You also run into neighbors, so shopping doubles as social time.",
+        "I honestly enjoy the noise and energy of a busy market."
+      ]
+    },
+    {
+      "id": "shadow-29",
+      "title": "Rainy Days",
+      "topic": "雨天",
+      "sentences": [
+        "Rainy days completely change the rhythm of my city.",
+        "The streets quiet down, and the air smells fresh and clean.",
+        "I used to find rain depressing, but now I enjoy it with a cup of tea.",
+        "The only trouble is traffic: every taxi seems to be taken.",
+        "Still, a slow rainy afternoon is perfect for reading."
+      ]
+    },
+    {
+      "id": "shadow-30",
+      "title": "Cycling in the City",
+      "topic": "城市骑行",
+      "sentences": [
+        "More people in my city are commuting by bicycle than ever before.",
+        "The city has added protected bike lanes along the main roads.",
+        "Cycling beats the bus for trips under five kilometers.",
+        "It is cheaper, faster at rush hour, and good exercise at the same time.",
+        "The main risk remains reckless car drivers near intersections."
+      ]
+    },
+    {
+      "id": "shadow-31",
+      "title": "Street Food",
+      "topic": "街头美食",
+      "sentences": [
+        "My city is famous for its street food, especially after sunset.",
+        "My personal favorite is grilled tofu with chili sauce.",
+        "Good street stalls rely on regular customers, so quality stays high.",
+        "Hygiene has improved a lot since the city introduced food ratings.",
+        "For many locals, street food is a weekend tradition, not just a meal."
+      ]
+    },
+    {
+      "id": "shadow-32",
+      "title": "Quiet Places",
+      "topic": "安静去处",
+      "sentences": [
+        "Every city needs quiet places where people can slow down.",
+        "My refuge is a small teahouse hidden behind an old temple.",
+        "The owner keeps two cats and never plays any music.",
+        "I go there to read, think, or simply watch the rain.",
+        "In a noisy world, silence has become something you have to look for."
+      ]
+    }
+  ]
+}

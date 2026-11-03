@@ -1,0 +1,2499 @@
+{
+  "version": 1,
+  "sets": [
+    {
+      "id": "reading-1",
+      "module": "reading",
+      "title": "Small parks, big effects",
+      "intro": "城市绿地：小而分散的公园是否比一个大公园更有价值。8 题（4 选择 / 2 判断 / 2 填空），建议 15 分钟。",
+      "passage": "A. For most of the twentieth century, city planners treated green space as decoration: something pleasant to look at, usually placed in one large park at the edge of the city. In the last decade a different idea has taken hold. Small, scattered parks, it is argued, may matter more than one grand one, because what determines whether people use a park is how far they have to walk to reach it.\n\nB. Pocket parks are plots smaller than a tennis court, often built on vacant lots between buildings. They are cheap to create and quick to open. Research across three European cities found that residents living within 300 metres of a pocket park used it, on average, four times a week. Those who lived near a large park two kilometres away visited it less than once a week. Distance, not size, predicted use.\n\nC. The benefits reach beyond recreation. A study of forty neighbourhoods reported measurably lower summer temperatures within 200 metres of new planting, and storm water absorption also improved, because soil and roots hold rain that would otherwise run into drains and flood streets during heavy storms.\n\nD. Not every scheme works. Where parks were built without consulting the people who would use them, vandalism rose and planting was pulled out within a year. Critics also point to maintenance. A park needs watering, pruning and cleaning, and a small park is not necessarily cheaper per visitor than a large one, since fixed costs are spread across fewer people. Cities that have succeeded tend to fund upkeep with a small levy on local businesses and to hand day-to-day management to residents' committees, which notice damage quickly.\n\nE. The lesson is not that small is always better. It is that a measured approach - testing several sites, measuring how people actually use them, and being willing to change course when the evidence points elsewhere - produces better results than a single flagship project that looks impressive in a photograph.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "choice",
+          "prompt": "What is the main change described in paragraph A?",
+          "options": [
+            "Cities are building fewer parks than before",
+            "Planners now value many small parks over one large park",
+            "Park design has become more expensive",
+            "Residents prefer parks built outside the city"
+          ],
+          "answers": [
+            "Planners now value many small parks over one large park"
+          ],
+          "explain": "A 段说过去把绿地当装饰、通常放在城边一个大公园里；最近十年「小而分散可能比一个大公园更重要」的新想法占了上风。",
+          "explain_en": "Paragraph A says planners once treated green space as decoration in one large park at the edge of the city; in the last decade the idea that many small, scattered parks matter more has taken hold.",
+          "keys": [
+            "small, scattered parks",
+            "matter more",
+            "one large park",
+            "小而分散",
+            "一个大公园"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "choice",
+          "prompt": "What did the European research find?",
+          "options": [
+            "Large parks are used more often than small ones",
+            "How far people live from a park predicts how often they use it",
+            "Small parks are used mainly by children",
+            "The size of a park matters more than its location"
+          ],
+          "answers": [
+            "How far people live from a park predicts how often they use it"
+          ],
+          "explain": "B 段结尾一句：Distance, not size, predicted use（决定使用频率的是距离，不是面积）。",
+          "explain_en": "Paragraph B ends: 'Distance, not size, predicted use' — how far people live from a park predicts how often they use it.",
+          "keys": [
+            "Distance, not size",
+            "predicted use",
+            "距离",
+            "面积"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "According to paragraph C, which benefit was actually measured?",
+          "options": [
+            "Higher property prices near new planting",
+            "Lower summer temperatures near new planting",
+            "Fewer traffic accidents in those neighbourhoods",
+            "Better indoor air quality in nearby buildings"
+          ],
+          "answers": [
+            "Lower summer temperatures near new planting"
+          ],
+          "explain": "C 段只写了两个可测量结果：夏季气温更低、雨水吸纳更好。房价、交通事故、室内空气质量都没提。",
+          "explain_en": "Paragraph C reports only two measured results: lower summer temperatures and better storm water absorption; property prices, accidents and indoor air are not mentioned.",
+          "keys": [
+            "lower summer temperatures",
+            "storm water absorption",
+            "夏季气温",
+            "雨水吸纳"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "choice",
+          "prompt": "What does the writer say about maintenance costs?",
+          "options": [
+            "Small parks are always cheaper to run",
+            "Maintenance is paid for entirely by residents",
+            "A small park may cost more per visitor than a large one",
+            "Maintenance is not a serious concern"
+          ],
+          "answers": [
+            "A small park may cost more per visitor than a large one"
+          ],
+          "explain": "D 段：not necessarily cheaper per visitor，因为固定成本摊到的人更少。",
+          "explain_en": "Paragraph D: a small park is 'not necessarily cheaper per visitor' because fixed costs are spread across fewer people.",
+          "keys": [
+            "not necessarily cheaper per visitor",
+            "fixed costs",
+            "人均",
+            "固定成本"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "tfng",
+          "prompt": "Residents were always consulted before a park was built.",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "answers": [
+            "FALSE"
+          ],
+          "explain": "D 段明确说，在没有征求使用者意见的地方，破坏行为上升、种下的植物一年内被拔掉 —— 并非「总是征求过意见」。",
+          "explain_en": "Paragraph D says that where parks were built without consulting the people who would use them, vandalism rose — so residents were not always consulted.",
+          "keys": [
+            "without consulting",
+            "vandalism",
+            "征求意见",
+            "破坏行为"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "tfng",
+          "prompt": "Storm water absorption improved near new planting.",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "answers": [
+            "TRUE"
+          ],
+          "explain": "C 段：storm water absorption also improved，与题干一致。",
+          "explain_en": "Paragraph C: 'storm water absorption also improved', matching the statement.",
+          "keys": [
+            "storm water absorption",
+            "improved",
+            "雨水吸纳"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "gap",
+          "prompt": "Successful cities fund upkeep with a small ______ on local businesses.",
+          "options": [],
+          "answers": [
+            "levy",
+            "a levy",
+            "tax",
+            "a tax"
+          ],
+          "explain": "D 段原文：fund upkeep with a small levy on local businesses。",
+          "explain_en": "Paragraph D: 'fund upkeep with a small levy on local businesses'.",
+          "keys": [
+            "levy",
+            "local businesses"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "gap",
+          "prompt": "The writer recommends testing several sites and being willing to ______ course.",
+          "options": [],
+          "answers": [
+            "change",
+            "change the"
+          ],
+          "explain": "E 段：being willing to change course when the evidence points elsewhere。",
+          "explain_en": "Paragraph E: 'being willing to change course when the evidence points elsewhere'.",
+          "keys": [
+            "change course",
+            "evidence"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reading-2",
+      "module": "reading",
+      "title": "Working from anywhere: who really benefits?",
+      "intro": "远程办公六年后的真实得失，含 1 道 NOT GIVEN 判断题。8 题（4 选择 / 2 判断 / 2 填空），建议 15 分钟。",
+      "passage": "A. When offices closed in 2020, working from home was an emergency measure adopted in a week. Six years on it has become a settled part of working life in many industries, but the benefits are far from evenly shared, and the argument about it is often conducted as if everyone were in the same position.\n\nB. For an employee with a spare room, a stable connection and no small children at home, remote work is a clear gain. One large survey put the time saved on commuting at seventy-two minutes a day. What is striking is how that time is used: it goes largely into sleep, family and exercise rather than into extra work, which may explain why productivity has not fallen as sharply as some managers predicted.\n\nC. For those in crowded or shared housing, the same arrangement brings constant interruption, higher energy bills and a boundary between work and home that blurs until neither feels finished. In many households the burden of childcare still falls unevenly, and it is usually the lower-paid partner who reduces hours or leaves the labour market altogether.\n\nD. Employers report mixed results. Individual tasks that need concentration - writing, analysis, coding - are often completed faster at home. Work that depends on negotiation, training or mentoring does less well, and younger staff in particular lose the informal learning that happens simply by overhearing a more experienced colleague.\n\nE. The compromise most organisations have reached - two or three days in the office - is less a principled solution than a balance of competing pressures. What the evidence does suggest is that the number of days matters less than two other things: whether a team agrees in advance on when it will be together, and whether managers judge output rather than hours visible on screen.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "choice",
+          "prompt": "What does the writer say about the time saved by not commuting?",
+          "options": [
+            "It is mostly turned into extra work",
+            "It goes largely into sleep, family and exercise",
+            "It is usually unpaid overtime",
+            "It has fallen steadily since 2020"
+          ],
+          "answers": [
+            "It goes largely into sleep, family and exercise"
+          ],
+          "explain": "B 段：goes largely into sleep, family and exercise rather than into extra work。",
+          "explain_en": "Paragraph B: the saved time 'goes largely into sleep, family and exercise rather than into extra work'.",
+          "keys": [
+            "sleep",
+            "family and exercise",
+            "extra work",
+            "睡眠",
+            "家庭和锻炼"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "choice",
+          "prompt": "Which group does the writer identify as most disadvantaged by remote work?",
+          "options": [
+            "Senior managers who lose control",
+            "People in crowded or shared housing",
+            "Employees who have a spare room",
+            "Staff who travel to work by train"
+          ],
+          "answers": [
+            "People in crowded or shared housing"
+          ],
+          "explain": "C 段：crowded or shared housing → 持续打扰、电费上升、工作与家庭界限模糊。",
+          "explain_en": "Paragraph C: people in 'crowded or shared housing' face constant interruption and higher bills.",
+          "keys": [
+            "crowded or shared housing",
+            "拥挤或合住"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "Which kind of work is said to suffer when done at home?",
+          "options": [
+            "Writing long reports",
+            "Analysing data",
+            "Training and mentoring colleagues",
+            "Answering routine emails"
+          ],
+          "answers": [
+            "Training and mentoring colleagues"
+          ],
+          "explain": "D 段：写作、分析、编程在家更快；依赖协商、培训、带教的工作表现更差。",
+          "explain_en": "Paragraph D: negotiation, training and mentoring do less well, while writing, analysis and coding are faster at home.",
+          "keys": [
+            "training or mentoring",
+            "培训",
+            "带教"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "choice",
+          "prompt": "According to paragraph E, what matters most?",
+          "options": [
+            "The exact number of days spent in the office",
+            "Teams agreeing on shared days and managers judging output",
+            "A return to five days a week in the office",
+            "Paying remote staff higher salaries"
+          ],
+          "answers": [
+            "Teams agreeing on shared days and managers judging output"
+          ],
+          "explain": "E 段：the number of days matters less than two other things —— 团队提前约定共同在场日、管理者看产出而不是屏幕在线时长。",
+          "explain_en": "Paragraph E: the number of days matters less than teams agreeing shared days and managers judging output rather than hours on screen.",
+          "keys": [
+            "number of days matters less",
+            "judge output",
+            "看产出"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "tfng",
+          "prompt": "The figure of seventy-two minutes comes from employees' own estimates.",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "answers": [
+            "NOT GIVEN"
+          ],
+          "explain": "原文只说 One large survey put the time saved at seventy-two minutes a day，没说这是员工自报还是实测 —— 无从判断，选 NOT GIVEN。",
+          "explain_en": "The text only says a survey put the time at seventy-two minutes; it does not say whether this was self-reported or measured.",
+          "keys": [
+            "seventy-two minutes",
+            "survey",
+            "自报",
+            "实测"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "tfng",
+          "prompt": "Tasks that need concentration are often completed more quickly at home.",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "answers": [
+            "TRUE"
+          ],
+          "explain": "D 段：Individual tasks that need concentration … are often completed faster at home。",
+          "explain_en": "Paragraph D: tasks that need concentration are 'often completed faster at home'.",
+          "keys": [
+            "need concentration",
+            "faster at home"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "gap",
+          "prompt": "Younger staff lose the informal learning that comes from ______ a more experienced colleague.",
+          "options": [],
+          "answers": [
+            "overhearing",
+            "hearing"
+          ],
+          "explain": "D 段原文：by overhearing a more experienced colleague。",
+          "explain_en": "Paragraph D: informal learning 'by overhearing a more experienced colleague'.",
+          "keys": [
+            "overhearing",
+            "experienced colleague"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "gap",
+          "prompt": "The two-or-three-day pattern is described as a balance of competing ______.",
+          "options": [],
+          "answers": [
+            "pressures"
+          ],
+          "explain": "E 段：less a principled solution than a balance of competing pressures。",
+          "explain_en": "Paragraph E: 'a balance of competing pressures'.",
+          "keys": [
+            "competing pressures"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "listening-1",
+      "module": "listening",
+      "title": "Joining the community library",
+      "intro": "电话咨询办理借书证。先听音频（可 0.75–1.5 倍速、可重播），再作答。6 题（4 填空 / 2 选择），音频约 80 秒。",
+      "audio": "bank/listening-1.mp3",
+      "transcript": "Good morning, Riverside Community Library. How can I help you?\n\nHello. I'd like to join the library. Could you tell me what I need to bring?\n\nOf course. You need one form of identification that shows your address, such as a driving licence or a recent utility bill. Membership itself is free.\n\nGreat. And what are your opening hours?\n\nOn weekdays we open at nine in the morning and close at eight in the evening. On Saturdays we close earlier, at five. We're closed on Sundays.\n\nDo you have a children's section?\n\nYes, the children's room is on the second floor. Story time runs every Wednesday afternoon at half past three.\n\nPerfect. Is there anywhere I can study quietly?\n\nWe have a silent study room on the first floor, next to the newspapers. It has twenty desks, but you can't book them - it's first come, first served.\n\nThat's fine. One more thing - can I borrow DVDs?\n\nYes. DVDs can be borrowed for one week, and the late fee is fifty pence per day.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "New members must bring one form of ______ that shows their address.",
+          "options": [],
+          "answers": [
+            "identification",
+            "id",
+            "id card",
+            "identity"
+          ],
+          "explain": "原文：one form of identification that shows your address。驾照或近期的水电账单都可以。",
+          "explain_en": "The clerk says you need 'one form of identification that shows your address'.",
+          "keys": [
+            "identification",
+            "address"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "On Saturdays the library closes at ______ p.m.",
+          "options": [],
+          "answers": [
+            "five",
+            "5",
+            "5.00",
+            "five o'clock"
+          ],
+          "explain": "原文：On Saturdays we close earlier, at five。工作日是九点到晚上八点，周日闭馆。",
+          "explain_en": "'On Saturdays we close earlier, at five' — weekdays are nine to eight, closed on Sundays.",
+          "keys": [
+            "at five",
+            "五点"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "Where is the children's room?",
+          "options": [
+            "On the ground floor",
+            "On the first floor",
+            "On the second floor"
+          ],
+          "answers": [
+            "On the second floor"
+          ],
+          "explain": "原文：the children's room is on the second floor。注意 silent study room 才在一楼。",
+          "explain_en": "The children's room is on the second floor; the silent study room is on the first floor.",
+          "keys": [
+            "second floor",
+            "二楼"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "gap",
+          "prompt": "Story time takes place on Wednesday afternoons at ______.",
+          "options": [],
+          "answers": [
+            "half past three",
+            "3:30",
+            "three thirty",
+            "3.30",
+            "15:30"
+          ],
+          "explain": "原文：Story time runs every Wednesday afternoon at half past three。",
+          "explain_en": "'Story time runs every Wednesday afternoon at half past three'.",
+          "keys": [
+            "half past three",
+            "三点半"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "choice",
+          "prompt": "How can you get a desk in the silent study room?",
+          "options": [
+            "Book it online in advance",
+            "Pay a small daily fee",
+            "Arrive early and take one"
+          ],
+          "answers": [
+            "Arrive early and take one"
+          ],
+          "explain": "原文：you can't book them — it's first come, first served（先到先得）。",
+          "explain_en": "You can't book a desk — 'it's first come, first served'.",
+          "keys": [
+            "first come, first served",
+            "先到先得"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "gap",
+          "prompt": "DVDs can be borrowed for ______.",
+          "options": [],
+          "answers": [
+            "one week",
+            "a week",
+            "1 week",
+            "7 days",
+            "seven days"
+          ],
+          "explain": "原文：DVDs can be borrowed for one week，逾期费每天五十便士。",
+          "explain_en": "'DVDs can be borrowed for one week', with a late fee of fifty pence a day.",
+          "keys": [
+            "one week",
+            "一周"
+          ]
+        }
+      ],
+      "sentences": [
+        {
+          "start": 0.05,
+          "end": 3.02,
+          "text": "Good morning, Riverside Community Library. How can I help you?"
+        },
+        {
+          "start": 4.0,
+          "end": 9.04,
+          "text": "Hello. I'd like to join the library. Could you tell me what I need to bring?"
+        },
+        {
+          "start": 10.0,
+          "end": 21.56,
+          "text": "Of course. You need one form of identification that shows your address, such as a driving licence or a recent utility bill. Membership itself is free."
+        },
+        {
+          "start": 22.5,
+          "end": 25.71,
+          "text": "Great. And what are your opening hours?"
+        },
+        {
+          "start": 26.7,
+          "end": 37.07,
+          "text": "On weekdays we open at nine in the morning and close at eight in the evening. On Saturdays we close earlier, at five. We're closed on Sundays."
+        },
+        {
+          "start": 38.0,
+          "end": 39.64,
+          "text": "Do you have a children's section?"
+        },
+        {
+          "start": 40.6,
+          "end": 46.53,
+          "text": "Yes, the children's room is on the second floor. Story time runs every Wednesday afternoon at half past three."
+        },
+        {
+          "start": 47.5,
+          "end": 53.03,
+          "text": "Perfect. Is there anywhere I can study quietly?"
+        },
+        {
+          "start": 54.0,
+          "end": 61.7,
+          "text": "We have a silent study room on the first floor, next to the newspapers. It has twenty desks, but you can't book them - it's first come, first served."
+        },
+        {
+          "start": 62.6,
+          "end": 70.12,
+          "text": "That's fine. One more thing - can I borrow DVDs?"
+        },
+        {
+          "start": 71.1,
+          "end": 75.38,
+          "text": "Yes. DVDs can be borrowed for one week, and the late fee is fifty pence per day."
+        }
+      ]
+    },
+    {
+      "id": "reading-3",
+      "module": "reading",
+      "title": "Why we waste a third of the food we grow",
+      "intro": "粮食浪费的成因与代价，含 1 道 NOT GIVEN 判断题。8 题（4 选择 / 2 判断 / 2 填空），建议 15 分钟。",
+      "passage": "A. Roughly one-third of all food produced for human consumption is never eaten. Where that waste happens depends on income. In wealthy countries most of it occurs at the end of the chain - in supermarkets and in homes - while in poorer ones food is lost closer to the farm, to pests, poor storage and a lack of refrigeration.\n\nB. Supermarkets are frequently blamed, and with some reason. Fruit and vegetables that are perfectly edible are rejected for cosmetic reasons, and 'buy one get one free' offers encourage households to buy more than they will eat. Date labels add to the confusion: the distinction between 'best before', which is about quality, and 'use by', which is about safety, is widely misunderstood. Many people throw food away on the best-before date even when it is perfectly safe.\n\nC. Homes are the single largest source of food waste in rich countries, ahead of farms, factories and shops. One cause is portion size: recipes and packaging push people to cook too much. Another is planning - shoppers often buy without checking what they already have, so ingredients are forgotten at the back of the fridge until they have spoiled.\n\nD. The costs are not only moral. Wasted food means wasted water, land and fuel, and rotting food in landfill releases methane, a greenhouse gas that is far more potent than carbon dioxide in the short term. Some governments have responded by requiring supermarkets to donate unsold edible food to charities rather than bin it; others have funded campaigns teaching the difference between the two date labels.\n\nE. Experts argue that the biggest gains come from small, repeated habits rather than grand schemes: writing a list before shopping, using the freezer, and cooking one more meal from leftovers before buying again. As one researcher puts it, we do not need everyone to become perfect - we need everyone to waste a little less, a little more often.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "choice",
+          "prompt": "In wealthy countries, where does most food waste happen?",
+          "options": [
+            "On farms",
+            "In supermarkets and in homes",
+            "During transport between countries",
+            "In food-processing factories"
+          ],
+          "answers": [
+            "In supermarkets and in homes"
+          ],
+          "explain": "A 段：在富裕国家，大部分浪费发生在链条末端——超市和家里；在穷国则是靠近农场的地方。",
+          "explain_en": "Paragraph A: in wealthy countries most waste happens at the end of the chain — in supermarkets and in homes.",
+          "keys": [
+            "supermarkets",
+            "homes",
+            "超市",
+            "家里"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "choice",
+          "prompt": "Why are the two date labels a problem?",
+          "options": [
+            "They mean exactly the same thing",
+            "People misunderstand them and throw away safe food",
+            "They are too expensive for small producers to print",
+            "They are only printed in one language"
+          ],
+          "answers": [
+            "People misunderstand them and throw away safe food"
+          ],
+          "explain": "B 段：best before 关乎品质、use by 关乎安全，两者常被误解，很多人过了 best-before 日期就扔掉其实仍安全可吃的食物。",
+          "explain_en": "'best before' is about quality and 'use by' is about safety; the difference is widely misunderstood, so safe food gets thrown away.",
+          "keys": [
+            "best before",
+            "use by",
+            "misunderstood"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "What is the single largest source of food waste in rich countries?",
+          "options": [
+            "Farms",
+            "Factories",
+            "Shops",
+            "Homes"
+          ],
+          "answers": [
+            "Homes"
+          ],
+          "explain": "C 段开头：Homes are the single largest source of food waste in rich countries。",
+          "explain_en": "Paragraph C opens: 'Homes are the single largest source of food waste in rich countries'.",
+          "keys": [
+            "Homes",
+            "single largest source"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "choice",
+          "prompt": "Why is rotting food in landfill harmful?",
+          "options": [
+            "It releases methane",
+            "It pollutes nearby rivers",
+            "It consumes too much paper for packaging",
+            "It attracts insects that spread disease"
+          ],
+          "answers": [
+            "It releases methane"
+          ],
+          "explain": "D 段：腐烂食物在填埋场释放甲烷，短期内远比二氧化碳更强的温室气体。",
+          "explain_en": "Paragraph D: rotting food releases methane, far more potent than carbon dioxide in the short term.",
+          "keys": [
+            "methane",
+            "甲烷"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "tfng",
+          "prompt": "In poorer countries, most food is lost near the farm, for example to pests or poor storage.",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "answers": [
+            "TRUE"
+          ],
+          "explain": "A 段：在穷国食物损失更靠近农场，原因是虫害、储存条件差、缺少冷藏。",
+          "explain_en": "Paragraph A: in poorer countries food is lost closer to the farm, to pests, poor storage and a lack of refrigeration.",
+          "keys": [
+            "closer to the farm",
+            "pests",
+            "靠近农场"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "tfng",
+          "prompt": "Fruit that looks imperfect is less nutritious than fruit that looks perfect.",
+          "options": [
+            "TRUE",
+            "FALSE",
+            "NOT GIVEN"
+          ],
+          "answers": [
+            "NOT GIVEN"
+          ],
+          "explain": "B 段只说不完美的蔬果因外观被拒收，没比较营养价值，营养高低无从判断。",
+          "explain_en": "Paragraph B only says imperfect produce is rejected for cosmetic reasons; it never compares nutritional value.",
+          "keys": [
+            "cosmetic reasons",
+            "nutritious",
+            "营养"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "gap",
+          "prompt": "Rotting food releases ______, a gas more potent than carbon dioxide in the short term.",
+          "options": [],
+          "answers": [
+            "methane"
+          ],
+          "explain": "D 段原文：releases methane, a greenhouse gas … far more potent than carbon dioxide in the short term。",
+          "explain_en": "Paragraph D: 'releases methane ... far more potent than carbon dioxide in the short term'.",
+          "keys": [
+            "methane",
+            "carbon dioxide"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "gap",
+          "prompt": "Experts recommend cooking ______ from leftovers before shopping again.",
+          "options": [],
+          "answers": [
+            "one more meal",
+            "a meal",
+            "one meal"
+          ],
+          "explain": "E 段：cooking one more meal from leftovers before buying again。",
+          "explain_en": "Paragraph E: 'cooking one more meal from leftovers before buying again'.",
+          "keys": [
+            "one more meal",
+            "leftovers"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "listening-2",
+      "module": "listening",
+      "title": "Wortham Museum re-opening",
+      "intro": "博物馆重开通知（独白）。先听音频，再作答。6 题（4 填空 / 2 选择），音频约 75 秒。",
+      "audio": "bank/listening-2.mp3",
+      "transcript": "Welcome back to Wortham Museum. After two years of rebuilding, we are opening our doors again on Saturday the fourteenth of June. The old clock tower gallery has been restored, and we have added a new cafe and a lift, so every floor is now wheelchair accessible.\n\nAdmission is free for under-sixteens and for members, but everyone else pays six pounds fifty. If you plan to visit regularly, an annual membership costs twenty-four pounds, which works out cheaper after just four visits.\n\nOur new exhibition, Voices of the Mill, tells the story of the town's textile workers. It runs from the fourteenth of June until the end of September, and guided tours leave the entrance every hour on the hour from ten until four.\n\nPlease note that the car park behind the museum now closes at six in the evening, and it is free for the first two hours only. The easiest way to reach us is the number seven bus, which stops directly outside.\n\nWe look forward to seeing you.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "The museum reopens on Saturday the ______ of June.",
+          "options": [],
+          "answers": [
+            "fourteenth",
+            "14th",
+            "14"
+          ],
+          "explain": "原文：we are opening our doors again on Saturday the fourteenth of June。",
+          "explain_en": "'We are opening our doors again on Saturday the fourteenth of June'.",
+          "keys": [
+            "fourteenth",
+            "十四"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "choice",
+          "prompt": "Who gets free admission?",
+          "options": [
+            "Everyone on Saturdays",
+            "Visitors over sixty-five",
+            "Under-sixteens and members"
+          ],
+          "answers": [
+            "Under-sixteens and members"
+          ],
+          "explain": "原文：Admission is free for under-sixteens and for members。",
+          "explain_en": "'Admission is free for under-sixteens and for members'.",
+          "keys": [
+            "under-sixteens",
+            "members"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "gap",
+          "prompt": "An annual membership costs ______ pounds.",
+          "options": [],
+          "answers": [
+            "twenty-four",
+            "24",
+            "twenty four"
+          ],
+          "explain": "原文：an annual membership costs twenty-four pounds，四次就回本。",
+          "explain_en": "'An annual membership costs twenty-four pounds', cheaper after four visits.",
+          "keys": [
+            "twenty-four pounds",
+            "二十四"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "gap",
+          "prompt": "Guided tours leave the entrance every hour from ten until ______.",
+          "options": [],
+          "answers": [
+            "four",
+            "4",
+            "4 o'clock",
+            "four o'clock",
+            "16:00"
+          ],
+          "explain": "原文：guided tours leave the entrance every hour on the hour from ten until four。",
+          "explain_en": "'Guided tours leave the entrance every hour on the hour from ten until four'.",
+          "keys": [
+            "from ten until four",
+            "四点"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "choice",
+          "prompt": "What closes at six in the evening?",
+          "options": [
+            "The cafe",
+            "The car park",
+            "The clock tower gallery"
+          ],
+          "answers": [
+            "The car park"
+          ],
+          "explain": "原文：the car park behind the museum now closes at six in the evening。",
+          "explain_en": "'The car park behind the museum now closes at six in the evening'.",
+          "keys": [
+            "car park",
+            "停车场"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "gap",
+          "prompt": "The ______ bus stops directly outside the museum.",
+          "options": [],
+          "answers": [
+            "number seven",
+            "7",
+            "seven",
+            "no. 7",
+            "no 7"
+          ],
+          "explain": "原文：the number seven bus, which stops directly outside。",
+          "explain_en": "'The number seven bus ... stops directly outside'.",
+          "keys": [
+            "number seven bus",
+            "七路"
+          ]
+        }
+      ],
+      "sentences": [
+        {
+          "start": 0.05,
+          "end": 17.97,
+          "text": "Welcome back to Wortham Museum. After two years of rebuilding, we are opening our doors again on Saturday the fourteenth of June. The old clock tower gallery has been restored, and we have added a new cafe and a lift, so every floor is now wheelchair accessible."
+        },
+        {
+          "start": 18.9,
+          "end": 34.2,
+          "text": "Admission is free for under-sixteens and for members, but everyone else pays six pounds fifty. If you plan to visit regularly, an annual membership costs twenty-four pounds, which works out cheaper after just four visits."
+        },
+        {
+          "start": 35.2,
+          "end": 50.13,
+          "text": "Our new exhibition, Voices of the Mill, tells the story of the town's textile workers. It runs from the fourteenth of June until the end of September, and guided tours leave the entrance every hour on the hour from ten until four."
+        },
+        {
+          "start": 51.1,
+          "end": 64.79,
+          "text": "Please note that the car park behind the museum now closes at six in the evening, and it is free for the first two hours only. The easiest way to reach us is the number seven bus, which stops directly outside."
+        },
+        {
+          "start": 65.8,
+          "end": 68.27,
+          "text": "We look forward to seeing you."
+        }
+      ]
+    },
+    {
+      "id": "listening-3",
+      "module": "listening",
+      "title": "Booking a careers appointment",
+      "intro": "电话预约职业中心改简历。先听音频（可 0.75–1.5 倍速、可重播），再作答。6 题（4 填空 / 1 选择 / 1 判断），音频约 60 秒。",
+      "audio": "bank/listening-3.mp3",
+      "transcript": "Good morning, this is the university Careers Centre. How can I help you? Hello. I would like to book an appointment to have my CV checked, please. Certainly. We have slots on Tuesday afternoon or Thursday morning. Which do you prefer? Thursday morning, please. That is Thursday at ten thirty. The appointment lasts thirty minutes. Could I take your student number? Yes, it is S double four seven two. Thank you. Please bring a printed copy of your CV and a list of three jobs you are interested in. Do I need to bring my passport? No, just your student card. One more thing. Do you run practice interviews? Yes, on Friday afternoons. They are free, but you must book a week in advance. Great, I will do that. Thank you.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "The appointment is on ______ at 10:30.",
+          "options": [],
+          "answers": [
+            "thursday",
+            "thu"
+          ],
+          "explain": "原文：That is Thursday at ten thirty。可选周二下午或周四上午，学生选了周四。",
+          "explain_en": "The adviser offers Tuesday afternoon or Thursday morning; the student chooses Thursday at ten thirty.",
+          "keys": [
+            "Thursday",
+            "10:30"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "The appointment lasts ______ minutes.",
+          "options": [],
+          "answers": [
+            "thirty",
+            "30"
+          ],
+          "explain": "原文：The appointment lasts thirty minutes。",
+          "explain_en": "The appointment lasts 30 minutes.",
+          "keys": [
+            "lasts",
+            "thirty minutes"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "gap",
+          "prompt": "Students should bring a printed CV and a list of ______ jobs they are interested in.",
+          "options": [],
+          "answers": [
+            "three",
+            "3"
+          ],
+          "explain": "原文：a list of three jobs you are interested in。",
+          "explain_en": "Bring a printed CV and a list of three jobs.",
+          "keys": [
+            "three jobs"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "tfng",
+          "prompt": "Students must bring their passport to the appointment.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：No, just your student card。只需学生卡，不需要护照。",
+          "explain_en": "The adviser says just the student card is needed, not a passport.",
+          "keys": [
+            "student card",
+            "passport"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "choice",
+          "prompt": "When are practice interviews available?",
+          "options": [
+            "Monday mornings",
+            "Wednesday afternoons",
+            "Friday afternoons",
+            "Saturday mornings"
+          ],
+          "answers": [
+            "Friday afternoons",
+            "friday"
+          ],
+          "explain": "原文：Yes, on Friday afternoons。需提前一周预约，免费。",
+          "explain_en": "Practice interviews run on Friday afternoons and are free.",
+          "keys": [
+            "Friday afternoons"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "gap",
+          "prompt": "Practice interviews must be booked ______ in advance.",
+          "options": [],
+          "answers": [
+            "a week",
+            "one week",
+            "1 week"
+          ],
+          "explain": "原文：you must book a week in advance。",
+          "explain_en": "They must be booked a week in advance.",
+          "keys": [
+            "a week in advance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "listening-4",
+      "module": "listening",
+      "title": "Welcome to the City Museum",
+      "intro": "博物馆导览开场白（独白）。6 题（4 填空 / 1 选择 / 1 判断），音频约 65 秒。",
+      "audio": "bank/listening-4.mp3",
+      "transcript": "Welcome to the City Museum. Before we begin, a few practical points. The museum opens at ten and closes at five thirty, and the last entry is at four. Photography is allowed, but please do not use a flash in the painting galleries. The ground floor contains the shop and the cafe. The Egyptian collection is on the first floor, and the temporary exhibition on space travel is on the second floor. Guided tours leave every hour from the main entrance. They last forty five minutes and cost three pounds. If you would like an audio guide, they are available in eight languages and cost two pounds. Please note that large bags must be left in the cloakroom, which is free of charge.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "The museum closes at ______.",
+          "options": [],
+          "answers": [
+            "five thirty",
+            "5:30",
+            "5.30"
+          ],
+          "explain": "原文：closes at five thirty。最后入场时间是四点。",
+          "explain_en": "It opens at ten, closes at five thirty, last entry at four.",
+          "keys": [
+            "five thirty",
+            "5:30"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "Photography is allowed, but no ______ in the painting galleries.",
+          "options": [],
+          "answers": [
+            "flash"
+          ],
+          "explain": "原文：please do not use a flash in the painting galleries。",
+          "explain_en": "Photography is allowed except flash in the painting galleries.",
+          "keys": [
+            "flash"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "Where is the space travel exhibition?",
+          "options": [
+            "On the ground floor",
+            "On the first floor",
+            "On the second floor",
+            "In the basement"
+          ],
+          "answers": [
+            "On the second floor",
+            "second floor"
+          ],
+          "explain": "原文：the temporary exhibition on space travel is on the second floor。埃及展在一楼。",
+          "explain_en": "The space travel exhibition is on the second floor; the Egyptian collection is on the first floor.",
+          "keys": [
+            "second floor"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "gap",
+          "prompt": "Guided tours last ______ minutes.",
+          "options": [],
+          "answers": [
+            "forty five",
+            "45",
+            "forty-five"
+          ],
+          "explain": "原文：They last forty five minutes and cost three pounds。",
+          "explain_en": "Guided tours last 45 minutes and cost £3.",
+          "keys": [
+            "forty five minutes"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "gap",
+          "prompt": "Audio guides cost ______ pounds.",
+          "options": [],
+          "answers": [
+            "two",
+            "2"
+          ],
+          "explain": "原文：they are available in eight languages and cost two pounds。",
+          "explain_en": "Audio guides are available in eight languages and cost £2.",
+          "keys": [
+            "two pounds",
+            "eight languages"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "tfng",
+          "prompt": "The cloakroom charges a fee for large bags.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：the cloakroom, which is free of charge。寄存免费。",
+          "explain_en": "The cloakroom is free of charge.",
+          "keys": [
+            "free of charge"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "listening-5",
+      "module": "listening",
+      "title": "Renting a flat near the station",
+      "intro": "电话咨询租房（对话）。6 题（4 填空 / 1 选择 / 1 判断），音频约 60 秒。",
+      "audio": "bank/listening-5.mp3",
+      "transcript": "Good afternoon, Riverside Lettings. How can I help? I am looking for a one bedroom flat near the station. We have one on Mill Street. It is on the third floor with a balcony. The rent is six hundred and fifty pounds a month, excluding bills. Is it furnished? Partly. It has a bed, a sofa and a dining table, but you would need your own washing machine. How far is it from the station? About ten minutes on foot. And is there parking? There is a residents car park at the back, but it is twenty pounds a month. When could I view it? Tomorrow at four would be possible. The current tenant works from home, so please arrive on time.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "The flat is on ______ Street.",
+          "options": [],
+          "answers": [
+            "mill"
+          ],
+          "explain": "原文：We have one on Mill Street。位于三楼，带阳台。",
+          "explain_en": "The flat is on Mill Street, third floor with a balcony.",
+          "keys": [
+            "Mill Street"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "The rent is £______ a month, excluding bills.",
+          "options": [],
+          "answers": [
+            "650",
+            "six hundred and fifty"
+          ],
+          "explain": "原文：six hundred and fifty pounds a month, excluding bills。不含账单。",
+          "explain_en": "Rent is £650 a month excluding bills.",
+          "keys": [
+            "650",
+            "excluding bills"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "What is NOT included in the furniture?",
+          "options": [
+            "A bed",
+            "A sofa",
+            "A dining table",
+            "A washing machine"
+          ],
+          "answers": [
+            "A washing machine",
+            "washing machine"
+          ],
+          "explain": "原文：It has a bed, a sofa and a dining table, but you would need your own washing machine。",
+          "explain_en": "The flat has a bed, sofa and dining table, but no washing machine.",
+          "keys": [
+            "washing machine"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "gap",
+          "prompt": "The station is about ______ minutes on foot.",
+          "options": [],
+          "answers": [
+            "ten",
+            "10"
+          ],
+          "explain": "原文：About ten minutes on foot。",
+          "explain_en": "About ten minutes on foot from the station.",
+          "keys": [
+            "ten minutes"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "gap",
+          "prompt": "The residents' car park costs £______ a month.",
+          "options": [],
+          "answers": [
+            "twenty",
+            "20"
+          ],
+          "explain": "原文：it is twenty pounds a month。",
+          "explain_en": "The residents' car park is £20 a month.",
+          "keys": [
+            "twenty pounds"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "tfng",
+          "prompt": "The viewing is arranged for tomorrow at four.",
+          "options": [],
+          "answers": [
+            "true",
+            "t",
+            "yes"
+          ],
+          "explain": "原文：Tomorrow at four would be possible。",
+          "explain_en": "The agent suggests tomorrow at four.",
+          "keys": [
+            "tomorrow at four"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "listening-6",
+      "module": "listening",
+      "title": "Lecture: urban green spaces",
+      "intro": "讲座片段：城市绿地对压力的影响（独白）。6 题（4 填空 / 1 选择 / 1 判断），音频约 65 秒。",
+      "audio": "bank/listening-6.mp3",
+      "transcript": "Today I want to talk about urban green spaces. Research from the University of Manchester found that people who live within three hundred metres of a park report lower levels of stress. The effect was strongest among residents over sixty. However, the study also showed that the size of the park mattered less than its quality. A small, well maintained garden with seats and paths was more beneficial than a large field with no facilities. The researchers recommend that cities spend at least five percent of their transport budget on walking routes to parks. In the Netherlands, one city has already converted ten percent of its car parks into small gardens, and cycling to local shops increased by a third.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "People living within ______ metres of a park report less stress.",
+          "options": [],
+          "answers": [
+            "300",
+            "three hundred"
+          ],
+          "explain": "原文：within three hundred metres of a park。",
+          "explain_en": "People within 300 metres of a park report lower stress.",
+          "keys": [
+            "300 metres"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "choice",
+          "prompt": "The study found that the park's ______ mattered less than its quality.",
+          "options": [
+            "location",
+            "size",
+            "age",
+            "price"
+          ],
+          "answers": [
+            "size"
+          ],
+          "explain": "原文：the size of the park mattered less than its quality。",
+          "explain_en": "Size mattered less than quality.",
+          "keys": [
+            "size",
+            "quality"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "gap",
+          "prompt": "A small garden with seats and paths is better than a large field with no ______.",
+          "options": [],
+          "answers": [
+            "facilities"
+          ],
+          "explain": "原文：more beneficial than a large field with no facilities。",
+          "explain_en": "A small well-maintained garden beats a large field with no facilities.",
+          "keys": [
+            "facilities"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "gap",
+          "prompt": "Cities should spend at least ______ percent of their transport budget on walking routes.",
+          "options": [],
+          "answers": [
+            "five",
+            "5"
+          ],
+          "explain": "原文：at least five percent of their transport budget on walking routes to parks。",
+          "explain_en": "At least five percent of the transport budget should go to walking routes.",
+          "keys": [
+            "five percent"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "gap",
+          "prompt": "In the Netherlands, cycling to local shops increased by ______.",
+          "options": [],
+          "answers": [
+            "a third",
+            "one third",
+            "33%",
+            "33"
+          ],
+          "explain": "原文：cycling to local shops increased by a third。",
+          "explain_en": "Cycling to local shops increased by a third.",
+          "keys": [
+            "a third"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "tfng",
+          "prompt": "Stress reduction was strongest among young people.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：The effect was strongest among residents over sixty。最强的是 60 岁以上。",
+          "explain_en": "The effect was strongest among residents over sixty.",
+          "keys": [
+            "over sixty"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "listening-mock-1",
+      "module": "listening",
+      "title": "Full listening mock: 40 questions",
+      "intro": "完整听力模考（4 sections × 10 题），音频约 4 分钟。先听音频（可 0.75–1.5 倍速、可重播），再作答。",
+      "audio": "bank/listening-mock-1.mp3",
+      "transcript": "[Section 1: Student accommodation]\nGood morning, City Housing Office. How can I help? I would like to register for student accommodation. Certainly. Could I have your name and student number? Maria Lopez, student number four four seven one. Thank you. Which campus are you studying at? The north campus. We have rooms at three halls. Riverside is the closest, but it is full until December. Green Court has rooms from September, and it is a ten minute bus ride. How much is Green Court? A single room is four hundred and eighty pounds a month, including internet but not electricity. Is there a deposit? Yes, three hundred pounds, refundable at the end of your contract. Can I see a room this week? We have viewings on Wednesday at two and Friday at eleven. Wednesday at two, please. Great. Please bring your student card and a bank statement.\n\n[Section 2: Community festival]\nWelcome to the Riverside Community Festival. The festival runs from Friday the fifth to Sunday the seventh of June. Most events are free, but the evening concert on Saturday costs eight pounds, and tickets can be bought at the library or online. The main stage is in the park next to the river. The craft market is in the town hall, and children's activities are in the school playground. Parking is available at the station car park, which is a five minute walk from the park. Please note that the park gates close at ten in the evening. Volunteers should report to the information tent thirty minutes before their shift. Lost property will be kept at the town hall.\n\n[Section 3: Research discussion]\nSo, have you decided on your research topic? I am thinking about urban cycling, but the data might be hard to collect. That is true. What about using the city's traffic survey? They publish counts every year. I did not know that. That would save a lot of time. I am more interested in how weather affects commuting. I could use the same survey. Good, but be careful with correlation. You would need at least three years of data. I was planning to use five. Excellent. Anna, if you use the survey, focus on one district rather than the whole city. The north district has the most cycle lanes. Perfect. Submit your proposal by the fifteenth of next month.\n\n[Section 4: Sleep and memory]\nToday's lecture is about sleep and memory. Researchers at the University of Leeds asked two hundred students to learn a list of words, either in the morning or in the evening. Students who learned in the evening and slept before testing remembered twenty percent more words. The effect was strongest for factual information rather than skills. Sleep appears to help the brain transfer memories from short term to long term storage. However, the researchers stress that the quality of sleep matters more than the quantity. Participants who woke up several times during the night showed almost no benefit. The team recommends avoiding caffeine after four in the afternoon and keeping the bedroom cool, around eighteen degrees.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "Maria's student number is ______.",
+          "options": [],
+          "answers": [
+            "4471",
+            "four four seven one"
+          ],
+          "explain": "原文：student number four four seven one。",
+          "explain_en": "The student number is 4471.",
+          "keys": [
+            "4471"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "She studies at the ______ campus.",
+          "options": [],
+          "answers": [
+            "north"
+          ],
+          "explain": "原文：The north campus。",
+          "explain_en": "She studies at the north campus.",
+          "keys": [
+            "north"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "gap",
+          "prompt": "Riverside hall is full until ______.",
+          "options": [],
+          "answers": [
+            "december"
+          ],
+          "explain": "原文：it is full until December。",
+          "explain_en": "Riverside is full until December.",
+          "keys": [
+            "December"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "gap",
+          "prompt": "Green Court is a ______-minute bus ride.",
+          "options": [],
+          "answers": [
+            "ten",
+            "10"
+          ],
+          "explain": "原文：a ten minute bus ride。",
+          "explain_en": "Green Court is a ten-minute bus ride.",
+          "keys": [
+            "ten minutes"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "gap",
+          "prompt": "A single room costs £______ a month.",
+          "options": [],
+          "answers": [
+            "480",
+            "four hundred and eighty"
+          ],
+          "explain": "原文：four hundred and eighty pounds a month。",
+          "explain_en": "A single room costs £480 a month.",
+          "keys": [
+            "480"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "gap",
+          "prompt": "Internet is included, but ______ is not.",
+          "options": [],
+          "answers": [
+            "electricity"
+          ],
+          "explain": "原文：including internet but not electricity。",
+          "explain_en": "Internet is included but electricity is not.",
+          "keys": [
+            "electricity"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "gap",
+          "prompt": "The deposit is £______.",
+          "options": [],
+          "answers": [
+            "300",
+            "three hundred"
+          ],
+          "explain": "原文：three hundred pounds, refundable at the end of your contract。",
+          "explain_en": "The deposit is £300 and is refundable.",
+          "keys": [
+            "300"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "gap",
+          "prompt": "The deposit is refundable at the end of the ______.",
+          "options": [],
+          "answers": [
+            "contract"
+          ],
+          "explain": "原文：refundable at the end of your contract。",
+          "explain_en": "Refundable at the end of the contract.",
+          "keys": [
+            "contract"
+          ]
+        },
+        {
+          "id": 9,
+          "type": "gap",
+          "prompt": "Viewings are on Wednesday at ______.",
+          "options": [],
+          "answers": [
+            "two",
+            "2"
+          ],
+          "explain": "原文：We have viewings on Wednesday at two and Friday at eleven。学生选了周三两点。",
+          "explain_en": "The student chooses Wednesday at two.",
+          "keys": [
+            "Wednesday at two"
+          ]
+        },
+        {
+          "id": 10,
+          "type": "gap",
+          "prompt": "Students should bring a student card and a ______ statement.",
+          "options": [],
+          "answers": [
+            "bank"
+          ],
+          "explain": "原文：Please bring your student card and a bank statement。",
+          "explain_en": "Bring a student card and a bank statement.",
+          "keys": [
+            "bank statement"
+          ]
+        },
+        {
+          "id": 11,
+          "type": "gap",
+          "prompt": "The festival runs from June 5th to June ______.",
+          "options": [],
+          "answers": [
+            "7",
+            "seventh"
+          ],
+          "explain": "原文：from Friday the fifth to Sunday the seventh of June。",
+          "explain_en": "The festival runs to June 7th.",
+          "keys": [
+            "seventh"
+          ]
+        },
+        {
+          "id": 12,
+          "type": "gap",
+          "prompt": "The Saturday evening concert costs £______.",
+          "options": [],
+          "answers": [
+            "8",
+            "eight"
+          ],
+          "explain": "原文：the evening concert on Saturday costs eight pounds。",
+          "explain_en": "The concert costs £8.",
+          "keys": [
+            "eight pounds"
+          ]
+        },
+        {
+          "id": 13,
+          "type": "choice",
+          "prompt": "Where can tickets be bought?",
+          "options": [
+            "At the library or online",
+            "At the park gate",
+            "At the town hall only",
+            "At the school"
+          ],
+          "answers": [
+            "At the library or online",
+            "library"
+          ],
+          "explain": "原文：tickets can be bought at the library or online。",
+          "explain_en": "Tickets are sold at the library or online.",
+          "keys": [
+            "library",
+            "online"
+          ]
+        },
+        {
+          "id": 14,
+          "type": "gap",
+          "prompt": "The craft market is in the ______.",
+          "options": [],
+          "answers": [
+            "town hall"
+          ],
+          "explain": "原文：The craft market is in the town hall。",
+          "explain_en": "The craft market is in the town hall.",
+          "keys": [
+            "town hall"
+          ]
+        },
+        {
+          "id": 15,
+          "type": "choice",
+          "prompt": "Where are the children's activities?",
+          "options": [
+            "In the park",
+            "In the town hall",
+            "In the school playground",
+            "At the station"
+          ],
+          "answers": [
+            "In the school playground",
+            "school"
+          ],
+          "explain": "原文：children's activities are in the school playground。",
+          "explain_en": "Children's activities are in the school playground.",
+          "keys": [
+            "school playground"
+          ]
+        },
+        {
+          "id": 16,
+          "type": "gap",
+          "prompt": "The car park is a ______-minute walk from the park.",
+          "options": [],
+          "answers": [
+            "five",
+            "5"
+          ],
+          "explain": "原文：a five minute walk from the park。",
+          "explain_en": "It is a five-minute walk.",
+          "keys": [
+            "five minutes"
+          ]
+        },
+        {
+          "id": 17,
+          "type": "gap",
+          "prompt": "The park gates close at ______ in the evening.",
+          "options": [],
+          "answers": [
+            "ten",
+            "10"
+          ],
+          "explain": "原文：the park gates close at ten in the evening。",
+          "explain_en": "The gates close at ten in the evening.",
+          "keys": [
+            "ten"
+          ]
+        },
+        {
+          "id": 18,
+          "type": "choice",
+          "prompt": "Where should volunteers report?",
+          "options": [
+            "To the main stage",
+            "To the information tent",
+            "To the town hall",
+            "To the car park"
+          ],
+          "answers": [
+            "To the information tent",
+            "information tent"
+          ],
+          "explain": "原文：Volunteers should report to the information tent thirty minutes before their shift。",
+          "explain_en": "Volunteers report to the information tent.",
+          "keys": [
+            "information tent"
+          ]
+        },
+        {
+          "id": 19,
+          "type": "gap",
+          "prompt": "Volunteers should arrive ______ minutes before their shift.",
+          "options": [],
+          "answers": [
+            "30",
+            "thirty"
+          ],
+          "explain": "原文：thirty minutes before their shift。",
+          "explain_en": "Arrive 30 minutes before the shift.",
+          "keys": [
+            "thirty minutes"
+          ]
+        },
+        {
+          "id": 20,
+          "type": "tfng",
+          "prompt": "Lost property is kept at the library.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：Lost property will be kept at the town hall。不是图书馆。",
+          "explain_en": "Lost property is kept at the town hall, not the library.",
+          "keys": [
+            "town hall"
+          ]
+        },
+        {
+          "id": 21,
+          "type": "choice",
+          "prompt": "Anna's first concern about her topic is",
+          "options": [
+            "collecting data",
+            "finding a supervisor",
+            "choosing a district",
+            "writing the proposal"
+          ],
+          "answers": [
+            "collecting data",
+            "data"
+          ],
+          "explain": "原文：the data might be hard to collect。",
+          "explain_en": "Anna worries that data will be hard to collect.",
+          "keys": [
+            "hard to collect"
+          ]
+        },
+        {
+          "id": 22,
+          "type": "choice",
+          "prompt": "The tutor suggests using",
+          "options": [
+            "the city's traffic survey",
+            "a national database",
+            "interviews with cyclists",
+            "social media data"
+          ],
+          "answers": [
+            "the city's traffic survey",
+            "traffic survey"
+          ],
+          "explain": "原文：What about using the city's traffic survey?",
+          "explain_en": "The tutor suggests the city's traffic survey.",
+          "keys": [
+            "traffic survey"
+          ]
+        },
+        {
+          "id": 23,
+          "type": "gap",
+          "prompt": "The traffic survey is published every ______.",
+          "options": [],
+          "answers": [
+            "year"
+          ],
+          "explain": "原文：They publish counts every year。",
+          "explain_en": "The survey is published every year.",
+          "keys": [
+            "every year"
+          ]
+        },
+        {
+          "id": 24,
+          "type": "choice",
+          "prompt": "Ben's topic is about",
+          "options": [
+            "weather and commuting",
+            "urban cycling",
+            "public transport costs",
+            "road safety"
+          ],
+          "answers": [
+            "weather and commuting",
+            "weather"
+          ],
+          "explain": "原文：how weather affects commuting。",
+          "explain_en": "Ben studies how weather affects commuting.",
+          "keys": [
+            "weather",
+            "commuting"
+          ]
+        },
+        {
+          "id": 25,
+          "type": "choice",
+          "prompt": "The tutor warns Ben about",
+          "options": [
+            "sample size",
+            "correlation",
+            "missing data",
+            "ethics"
+          ],
+          "answers": [
+            "correlation"
+          ],
+          "explain": "原文：be careful with correlation。",
+          "explain_en": "The tutor warns about correlation.",
+          "keys": [
+            "correlation"
+          ]
+        },
+        {
+          "id": 26,
+          "type": "gap",
+          "prompt": "Ben plans to use ______ years of data.",
+          "options": [],
+          "answers": [
+            "five",
+            "5"
+          ],
+          "explain": "原文：I was planning to use five。",
+          "explain_en": "Ben plans to use five years of data.",
+          "keys": [
+            "five years"
+          ]
+        },
+        {
+          "id": 27,
+          "type": "choice",
+          "prompt": "Anna should focus on",
+          "options": [
+            "one district",
+            "the whole city",
+            "three cities",
+            "the university area"
+          ],
+          "answers": [
+            "one district",
+            "district"
+          ],
+          "explain": "原文：focus on one district rather than the whole city。",
+          "explain_en": "Focus on one district.",
+          "keys": [
+            "one district"
+          ]
+        },
+        {
+          "id": 28,
+          "type": "choice",
+          "prompt": "Anna chooses the north district because",
+          "options": [
+            "it has the most cycle lanes",
+            "it is near her home",
+            "it has the newest survey",
+            "it has fewer people"
+          ],
+          "answers": [
+            "it has the most cycle lanes",
+            "cycle lanes"
+          ],
+          "explain": "原文：The north district has the most cycle lanes。",
+          "explain_en": "The north district has the most cycle lanes.",
+          "keys": [
+            "cycle lanes"
+          ]
+        },
+        {
+          "id": 29,
+          "type": "gap",
+          "prompt": "Proposals are due by the ______ of next month.",
+          "options": [],
+          "answers": [
+            "15th",
+            "fifteenth",
+            "15"
+          ],
+          "explain": "原文：by the fifteenth of next month。",
+          "explain_en": "Proposals are due by the 15th.",
+          "keys": [
+            "fifteenth"
+          ]
+        },
+        {
+          "id": 30,
+          "type": "choice",
+          "prompt": "The tutor's tone is best described as",
+          "options": [
+            "encouraging",
+            "critical",
+            "impatient",
+            "neutral"
+          ],
+          "answers": [
+            "encouraging"
+          ],
+          "explain": "导师多次说 Good、Excellent、Perfect，整体是鼓励的。",
+          "explain_en": "The tutor says 'Good', 'Excellent' and 'Perfect'.",
+          "keys": [
+            "encouraging"
+          ]
+        },
+        {
+          "id": 31,
+          "type": "gap",
+          "prompt": "The study involved ______ students.",
+          "options": [],
+          "answers": [
+            "200",
+            "two hundred"
+          ],
+          "explain": "原文：two hundred students。",
+          "explain_en": "The study involved 200 students.",
+          "keys": [
+            "200"
+          ]
+        },
+        {
+          "id": 32,
+          "type": "gap",
+          "prompt": "Students learned a list of ______.",
+          "options": [],
+          "answers": [
+            "words"
+          ],
+          "explain": "原文：learn a list of words。",
+          "explain_en": "They learned a list of words.",
+          "keys": [
+            "words"
+          ]
+        },
+        {
+          "id": 33,
+          "type": "gap",
+          "prompt": "Evening learners remembered ______ percent more words.",
+          "options": [],
+          "answers": [
+            "20",
+            "twenty"
+          ],
+          "explain": "原文：remembered twenty percent more words。",
+          "explain_en": "Evening learners remembered 20% more words.",
+          "keys": [
+            "twenty percent"
+          ]
+        },
+        {
+          "id": 34,
+          "type": "gap",
+          "prompt": "The effect was strongest for ______ information.",
+          "options": [],
+          "answers": [
+            "factual"
+          ],
+          "explain": "原文：strongest for factual information rather than skills。",
+          "explain_en": "Strongest for factual information.",
+          "keys": [
+            "factual"
+          ]
+        },
+        {
+          "id": 35,
+          "type": "gap",
+          "prompt": "Sleep helps transfer memories to ______ storage.",
+          "options": [],
+          "answers": [
+            "long term",
+            "long-term"
+          ],
+          "explain": "原文：from short term to long term storage。",
+          "explain_en": "From short-term to long-term storage.",
+          "keys": [
+            "long term"
+          ]
+        },
+        {
+          "id": 36,
+          "type": "gap",
+          "prompt": "Researchers say the ______ of sleep matters most.",
+          "options": [],
+          "answers": [
+            "quality"
+          ],
+          "explain": "原文：the quality of sleep matters more than the quantity。",
+          "explain_en": "Quality matters more than quantity.",
+          "keys": [
+            "quality"
+          ]
+        },
+        {
+          "id": 37,
+          "type": "gap",
+          "prompt": "Participants who woke up several times showed almost no ______.",
+          "options": [],
+          "answers": [
+            "benefit"
+          ],
+          "explain": "原文：showed almost no benefit。",
+          "explain_en": "They showed almost no benefit.",
+          "keys": [
+            "benefit"
+          ]
+        },
+        {
+          "id": 38,
+          "type": "gap",
+          "prompt": "The team recommends avoiding caffeine after ______ in the afternoon.",
+          "options": [],
+          "answers": [
+            "four",
+            "4"
+          ],
+          "explain": "原文：avoiding caffeine after four in the afternoon。",
+          "explain_en": "Avoid caffeine after 4 pm.",
+          "keys": [
+            "four"
+          ]
+        },
+        {
+          "id": 39,
+          "type": "gap",
+          "prompt": "The bedroom should be kept cool, around ______ degrees.",
+          "options": [],
+          "answers": [
+            "18",
+            "eighteen"
+          ],
+          "explain": "原文：around eighteen degrees。",
+          "explain_en": "Keep the bedroom around 18 degrees.",
+          "keys": [
+            "eighteen"
+          ]
+        },
+        {
+          "id": 40,
+          "type": "gap",
+          "prompt": "The lecture is mainly about sleep and ______.",
+          "options": [],
+          "answers": [
+            "memory"
+          ],
+          "explain": "原文：Today's lecture is about sleep and memory。",
+          "explain_en": "The lecture is about sleep and memory.",
+          "keys": [
+            "memory"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reading-4",
+      "module": "reading",
+      "title": "Can cities grow their own food?",
+      "intro": "城市农业：垂直农场与屋顶农场的收益和代价。8 题（4 选择 / 2 判断 / 2 填空），建议 15 分钟。",
+      "passage": "Urban farming is no longer a hobby. In Singapore, which imports more than 90% of its food, the government has set a target of producing 30% locally by 2030. Rooftop farms now supply vegetables to supermarkets, and vertical farms use LED lighting to grow leafy greens in stacks up to ten metres high.\n\nSupporters argue that urban farms shorten supply chains, reduce transport emissions and give city dwellers access to fresher produce. Critics point out that the energy used by indoor farms can make their vegetables more carbon-intensive than those trucked in from the countryside. A study from the National University of Singapore found that lettuce grown in a climate-controlled vertical farm used about three times as much electricity per kilogram as field-grown lettuce.\n\nThe researchers suggest that urban farms should focus on crops that travel badly, such as herbs and soft fruit, rather than staples like rice. They also recommend using renewable energy and sharing facilities between farms to cut costs. Singapore's target is ambitious, but the debate shows that growing food in cities is less about technology than about choosing the right crops and the right energy.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "Singapore imports more than ______% of its food.",
+          "options": [],
+          "answers": [
+            "90"
+          ],
+          "explain": "原文：imports more than 90% of its food。",
+          "explain_en": "Singapore imports over 90% of its food.",
+          "keys": [
+            "90"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "The government wants to produce ______% of food locally by 2030.",
+          "options": [],
+          "answers": [
+            "30"
+          ],
+          "explain": "原文：producing 30% locally by 2030。",
+          "explain_en": "The target is 30% by 2030.",
+          "keys": [
+            "30"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "Vertical farms grow leafy greens using",
+          "options": [
+            "sunlight only",
+            "LED lighting",
+            "natural gas",
+            "hydroponic ponds"
+          ],
+          "answers": [
+            "LED lighting",
+            "led"
+          ],
+          "explain": "原文：vertical farms use LED lighting。",
+          "explain_en": "They use LED lighting.",
+          "keys": [
+            "LED lighting"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "tfng",
+          "prompt": "Critics say indoor farms can produce vegetables with higher emissions than field farms.",
+          "options": [],
+          "answers": [
+            "true",
+            "t",
+            "yes"
+          ],
+          "explain": "原文：can make their vegetables more carbon-intensive than those trucked in。",
+          "explain_en": "Critics say indoor vegetables can be more carbon-intensive.",
+          "keys": [
+            "carbon-intensive"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "choice",
+          "prompt": "The NUS study found vertical lettuce used about ______ as much electricity as field lettuce.",
+          "options": [
+            "twice",
+            "three times",
+            "five times",
+            "the same"
+          ],
+          "answers": [
+            "three times",
+            "3"
+          ],
+          "explain": "原文：used about three times as much electricity per kilogram。",
+          "explain_en": "About three times as much electricity.",
+          "keys": [
+            "three times"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "gap",
+          "prompt": "Researchers suggest focusing on crops that ______ badly.",
+          "options": [],
+          "answers": [
+            "travel"
+          ],
+          "explain": "原文：focus on crops that travel badly。",
+          "explain_en": "Crops that travel badly, such as herbs and soft fruit.",
+          "keys": [
+            "travel badly"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "choice",
+          "prompt": "Which crops do the researchers say suit urban farms?",
+          "options": [
+            "Rice and wheat",
+            "Herbs and soft fruit",
+            "Potatoes and onions",
+            "Sugarcane"
+          ],
+          "answers": [
+            "Herbs and soft fruit",
+            "herbs"
+          ],
+          "explain": "原文：such as herbs and soft fruit, rather than staples like rice。",
+          "explain_en": "Herbs and soft fruit, not staples like rice.",
+          "keys": [
+            "herbs",
+            "soft fruit"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "tfng",
+          "prompt": "The researchers recommend using renewable energy and sharing facilities.",
+          "options": [],
+          "answers": [
+            "true",
+            "t",
+            "yes"
+          ],
+          "explain": "原文：recommend using renewable energy and sharing facilities。",
+          "explain_en": "They recommend renewables and shared facilities.",
+          "keys": [
+            "renewable energy"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reading-5",
+      "module": "reading",
+      "title": "The four-day week experiment",
+      "intro": "四天工作制试验：结果与局限。8 题（4 选择 / 2 判断 / 2 填空），建议 15 分钟。",
+      "passage": "In 2022, more than 60 companies in the UK took part in a six-month trial of a four-day working week with no cut in pay. Employees worked 80% of their usual hours but were expected to maintain full productivity. At the end of the trial, 56 of the 61 companies said they would continue with the shorter week, and 18 made it permanent.\n\nStaff reported lower stress and fewer sick days, while revenue stayed broadly the same. However, the trial had limitations. Most participating companies were small, and many were in the service sector, where productivity is difficult to measure. Critics argue that the results may not apply to hospitals, factories or schools, where shifts must be covered.\n\nSome companies that continued the policy introduced longer working days, from eight hours to ten, which employees found tiring. The researchers concluded that the four-day week can work, but only where managers are willing to cut meetings and redesign workflows. Shorter hours, in other words, require a different way of working rather than simply squeezing five days into four.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "The UK trial lasted ______ months.",
+          "options": [],
+          "answers": [
+            "six",
+            "6"
+          ],
+          "explain": "原文：a six-month trial。",
+          "explain_en": "The trial lasted six months.",
+          "keys": [
+            "six months"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "Employees worked ______% of their usual hours.",
+          "options": [],
+          "answers": [
+            "80"
+          ],
+          "explain": "原文：worked 80% of their usual hours。",
+          "explain_en": "They worked 80% of usual hours.",
+          "keys": [
+            "80"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "How many companies said they would continue the shorter week?",
+          "options": [
+            "18",
+            "56",
+            "61",
+            "80"
+          ],
+          "answers": [
+            "56"
+          ],
+          "explain": "原文：56 of the 61 companies said they would continue，其中 18 家永久化。",
+          "explain_en": "56 of 61 would continue; 18 made it permanent.",
+          "keys": [
+            "56"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "tfng",
+          "prompt": "Revenue fell sharply during the trial.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：revenue stayed broadly the same。收入基本不变，不是大幅下降。",
+          "explain_en": "Revenue stayed broadly the same.",
+          "keys": [
+            "broadly the same"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "choice",
+          "prompt": "Most participating companies were",
+          "options": [
+            "large manufacturers",
+            "small and in services",
+            "schools",
+            "hospitals"
+          ],
+          "answers": [
+            "small and in services",
+            "small"
+          ],
+          "explain": "原文：Most participating companies were small, and many were in the service sector。",
+          "explain_en": "Most were small service companies.",
+          "keys": [
+            "small",
+            "service sector"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "tfng",
+          "prompt": "Critics argue the results may not apply to hospitals and schools.",
+          "options": [],
+          "answers": [
+            "true",
+            "t",
+            "yes"
+          ],
+          "explain": "原文：results may not apply to hospitals, factories or schools。",
+          "explain_en": "Critics say the results may not apply there.",
+          "keys": [
+            "hospitals",
+            "schools"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "gap",
+          "prompt": "Some companies extended working days from eight to ______ hours.",
+          "options": [],
+          "answers": [
+            "ten",
+            "10"
+          ],
+          "explain": "原文：from eight hours to ten。",
+          "explain_en": "From eight hours to ten.",
+          "keys": [
+            "ten hours"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "choice",
+          "prompt": "The researchers say the four-day week works if managers",
+          "options": [
+            "hire more staff",
+            "cut meetings and redesign workflows",
+            "reduce pay",
+            "extend the trial"
+          ],
+          "answers": [
+            "cut meetings and redesign workflows",
+            "redesign"
+          ],
+          "explain": "原文：only where managers are willing to cut meetings and redesign workflows。",
+          "explain_en": "Managers must cut meetings and redesign workflows.",
+          "keys": [
+            "cut meetings",
+            "redesign workflows"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reading-6",
+      "module": "reading",
+      "title": "Why plastic recycling is so difficult",
+      "intro": "塑料回收率低的原因与政策方向。8 题（4 选择 / 2 判断 / 2 填空），建议 15 分钟。",
+      "passage": "Only about 9% of the plastic ever produced has been recycled. The rest has been burned, buried or left in the environment. One reason is that plastic is not a single material: there are thousands of types, each with different melting points and additives. Mixing them weakens the recycled product, so sorting is essential but expensive.\n\nIn Norway, a deposit scheme for bottles achieves a return rate above 90%, because consumers pay a small deposit that is refunded when they return the container. The scheme works best for drinks containers, which are made of a few standard plastics. For packaging such as films and pouches, which are often layered with other materials, recycling remains difficult.\n\nSome companies are now designing packaging that uses a single material, and the EU has proposed rules requiring all packaging to be recyclable by 2030. Researchers argue that the most effective policy is to reduce packaging altogether rather than rely on recycling. As one engineer put it, the best plastic is the plastic that is never made.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "About ______% of plastic has been recycled.",
+          "options": [],
+          "answers": [
+            "9"
+          ],
+          "explain": "原文：Only about 9% of the plastic ever produced has been recycled。",
+          "explain_en": "About 9% has been recycled.",
+          "keys": [
+            "9"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "choice",
+          "prompt": "Why is sorting plastic essential?",
+          "options": [
+            "It makes plastic cheaper",
+            "Types have different melting points and additives",
+            "It reduces transport",
+            "It removes water"
+          ],
+          "answers": [
+            "Types have different melting points and additives",
+            "melting"
+          ],
+          "explain": "原文：thousands of types, each with different melting points and additives。",
+          "explain_en": "Different melting points and additives.",
+          "keys": [
+            "melting points",
+            "additives"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "gap",
+          "prompt": "Norway's bottle deposit scheme returns over ______%.",
+          "options": [],
+          "answers": [
+            "90"
+          ],
+          "explain": "原文：achieves a return rate above 90%。",
+          "explain_en": "Above 90% return rate.",
+          "keys": [
+            "90"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "tfng",
+          "prompt": "The Norwegian scheme works well for all types of packaging.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：works best for drinks containers。对薄膜袋等包装仍困难。",
+          "explain_en": "It works best for drinks containers, not all packaging.",
+          "keys": [
+            "drinks containers"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "choice",
+          "prompt": "Which packaging is hardest to recycle?",
+          "options": [
+            "Glass bottles",
+            "Layered films and pouches",
+            "Paper bags",
+            "Metal cans"
+          ],
+          "answers": [
+            "Layered films and pouches",
+            "films"
+          ],
+          "explain": "原文：films and pouches, which are often layered with other materials。",
+          "explain_en": "Layered films and pouches.",
+          "keys": [
+            "films",
+            "pouches"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "gap",
+          "prompt": "The EU wants all packaging to be recyclable by ______.",
+          "options": [],
+          "answers": [
+            "2030"
+          ],
+          "explain": "原文：all packaging to be recyclable by 2030。",
+          "explain_en": "By 2030.",
+          "keys": [
+            "2030"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "tfng",
+          "prompt": "Some companies are designing packaging that uses a single material.",
+          "options": [],
+          "answers": [
+            "true",
+            "t",
+            "yes"
+          ],
+          "explain": "原文：designing packaging that uses a single material。",
+          "explain_en": "Single-material packaging is being designed.",
+          "keys": [
+            "single material"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "choice",
+          "prompt": "What do researchers say is the most effective policy?",
+          "options": [
+            "Building more recycling plants",
+            "Reducing packaging altogether",
+            "Burning plastic for energy",
+            "Exporting waste"
+          ],
+          "answers": [
+            "Reducing packaging altogether",
+            "reduce"
+          ],
+          "explain": "原文：most effective policy is to reduce packaging altogether。",
+          "explain_en": "Reduce packaging altogether.",
+          "keys": [
+            "reduce packaging"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reading-7",
+      "module": "reading",
+      "title": "Saving languages before they vanish",
+      "intro": "语言消失与记录技术的作用与局限。8 题（4 选择 / 2 判断 / 2 填空），建议 15 分钟。",
+      "passage": "A language dies roughly every two weeks. Of the world's 7,000 languages, about 40% are considered endangered. When a language disappears, knowledge disappears with it: plant names, weather terms and oral histories that were never written down.\n\nLinguists have traditionally recorded languages by writing grammars and dictionaries, but this work is slow and often incomplete. New technology is changing the picture. Smartphones allow speakers to record vocabulary and stories themselves, and machine-learning tools can help transcribe recordings in languages with no written form. In one project in Australia, elders recorded 2,000 hours of speech in a language with fewer than 50 fluent speakers; the resulting archive is now used in schools.\n\nHowever, researchers warn that technology alone cannot save a language. A language survives only if children learn it at home and in daily life. Policies that support bilingual education and community radio are therefore at least as important as recording. Documentation preserves a language for study; only daily use keeps it alive.",
+      "questions": [
+        {
+          "id": 1,
+          "type": "gap",
+          "prompt": "A language dies about every ______ weeks.",
+          "options": [],
+          "answers": [
+            "two",
+            "2"
+          ],
+          "explain": "原文：roughly every two weeks。",
+          "explain_en": "About every two weeks.",
+          "keys": [
+            "two weeks"
+          ]
+        },
+        {
+          "id": 2,
+          "type": "gap",
+          "prompt": "About ______% of the world's languages are endangered.",
+          "options": [],
+          "answers": [
+            "40"
+          ],
+          "explain": "原文：about 40% are considered endangered。",
+          "explain_en": "About 40%.",
+          "keys": [
+            "40"
+          ]
+        },
+        {
+          "id": 3,
+          "type": "choice",
+          "prompt": "What disappears when a language dies?",
+          "options": [
+            "Only grammar rules",
+            "Plant names, weather terms and oral histories",
+            "Writing systems only",
+            "Nothing important"
+          ],
+          "answers": [
+            "Plant names, weather terms and oral histories",
+            "knowledge"
+          ],
+          "explain": "原文：knowledge disappears with it: plant names, weather terms and oral histories。",
+          "explain_en": "Knowledge such as plant names and oral histories.",
+          "keys": [
+            "plant names",
+            "oral histories"
+          ]
+        },
+        {
+          "id": 4,
+          "type": "tfng",
+          "prompt": "Traditional grammar-writing is described as fast and complete.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：this work is slow and often incomplete。",
+          "explain_en": "It is slow and often incomplete.",
+          "keys": [
+            "slow",
+            "incomplete"
+          ]
+        },
+        {
+          "id": 5,
+          "type": "choice",
+          "prompt": "What can machine-learning tools do?",
+          "options": [
+            "Speak the language",
+            "Help transcribe languages without a written form",
+            "Replace teachers",
+            "Translate automatically"
+          ],
+          "answers": [
+            "Help transcribe languages without a written form",
+            "transcribe"
+          ],
+          "explain": "原文：machine-learning tools can help transcribe recordings in languages with no written form。",
+          "explain_en": "Transcribe languages with no written form.",
+          "keys": [
+            "transcribe"
+          ]
+        },
+        {
+          "id": 6,
+          "type": "gap",
+          "prompt": "In Australia, elders recorded ______ hours of speech.",
+          "options": [],
+          "answers": [
+            "2000",
+            "2,000",
+            "two thousand"
+          ],
+          "explain": "原文：elders recorded 2,000 hours of speech。",
+          "explain_en": "2,000 hours of speech.",
+          "keys": [
+            "2,000 hours"
+          ]
+        },
+        {
+          "id": 7,
+          "type": "tfng",
+          "prompt": "Researchers say technology alone can save a language.",
+          "options": [],
+          "answers": [
+            "false",
+            "f",
+            "no"
+          ],
+          "explain": "原文：technology alone cannot save a language。",
+          "explain_en": "Technology alone cannot save a language.",
+          "keys": [
+            "cannot"
+          ]
+        },
+        {
+          "id": 8,
+          "type": "choice",
+          "prompt": "What is at least as important as recording?",
+          "options": [
+            "Bilingual education and community radio",
+            "Writing dictionaries",
+            "Academic conferences",
+            "Foreign aid"
+          ],
+          "answers": [
+            "Bilingual education and community radio",
+            "education"
+          ],
+          "explain": "原文：Policies that support bilingual education and community radio are therefore at least as important as recording。",
+          "explain_en": "Bilingual education and community radio.",
+          "keys": [
+            "bilingual education",
+            "community radio"
+          ]
+        }
+      ]
+    }
+  ]
+}
