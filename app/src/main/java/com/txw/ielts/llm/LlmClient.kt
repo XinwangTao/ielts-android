@@ -181,94 +181,33 @@ class LlmClient(
                 "and state clearly whether the student is improving on them."
 
     /** 生成一套原创阅读题：文章 + 题目 + 中英双语解析 + 关键短语。 */
-    fun generateReading(difficulty: String, types: List<String>, count: Int): GeneratedReading {
-        val content = chat(
-            READING_GEN_SYSTEM,
-            "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
+    fun generateReading(difficulty: String, types: List<String>, count: Int): GeneratedReading =
+        GeneratedParser.reading(
+            chat(
+                READING_GEN_SYSTEM,
+                "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
+            ),
+            count,
         )
-        val o = JSONObject(extractJson(content))
-        val qs = o.optJSONArray("questions")
-            ?: throw IOException("模型没有返回 questions 数组")
-        val questions = ArrayList<GeneratedQuestion>(qs.length())
-        for (i in 0 until qs.length()) {
-            val q = qs.getJSONObject(i)
-            questions.add(
-                GeneratedQuestion(
-                    type = q.getString("type"),
-                    prompt = q.getString("prompt"),
-                    options = q.optJSONArray("options")?.let { a ->
-                        (0 until a.length()).map { a.getString(it) }
-                    } ?: emptyList(),
-                    answers = q.getJSONArray("answers").let { a ->
-                        (0 until a.length()).map { a.getString(it) }
-                    },
-                    explain = q.optString("explain", ""),
-                    explainEn = q.optString("explain_en", ""),
-                    keys = q.optJSONArray("keys")?.let { a ->
-                        (0 until a.length()).map { a.getString(it) }
-                    } ?: emptyList(),
-                )
-            )
-        }
-        return GeneratedReading(
-            title = o.optString("title", "AI 生成阅读"),
-            passage = o.optString("passage", o.optString("article", "")),
-            questions = questions.take(count),   // 模型偶发超量，按请求数截断
-        )
-    }
 
     /** 生成一套原创听力题：对话/独白稿 + 题目 + 双语解析（音频由端侧 TTS 合成）。 */
-    fun generateListening(difficulty: String, types: List<String>, count: Int): GeneratedListening {
-        val content = chat(
-            LISTENING_GEN_SYSTEM,
-            "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
+    fun generateListening(difficulty: String, types: List<String>, count: Int): GeneratedListening =
+        GeneratedParser.listening(
+            chat(
+                LISTENING_GEN_SYSTEM,
+                "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
+            ),
+            count,
         )
-        val o = JSONObject(extractJson(content))
-        val qs = o.optJSONArray("questions")
-            ?: throw IOException("模型没有返回 questions 数组")
-        val questions = ArrayList<GeneratedQuestion>(qs.length())
-        for (i in 0 until qs.length()) {
-            val q = qs.getJSONObject(i)
-            questions.add(
-                GeneratedQuestion(
-                    type = q.getString("type"),
-                    prompt = q.getString("prompt"),
-                    options = q.optJSONArray("options")?.let { a ->
-                        (0 until a.length()).map { a.getString(it) }
-                    } ?: emptyList(),
-                    answers = q.getJSONArray("answers").let { a ->
-                        (0 until a.length()).map { a.getString(it) }
-                    },
-                    explain = q.optString("explain", ""),
-                    explainEn = q.optString("explain_en", ""),
-                    keys = q.optJSONArray("keys")?.let { a ->
-                        (0 until a.length()).map { a.getString(it) }
-                    } ?: emptyList(),
-                )
-            )
-        }
-        return GeneratedListening(
-            title = o.optString("title", "AI 生成听力"),
-            transcript = o.optString("transcript", o.optString("script", "")),
-            questions = questions.take(count),
-        )
-    }
 
     /** 对一道错题生成中英双语精讲与关键点。 */
-    fun explainBankWrong(prompt: String, right: String, yours: String, hint: String): BankExplain {
-        val content = chat(
-            BANK_EXPLAIN_SYSTEM,
-            "Question: $prompt\nCorrect answer: $right\nYour answer: $yours\nBrief hint: $hint",
+    fun explainBankWrong(prompt: String, right: String, yours: String, hint: String): BankExplain =
+        GeneratedParser.bankExplain(
+            chat(
+                BANK_EXPLAIN_SYSTEM,
+                "Question: $prompt\nCorrect answer: $right\nYour answer: $yours\nBrief hint: $hint",
+            )
         )
-        val o = JSONObject(extractJson(content))
-        return BankExplain(
-            cn = o.optString("cn", o.optString("explain", "")),
-            en = o.optString("en", o.optString("explain_en", "")),
-            keys = o.optJSONArray("keys")?.let { a ->
-                (0 until a.length()).map { a.getString(it) }
-            } ?: emptyList(),
-        )
-    }
 
     private fun chat(system: String, user: String): String {
         onBeforeCall()
@@ -496,7 +435,8 @@ class LlmClient(
             improved = a band-7 spoken-style version of the same answer (natural, not written prose).
         """.trimIndent()
 
-        private val READING_GEN_SYSTEM = """
+        /** 出题/精讲的提示词本地模型也要用：同一套 prompt 才能保证云端与离线出题口径一致。 */
+        internal val READING_GEN_SYSTEM = """
             You are an IELTS Academic Reading test author. Generate ONE original, self-contained reading passage
             and questions at the requested difficulty. The passage must be 350-450 words, split into 4-5 paragraphs
             labelled A-E, on an academic topic (science, environment, work, health, cities, technology).
@@ -520,7 +460,7 @@ class LlmClient(
             mixed Chinese/English, that locate the answer). Do not wrap the JSON in markdown fences.
         """.trimIndent()
 
-        private val LISTENING_GEN_SYSTEM = """
+        internal val LISTENING_GEN_SYSTEM = """
             You are an IELTS Listening test author. Generate ONE original listening script and questions
             at the requested difficulty. The script is a two-speaker dialogue or a single-speaker monologue
             in IELTS Section 1/2 style: 250-350 words, natural spoken English, information-dense
@@ -539,7 +479,7 @@ class LlmClient(
             Do not wrap the JSON in markdown fences.
         """.trimIndent()
 
-        private val BANK_EXPLAIN_SYSTEM = """
+        internal val BANK_EXPLAIN_SYSTEM = """
             You are an IELTS Reading/Listening tutor explaining why an answer is correct, in bilingual form.
             Return STRICT JSON only, single-line strings, with keys: cn (Chinese explanation), en (English explanation),
             keys (2-4 short locating phrases mixed Chinese/English). Be concrete: point to the exact passage/audio

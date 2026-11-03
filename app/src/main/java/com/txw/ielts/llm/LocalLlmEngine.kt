@@ -27,6 +27,14 @@ object LocalLlmEngine {
     /** 默认模型（设置页可切换）。Instruct 版不输出思考过程，JSON 一次通过，实测最快。 */
     const val DEFAULT_MODEL = "qwen3-4b-instruct"
 
+    /**
+     * 出题时的「压缩输出」约束：4B 模型在 3500 token 预算里写不满 8 道题的双语解析，
+     * 一旦超长就是被截断的半个 JSON，解析必然失败。宁可要短解析，也要整套题结构完整。
+     */
+    private const val COMPACT_HINT = "\n" +
+        "Output compactness: keep the passage/script 250-300 words, each explain under 30 Chinese characters, " +
+        "and each question prompt under 25 words. Keep the JSON structure complete."
+
     /** 单次生成硬上限：超过后通过 listener 中断。 */
     private const val GENERATE_TIMEOUT_MS = 8 * 60 * 1000L
 
@@ -188,6 +196,43 @@ object LocalLlmEngine {
     suspend fun generateText(
         context: Context, model: String, system: String, user: String,
     ): String = generate(context, model, system, user)
+
+    /**
+     * 错题精讲（本地）：提示词与云端同一份，只是慢一点、JSON 更容易缺字段。
+     * 文案前缀标明「本地模型」，让用户知道这条解析没走云端、出现偏差时也知道该怀疑谁。
+     */
+    suspend fun explainBankWrong(
+        context: Context, model: String,
+        prompt: String, right: String, yours: String, hint: String,
+    ): BankExplain = withContext(Dispatchers.IO) {
+        val raw = generate(
+            context, model, LlmClient.BANK_EXPLAIN_SYSTEM,
+            "Question: $prompt\nCorrect answer: $right\nYour answer: $yours\nBrief hint: $hint",
+        )
+        val parsed = GeneratedParser.bankExplain(raw)
+        parsed.copy(cn = "【本地模型】" + parsed.cn)
+    }
+
+    /** AI 出题（本地）：4B 模型出题质量不如云端，但断网/额度用尽时仍能出一套可做的题。 */
+    suspend fun generateReading(
+        context: Context, model: String, difficulty: String, types: List<String>, count: Int,
+    ): GeneratedReading = withContext(Dispatchers.IO) {
+        val raw = generate(
+            context, model, LlmClient.READING_GEN_SYSTEM,
+            "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count" + COMPACT_HINT,
+        )
+        GeneratedParser.reading(raw, count)
+    }
+
+    suspend fun generateListening(
+        context: Context, model: String, difficulty: String, types: List<String>, count: Int,
+    ): GeneratedListening = withContext(Dispatchers.IO) {
+        val raw = generate(
+            context, model, LlmClient.LISTENING_GEN_SYSTEM,
+            "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count" + COMPACT_HINT,
+        )
+        GeneratedParser.listening(raw, count)
+    }
 
     /** 仅预加载模型而不生成（诊断用：验证加载后的 RSS 与 release 是否真的释放）。 */
     suspend fun preload(context: Context, model: String) {

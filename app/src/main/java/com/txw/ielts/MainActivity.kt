@@ -55,6 +55,7 @@ import com.txw.ielts.llm.BankExplain
 import com.txw.ielts.llm.LocalLlmEngine
 import com.txw.ielts.llm.LlmClient
 import com.txw.ielts.llm.ScoreSanitizer
+import com.txw.ielts.llm.routeLlm
 import com.txw.ielts.llm.SpeakingEval
 import com.txw.ielts.llm.WritingEval
 import com.txw.ielts.ui.AiGenScreen
@@ -1187,7 +1188,11 @@ private fun App(
     suspend fun runAiGen(module: String, difficulty: String, types: List<String>, count: Int) {
         aiGenBusy = true
         aiGenError = null
-        aiGenStage = "正在请求模型…"
+        // 本地模型要几分钟才出题，先说清楚，否则用户以为卡死；auto 模式也提示会自动兜底。
+        val channelNow = prefs.scoreChannel
+        aiGenStage = if (channelNow == "local") "本地模型生成中（可能要几分钟）…"
+        else if (channelNow == "cloud") "正在请求模型…"
+        else "正在请求模型（云端失败会自动转本地）…"
         val retryFeedback: (Int, Int, String) -> Unit = { a, m, r ->
             aiGenStage = "请求失败（${r.take(50)}），正在重试 $a/$m…"
             Log.w(TAG, "llm retry $a/$m reason=$r")
@@ -1209,8 +1214,19 @@ private fun App(
             val set: BankSet
             if (module == "listening") {
                 val gen = withContext(Dispatchers.IO) {
-                    LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
-                        .generateListening(difficulty, types, count)
+                    routeLlm(
+                        channel = channelNow,
+                        label = "AI 出题（听力）",
+                        cloud = {
+                            LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
+                                .generateListening(difficulty, types, count)
+                        },
+                        local = {
+                            LocalLlmEngine.generateListening(
+                                context, prefs.localModel, difficulty, types, count,
+                            )
+                        },
+                    )
                 }
                 if (gen.questions.isEmpty() || gen.transcript.isBlank()) {
                     aiGenError = "生成结果为空，请重试"
@@ -1236,8 +1252,19 @@ private fun App(
                 }
             } else {
                 val gen = withContext(Dispatchers.IO) {
-                    LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
-                        .generateReading(difficulty, types, count)
+                    routeLlm(
+                        channel = channelNow,
+                        label = "AI 出题（阅读）",
+                        cloud = {
+                            LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
+                                .generateReading(difficulty, types, count)
+                        },
+                        local = {
+                            LocalLlmEngine.generateReading(
+                                context, prefs.localModel, difficulty, types, count,
+                            )
+                        },
+                    )
                 }
                 if (gen.questions.isEmpty() || gen.passage.isBlank()) {
                     aiGenError = "生成结果为空，请重试"
@@ -1275,8 +1302,20 @@ private fun App(
         explainingIds = explainingIds + item.id
         try {
             val exp = withContext(Dispatchers.IO) {
-                LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
-                    .explainBankWrong(item.prompt, item.right, item.yours, item.explain)
+                routeLlm(
+                    channel = prefs.scoreChannel,
+                    label = "错题精讲",
+                    cloud = {
+                        LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
+                            .explainBankWrong(item.prompt, item.right, item.yours, item.explain)
+                    },
+                    local = {
+                        LocalLlmEngine.explainBankWrong(
+                            context, prefs.localModel,
+                            item.prompt, item.right, item.yours, item.explain,
+                        )
+                    },
+                )
             }
             aiExplains = aiExplains.toMutableMap().apply { put(item.id, exp) }
         } catch (e: Exception) {
