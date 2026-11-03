@@ -40,6 +40,16 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_RELEASE_AFTER, false)
         set(v) = sp.edit().putBoolean(KEY_RELEASE_AFTER, v).apply()
 
+    /** 目标总分（0.5 步长，4.0–9.0）。首页「离目标还差多少」与临考节奏都依赖它。 */
+    var targetBand: Float
+        get() = sp.getFloat(KEY_TARGET_BAND, 6.5f)
+        set(v) = sp.edit().putFloat(KEY_TARGET_BAND, com.txw.ielts.data.ExamTarget.snapBand(v)).apply()
+
+    /** 考试日期（yyyy-MM-dd，空串表示未设置）。 */
+    var examDate: String
+        get() = sp.getString(KEY_EXAM_DATE, "") ?: ""
+        set(v) = sp.edit().putString(KEY_EXAM_DATE, v.trim()).apply()
+
     // ---- API 用量控制：防止后台或误触频繁调用大模型 ----
     var dailyCallLimit: Int
         get() = sp.getInt(KEY_LIMIT, 20)
@@ -123,6 +133,8 @@ class Prefs(context: Context) {
         private const val KEY_LOCAL_SCORE_STARTED = "local_score_started"
         private const val KEY_LOCAL_SCORE_FINISHED = "local_score_finished"
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
+        private const val KEY_TARGET_BAND = "target_band"
+        private const val KEY_EXAM_DATE = "exam_date"
         const val DEFAULT_BASE = "https://open.bigmodel.cn/api/paas/v4"
         const val DEFAULT_MODEL = "glm-5.3-flash"
     }

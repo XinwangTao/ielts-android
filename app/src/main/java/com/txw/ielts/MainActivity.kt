@@ -431,14 +431,19 @@ private fun App(
             if (queue.isEmpty()) error = "今天没有待学卡片" else route = Route.Study
         }
     }
+    // 临考收紧：考前两周口语/写作的复练间隔自动缩短（14 天内减半、7 天内每天），
+    // 平时不必天天练的项目，临近考试就不能再等 3 天了。
+    val daysLeft = remember(prefs.examDate) { com.txw.ielts.data.ExamTarget.daysUntil(prefs.examDate, nowMs) }
+    val speakEvery = com.txw.ielts.data.ExamTarget.reviewInterval(2, daysLeft)
+    val writeEvery = com.txw.ielts.data.ExamTarget.reviewInterval(3, daysLeft)
     val dailyPlan: List<Pair<String, () -> Unit>> = buildList {
         if (wrongCount > 0) add("错题专项 · 重刷 $wrongCount 张" to { startWrongQueue() })
-        if (lastSpeaking == null || nowMs - lastSpeaking >= 2 * dayMs) {
+        if (lastSpeaking == null || nowMs - lastSpeaking >= speakEvery * dayMs) {
             val ago = if (lastSpeaking == null) "还没开口过" else "距上次 ${(nowMs - lastSpeaking) / dayMs} 天"
             add("口语该练了 · $ago" to { route = Route.Speaking })
         }
         if (due > 0) add("复习 $due 张到期卡片" to { startDueQueue() })
-        if (lastWriting == null || nowMs - lastWriting >= 3 * dayMs) {
+        if (lastWriting == null || nowMs - lastWriting >= writeEvery * dayMs) {
             val ago = if (lastWriting == null) "还没写过" else "距上次 ${(nowMs - lastWriting) / dayMs} 天"
             add("写作该练了 · $ago" to { route = Route.Writing })
         }
@@ -1287,6 +1292,9 @@ private fun App(
             r.startsWith("quiz:") -> openSet(r.removePrefix("quiz:"))
             // 评分完成通知点击：直达对应结果页
             r.startsWith("result:") -> r.removePrefix("result:").toLongOrNull()?.let { route = Route.Result(it) }
+            // 其余单例页面（settings / review / corpus / shadow / stats / modelessays …）按编码解析，
+            // 便于 adb 直达；decodeRoute 对未知串回退 Home，不会崩。
+            else -> route = decodeRoute(r)
         }
         if (bankAuto && r.startsWith("quiz:")) {
             val setId = r.removePrefix("quiz:")
@@ -1392,6 +1400,8 @@ private fun App(
                     onOpenReadySet = { id -> aiGenReady = null; openSet(id) },
                     onDismissAiGenError = { aiGenError = null },
                     plan = dailyPlan,
+                    targetBand = prefs.targetBand,
+                    examDate = prefs.examDate,
                 )
 
                 is Route.Writing -> WritingScreen(

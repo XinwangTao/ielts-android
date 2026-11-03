@@ -39,9 +39,11 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
     var channel by remember { mutableStateOf(prefs.scoreChannel) }
     var localModel by remember { mutableStateOf(prefs.localModel) }
     var limit by remember { mutableStateOf(prefs.dailyCallLimit.toString()) }
+    var targetBand by remember { mutableStateOf("%.1f".format(prefs.targetBand)) }
+    var examDate by remember { mutableStateOf(prefs.examDate) }
     var saved by remember { mutableStateOf(false) }
     // 任一字段再编辑就撤销「已保存」标记，避免用户以为改动已生效。
-    LaunchedEffect(base, key, model, asr, channel, localModel, limit) {
+    LaunchedEffect(base, key, model, asr, channel, localModel, limit, targetBand, examDate) {
         if (saved) saved = false
     }
     val context = androidx.compose.ui.platform.LocalContext.current
@@ -53,6 +55,32 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
         IosNavBar("设置", onBack = onBack)
         Text("评分用的 OpenAI 兼容接口（默认智谱）。key 只存在本机。",
             style = MaterialTheme.typography.bodySmall)
+
+        // —— 备考目标：目标分决定首页差距提示，考试日期决定临考时今日任务的收紧节奏 ——
+        Text("备考目标", style = MaterialTheme.typography.labelLarge)
+        IosTextField(
+            targetBand, { targetBand = it.filter { c -> c.isDigit() || c == '.' }.take(4) },
+            label = "目标 Band",
+            supportingText = { Text("0.5 步长，范围 4.0–9.0；保存时自动吸附") },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+        )
+        IosTextField(
+            examDate, { examDate = it.trim().take(10) },
+            label = "考试日期",
+            supportingText = {
+                val days = com.txw.ielts.data.ExamTarget.daysUntil(examDate, System.currentTimeMillis())
+                Text(
+                    when {
+                        examDate.isBlank() -> "形如 2026-03-14；留空则不显示倒计时"
+                        days == null -> "日期格式不对，应形如 2026-03-14"
+                        days < 0 -> "考试日期已过（${-days} 天前），倒计时不再显示"
+                        days == 0 -> "就是今天"
+                        else -> "距考试 $days 天"
+                    }
+                )
+            },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+        )
 
         IosTextField(base, { base = it }, label = "Base URL", modifier = Modifier.fillMaxWidth(), singleLine = true)
         IosTextField(
@@ -221,6 +249,9 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
                 prefs.scoreChannel = channel
                 prefs.localModel = localModel
                 limit.toIntOrNull()?.let { prefs.dailyCallLimit = it }
+                prefs.targetBand = com.txw.ielts.data.ExamTarget.snapBand(targetBand.toFloatOrNull(), prefs.targetBand)
+                prefs.examDate = examDate
+                targetBand = "%.1f".format(prefs.targetBand)
                 saved = true
             },
         ) { Text(if (saved) "已保存" else "保存") }

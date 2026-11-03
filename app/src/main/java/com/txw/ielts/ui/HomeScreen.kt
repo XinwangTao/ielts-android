@@ -69,6 +69,8 @@ fun HomeScreen(
     onOpenReadySet: (String) -> Unit = {},
     onDismissAiGenError: () -> Unit = {},
     plan: List<Pair<String, () -> Unit>> = emptyList(),
+    targetBand: Float = 6.5f,
+    examDate: String = "",
 ) {
     val streak = remember(sessions) { streakDays(sessions) }
 
@@ -103,8 +105,12 @@ fun HomeScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.18f), thickness = 0.5.dp)
         Spacer(Modifier.height(18.dp))
 
-        // 目标差距：让用户每次打开都知道离 6.5 还有多远
-        val target = 6.5
+        // 目标差距：让用户每次打开都知道离目标还有多远（目标分与考试日期在设置里改）
+        val target = targetBand.toDouble()
+        val daysLeft = remember(examDate) {
+            if (examDate.isBlank()) null
+            else com.txw.ielts.data.ExamTarget.daysUntil(examDate, System.currentTimeMillis())
+        }
         val recentBands = sessions.mapNotNull { bandValue(it.scoresJson) }.take(5)
         val avgBand = if (recentBands.isNotEmpty()) recentBands.average() else null
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -124,6 +130,15 @@ fun HomeScreen(
                 },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        // 倒计时只在设了日期且还没考完时出现；考完了就不要天天提。
+        if (daysLeft != null && daysLeft >= 0) {
+            Text(
+                if (daysLeft == 0) "考试就在今天，别刷新题了" else "距考试 $daysLeft 天",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (daysLeft <= 7) MaterialTheme.colorScheme.error
+                else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         // 四科 profile：L/R 按正确率映射，W/S 按最近 5 次 overall 平均
