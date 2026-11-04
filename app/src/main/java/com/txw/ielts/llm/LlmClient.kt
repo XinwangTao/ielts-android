@@ -77,6 +77,24 @@ class LlmClient(
 
     private class HttpError(val code: Int, message: String) : IOException(message)
 
+    /**
+     * 把云端错误翻译成用户能照着做的中文。原始返回体照旧附在后面便于排查。
+     * 讯飞实测：账号没有有效订单/额度用尽时返回 403 + code 11200，只抛 "HTTP 403: {...}" 用户看不懂。
+     */
+    private fun friendlyHttpError(code: Int, body: String): String {
+        val raw = body.take(200)
+        val quota = body.contains("11200") || body.contains("insufficient quota") ||
+            body.contains("lacks an active order")
+        return when {
+            quota -> "云端额度不可用（HTTP $code / 11200：无有效订单或额度已用尽）。" +
+                "可到设置页把评分通道改为「仅本地」继续，或续费后重试。原始返回：$raw"
+            code == 401 -> "API key 无效或已过期（HTTP 401）。请到设置页更新 key。原始返回：$raw"
+            code == 403 -> "云端拒绝访问（HTTP 403）。请检查账号额度与模型权限。原始返回：$raw"
+            code == 429 -> "云端限流（HTTP 429）。请稍后重试，或改用本地模型。原始返回：$raw"
+            else -> "HTTP $code: $raw"
+        }
+    }
+
     fun evaluateWriting(
         topic: String,
         essay: String,
@@ -294,7 +312,7 @@ class LlmClient(
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() } ?: ""
-            if (code !in 200..299) throw HttpError(code, "HTTP $code: ${text.take(200)}")
+            if (code !in 200..299) throw HttpError(code, friendlyHttpError(code, text))
             return text
         } finally {
             conn.disconnect()
@@ -388,8 +406,8 @@ class LlmClient(
             (First/But/However) and undeveloped ideas scores 6.0.
             Return STRICT JSON only, single-line strings, keys in exactly this order:
             {"sentence_fixes":[{"sentence":"exact original","issue":"problem in Chinese","better":"corrected sentence"}],"GRA":x,"LR":x,"TR":x,"CC":x,"overall":x,"top_fixes":["..."],"polished":"..."}
-            sentence_fixes: up to 5 items; [] if clean; the issue field MUST be written in Chinese.
-            top_fixes: exactly 3 items, must not be empty; write each in Chinese, quote the problematic English phrase, and say how to fix it.
+            sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
+            top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
             polished = the same ideas rewritten at band 7.
         """.trimIndent()
 
@@ -411,8 +429,8 @@ class LlmClient(
             one minor slip. Most real candidates score 5.5-6.0; Band 7 is strong; Band 8 is near-native and rare. Do not inflate.
             Return STRICT JSON only, single-line strings, keys in exactly this order:
             {"sentence_fixes":[{"sentence":"exact original","issue":"problem in Chinese","better":"corrected sentence"}],"GRA":x,"LR":x,"TA":x,"CC":x,"overall":x,"top_fixes":["..."],"polished":"..."}
-            sentence_fixes: up to 5 items; [] if clean.
-            top_fixes: exactly 3 items, must not be empty; write each in Chinese, quote the problematic English phrase, and say how to fix it.
+            sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
+            top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
             polished = the same report rewritten at band 7.
         """.trimIndent()
 
@@ -430,8 +448,8 @@ class LlmClient(
             only if the transcript is clean with at most one minor slip. Most real candidates score 5.5-6.0; Band 7 is
             strong; Band 8 is near-native and rare. Do not inflate.
             Output JSON with sentence_fixes FIRST: {"sentence_fixes":[{"sentence":"exact original sentence","issue":"grammar/vocabulary problem in Chinese","better":"corrected natural version"}],"GRA":x,"LR":x,"FC":x,"P":x,"overall":x,"top_fixes":["..."],"improved":"..."}
-            sentence_fixes: up to 5 items for sentences with real errors; [] if the transcript is clean.
-            top_fixes: exactly 3 items; write each in Chinese.
+            sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
+            top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
             improved = a band-7 spoken-style version of the same answer (natural, not written prose).
         """.trimIndent()
 

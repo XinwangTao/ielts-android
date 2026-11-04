@@ -1,8 +1,7 @@
 # 雅思 App 部署到 OPPO 手机 + MNN 本地模型联调
 
-状态：**配对已完成，卡在调试端口不可达**。APK/模型/脚本全部就绪。
-两个脚本已在平板（Android 13）上跑通全链路验证（推送 → 字节校验 → 设备侧自检）。
-OPPO 配对凭据已持久化到 `~/.android/adbkey`，重开无线调试后**不需要再输配对码**。
+状态：**已在 OPPO 上全链路实测通过**（2026-11-04）。无线调试连接、APK 安装、模型投递、
+本地 4B 推理出分全部跑通；同一条链路也在平板（Android 13）上验证过。
 日期：2026-11-03 ｜ 工程：`F:\projects\ielts-android`
 
 ---
@@ -137,7 +136,71 @@ SKIP_BUILD=1 SKIP_INSTALL=1 bash tools/deploy_oppo.sh 192.168.236.61:5555 F:/cac
 
 ---
 
-## 7. OPPO 实测进展（2026-11-03）
+## 7. OPPO 实测结果（2026-11-04，全链路通过）
+
+设备：**OPPO PKJ110 / Android 17 (SDK 37) / arm64-v8a / RAM 15.1GB / 页大小 4096**
+连接：`adb pair 192.168.237.175:40011 310437` → `adb connect 192.168.237.175:32913`
+（配对端口 40011 ≠ 调试端口 32913，每次重开无线调试都会变 → 用 `autoconnect` 自动找）
+
+| 环节 | 结果 |
+|---|---|
+| 无线连接 | ✅ `autoconnect` 扫到 32913 并连上 |
+| APK 安装 | ✅ `install -r -g` → Success |
+| 模型投递 | ✅ 2.70GB，字节校验一致（local=remote=2709972658） |
+| 推送速率 | ✅ 6.5–9.6 MB/s（2.7GB 约 6–8 分钟；延迟 187–259ms 不影响吞吐） |
+| App 识别模型 | ✅ 修权限后显示「已投递（外部存储）」 |
+| 内部拷贝 | ✅ 首次评分自动拷到 filesDir（约 20–40 秒） |
+| MNN 加载 | ✅ `LIFECYCLE: LlmSession CREATED, load_success=1` |
+| 本地出分 | ✅ **Band 7.5**（任务 8.0 / 衔接 7.0 / 词汇 8.0 / 语法 8.0） |
+| 通知 | ✅ 「本地评分完成 / Overall Band 7.5，点开查看解析」 |
+
+**性能（4B 模型，16GB RAM，thread_num=6，precision=low）**
+```
+prefill: 1092 tok in 12.70s  (86.0 t/s)
+decode :  672 tok in 51.96s  (12.9 t/s)
+local gen done: 672 tokens, 51955366us, text=3368 chars
+UI 显示「本地评分耗时约 1 分钟」
+```
+SoC 支持 `i8sdot:1, fp16:1, i8mm:1`（MNN 自动走 ARM v9 加速）。16GB 机器跑 4B 无内存压力，不需要退到 2B。
+
+### 新坑（本次新增，务必记住）
+
+**adb push 到 `/sdcard/Android/data/<pkg>/...` 建的目录属主是 `shell`、模式 `drwxrws---`，App（u0_aXXX）既不是 owner 也不在组里 → 目录不可穿越，App 判定「模型未投递」。**
+```
+adb shell chmod -R 777 /sdcard/Android/data/com.txw.ielts/files/models/mnn   # 修目录
+```
+细节：
+- `files` 这一层属主是 App 自己（`u0_a309`，0770），**不需要也不能**改，shell 去 chmod 会报 `Operation not permitted`，属正常
+- 要改的是 shell 自己 `mkdir -p` 出来的那几层（`models`、`models/mnn`、`models/mnn/<模型名>`）
+- 权限改完必须**重启 App**，设置页状态是进入页面时算的一次快照
+- 旧版教程只写「push 完就能选到」，在 Android 13+/17 不成立
+
+### 另一处非 bug（避免重复排查）
+四科 8.0/7.0/8.0/8.0 平均 7.75，App 显示 **Band 7.5** 是 `ScoreSanitizer` 的既定策略
+（「只要 top_fixes 非空，overall ≤ 7.5」），不是算错，也不是 MNN 的问题。
+
+### 本次用到的完整命令序列
+```bash
+# 1. 连（配对已持久化，无需配对码）
+bash tools/oppo_wireless_setup.sh autoconnect 192.168.237.175
+
+# 2. 装 + 推模型 + 校验 + 启动
+export MSYS_NO_PATHCONV=1
+bash tools/deploy_oppo.sh 192.168.237.175:32913
+
+# 3. 修权限（否则设置页显示「未投递」）
+adb shell chmod -R 777 /sdcard/Android/data/com.txw.ielts/files/models/mnn
+
+# 4. 重启 App，设置里选「仅本地」+ 模型名，保存，提交一篇作文
+adb shell am force-stop com.txw.ielts && adb shell am start -n com.txw.ielts/.MainActivity
+
+# 5. 看链路
+adb logcat -c && adb logcat -s LocalLlm ScoreService MNNJNI
+```
+
+---
+
+## 8. 历史排查记录（配对阶段的坑，已解决）
 
 | 步 | 结果 |
 |---|---|
@@ -161,6 +224,38 @@ PC ：bash tools/oppo_wireless_setup.sh autoconnect 192.168.237.175
 bash tools/deploy_oppo.sh <连上的 IP:端口>
 ```
 
+### 端口排查要点（下次别再扫了）
+- 手机 ping 通 ≠ 有监听端口：`adb-over-wifi` 的调试服务只在「无线调试」开着的期间监听
+- 配对成功后配对端口即关闭，「积极拒绝」是正常现象
+- Windows 侧 `adb mdns services` 经常是空的，**不能依赖 mDNS 自动发现**
+- 全端口扫描（1–65535）为 0 时，问题一定在手机侧开关/锁屏，不在网络
+
 ### 备注
 - 若手机 IP 变了（DHCP），`autoconnect` 换新 IP 即可；也可插一次 USB 用序列号 `afa99023` 直接部署
-- 高延迟 187-259ms 会让 2.7GB 权重推送变慢（约 30-60 分钟量级），建议首次部署走 USB，或直接上 1.12GB 的 `qwen35-2b`
+- 实测 2.7GB 走 WiFi 只要 6–8 分钟，**不必为传模型专门插 USB**
+
+## 9. 评分后处理修复与真机回归（2026-11-04 第二轮）
+
+### 修了什么
+| # | 问题 | 修法 | 文件 |
+|---|------|------|------|
+| 1 | 库内出现 `overall=0/1` 的脏成绩，把平均分从 7.5 拉到 2.8 | 新增 `ScoreGate` 闸门（`MIN_VALID_BAND=0.5`、`shouldScore()`、`statusFor()`、`isValidBand()`），替换四条落库链路的硬编码 `st="done"` | `llm/ScoreGate.kt`、`ScoreService.kt`、`MainActivity.kt` |
+| 2 | Task 2 零例证仍被判 TR=8 | 新增 `evidenceKinds()` 按「例证标记种类数」校准：0 种→TR≤7.0、1 种→≤7.5、≥2 种或含 `\d+%`→不压（仅 Task2 且 ≥250 词） | `llm/ScoreSanitizer.kt` |
+| 3 | 模型 JSON 破损时 `sentence_fixes` 整体丢失 | `fallbackParse` 用 `extractArrayBody(raw,"sentence_fixes")` 兜底提取 `sentence/issue/better`（三者齐备才写入） | `llm/ScoreSanitizer.kt` |
+| 4 | 模型偷懒返回 `"sentence_fixes":[]` → 逐句打磨空白、GRA 无封顶 | 提示词改为「2–5 条且**永不为空**，即使写得好也要挑最弱的 2 句给更好改写」 | `llm/LocalLlmEngine.kt`、`llm/LlmClient.kt` |
+| 5 | `top_fixes` 里用双引号包英文短语，把 JSON 写坏成 `["""]` | 提示词加约束「英文短语用单引号 `'...'`，字符串内**禁止**双引号」 | 同上 |
+
+### 真机回归对比（同一台 OPPO PKJ110，同一篇 269 词零例证作文）
+| 轮次 | 生成 token | 任务 TR | 衔接 CC | 词汇 LR | 语法 GRA | 总分 | 逐句打磨 |
+|------|-----------|---------|---------|---------|----------|------|----------|
+| 修复前 | 288 | 8.0 | 8.0 | 8.0 | 8.0 | **8.0** | 空 |
+| 修复后 | 893 | 7.0 | 8.0 | 8.0 | **6.5** | **7.5** | 4 条 |
+
+- TR 7.0 ← 例证 0 种，规则生效
+- GRA 6.5 ← 4 条句子错误，封顶规则生效（原 8.0）
+- overall 7.5 = avg(7.0,8.0,8.0,6.5)=7.375 → 7.5
+- 首页统计同步：`写/说最近 3 次平均 7.7`、`W 7.5 ✓`，无 `0/1` 脏记录
+
+### 本轮新坑
+- **软键盘没收 → 滑动全被 IME 吃掉**：`uiautomator dump` 里内容区只到 y≈1513、下方是两个空 `View`，说明 IME 仍显示（`dumpsys input_method | grep mInputShown` 确认）。`input swipe 2300→1100` 起点落在键盘上，页面纹丝不动。先 `input keyevent 4` 收键盘再滑即可。
+- **提示词整段替换别用跨行正则**：`top_fixes: .*\.` 这类正则会把结尾的 `"""` 和 `polished = ...` 一起吃掉，导致 Kotlin 编译炸。改 `git checkout` 回滚后按「整行替换」重做。

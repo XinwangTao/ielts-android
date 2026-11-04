@@ -296,8 +296,8 @@ object LocalLlmEngine {
         Reference: an essay of simple repetitive sentences with mechanical linkers (First/But/However) and undeveloped ideas scores 6.0.
         Return STRICT JSON only, keys in exactly this order:
         {"sentence_fixes":[{"sentence":"exact original sentence","issue":"problem in Chinese","better":"corrected sentence"}],"GRA":x,"LR":x,"TR":x,"CC":x,"overall":x,"top_fixes":["..."],"polished":"..."}
-        sentence_fixes: up to 5 items for sentences with real errors; [] if clean; the issue field MUST be written in Chinese.
-        top_fixes: exactly 3 items, must not be empty; write each in Chinese, quote the problematic English phrase, and say how to fix it.
+        sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
+        top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
         polished = the same ideas rewritten at band 7.
     """.trimIndent()
 
@@ -320,8 +320,8 @@ object LocalLlmEngine {
         - Most real candidates score 5.5-6.0. Band 7 is strong; Band 8 is near-native and rare. Do not inflate.
         Return STRICT JSON only, keys in exactly this order:
         {"sentence_fixes":[{"sentence":"exact original sentence","issue":"problem in Chinese","better":"corrected sentence"}],"GRA":x,"LR":x,"TA":x,"CC":x,"overall":x,"top_fixes":["..."],"polished":"..."}
-        sentence_fixes: up to 5 items for sentences with real errors; [] if clean; the issue field MUST be written in Chinese.
-        top_fixes: exactly 3 items, must not be empty; write each in Chinese, quote the problematic English phrase, and say how to fix it.
+        sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
+        top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
         polished = the same report rewritten at band 7.
     """.trimIndent()
 
@@ -339,8 +339,8 @@ object LocalLlmEngine {
         - Most real candidates score 5.5-6.0. Band 7 is strong; Band 8 is near-native and rare. Do not inflate.
         Output JSON with sentence_fixes FIRST and keys in exactly this order:
         {"sentence_fixes":[{"sentence":"exact original sentence","issue":"grammar/vocabulary problem in Chinese","better":"corrected natural version"}],"GRA":x,"LR":x,"FC":x,"P":x,"overall":x,"top_fixes":["..."],"improved":"..."}
-        sentence_fixes: up to 5 items for sentences with real errors; [] if clean.
-        top_fixes: exactly 3 items; write each in Chinese.
+        sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
+        top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
         improved = a band-7 spoken-style version of the same answer.
     """.trimIndent()
 }
