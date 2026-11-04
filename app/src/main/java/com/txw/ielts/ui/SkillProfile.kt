@@ -24,8 +24,10 @@ data class SkillProfile(
         if (value == null) return "暂无"
         if (target == null) return "%.1f".format(value)
         val gap = target - value
-        return if (gap <= 0.001) "%.1f✓".format(value)
-        else "%.1f↓%.1f".format(value, gap)
+        // 符号与数字之间留空格：「7.0✓」挤在一起，「7.0 差0.5」读起来也歧义
+        // （↓ 会被读成「降了」，实际是「离目标还差」）
+        return if (gap <= 0.001) "%.1f ✓".format(value)
+        else "%.1f 差%.1f".format(value, gap)
     }
 
     /** 四科估值换算总分；缺任何一科返回 null（同官方规则，见 ExamTarget.overallBand）。 */

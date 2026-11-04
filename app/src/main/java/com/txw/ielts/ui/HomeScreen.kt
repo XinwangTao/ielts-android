@@ -77,7 +77,8 @@ fun HomeScreen(
     val streak = remember(sessions) { StreakCalc.currentStreak(sessions) }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 28.dp, vertical = 24.dp),
+        // 页边距与其余 19 个屏保持一致（原来首页是 28dp，切到章节页会横跳 18px）
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         // —— 扉页 ——

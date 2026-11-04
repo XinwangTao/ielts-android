@@ -23,13 +23,13 @@ class SkillProfileTest {
     @Test
     fun `有目标时标出差距与达标`() {
         val targets = SkillTargets(6.5, 6.5, 6.5, 6.5)
-        assertEquals("L 6.0↓0.5 · R 6.5✓ · W 暂无 · S 5.5↓1.0", profile.line(targets))
+        assertEquals("L 6.0 差0.5 · R 6.5 ✓ · W 暂无 · S 5.5 差1.0", profile.line(targets))
     }
 
     @Test
     fun `超出目标也算达标，不出现负数差距`() {
         val targets = SkillTargets(6.0, 6.0, 6.0, 6.0)
-        assertEquals("L 6.0✓ · R 6.5✓ · W 暂无 · S 5.5↓0.5", profile.line(targets))
+        assertEquals("L 6.0 ✓ · R 6.5 ✓ · W 暂无 · S 5.5 差0.5", profile.line(targets))
     }
 
     @Test
