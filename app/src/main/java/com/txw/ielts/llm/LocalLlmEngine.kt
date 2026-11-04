@@ -5,8 +5,7 @@ import android.util.Log
 import com.alibaba.mnnllm.android.llm.GenerateProgressListener
 import com.alibaba.mnnllm.android.llm.LlmSession
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.File
@@ -38,17 +37,60 @@ object LocalLlmEngine {
     /** 单次生成硬上限：超过后通过 listener 中断。 */
     private const val GENERATE_TIMEOUT_MS = 8 * 60 * 1000L
 
+    /** 等引擎闸门的上限：留足一轮完整生成（含双跑）的时间，超过就认为前一个任务已卡死。 */
+    private const val ENGINE_WAIT_MS = 10 * 60 * 1000L
+
     /** max_new_tokens：思考型模型需留足 JSON 输出空间；非思考模型用不满。 */
     private const val MAX_NEW_TOKENS = 3500
 
-    private val mutex = Mutex()
-    private val generationMutex = Mutex()
+    /**
+     * 引擎占用闸门。为什么不用 Mutex：加载与推理都是**阻塞的 native 调用**，Mutex 会被一直占着。
+     * 进程被系统冻结在 s.load()/s.submit() 里时，协程永不返回，锁也永远不释放 ——
+     * 之后每次评分都在等这把锁，静默卡死、CPU 为 0，只有重启 App 才能恢复（2026-11-04 OPPO 实测）。
+     * 换成原子闸门后，看门狗可以 forceReset() 强拆，用户点「重新评分」就能继续。
+     */
+    private val engineBusy = java.util.concurrent.atomic.AtomicBoolean(false)
+
     private var session: LlmSession? = null
     private var loadedModel: String? = null
+
+    /** 最后一次有进展的时间（加载开始/加载完成/每收到一段 token）。看门狗据此判断卡死。 */
+    @Volatile
+    var lastBeatAt: Long = 0L
+        private set
 
     @Volatile
     var state: String = "idle"
         private set
+
+    /** 背景评分被系统冻住时，不能无限等锁：超过这个时间就报错让用户重试。 */
+    private suspend fun acquireEngine(what: String) {
+        val deadline = System.currentTimeMillis() + ENGINE_WAIT_MS
+        while (!engineBusy.compareAndSet(false, true)) {
+            if (System.currentTimeMillis() > deadline) {
+                throw IOException("本地模型等待${what}超时（上一个任务已卡死），请重新评分或重启 App")
+            }
+            delay(200)
+        }
+    }
+
+    private fun releaseEngine() {
+        engineBusy.set(false)
+    }
+
+    /**
+     * 卡死自救：丢弃当前 session 并把闸门打开，让下一次评分重新加载模型。
+     * 故意不调 session.release()：卡死的 native 调用可能仍在跑，此时释放会崩在 native 里。
+     * 代价是那段内存泄漏到进程结束，换来的是「App 不会永久卡死」。
+     */
+    fun forceReset() {
+        Log.w(TAG, "forceReset: state=$state idle_ms=${System.currentTimeMillis() - lastBeatAt}")
+        engineBusy.set(false)
+        session = null
+        loadedModel = null
+        state = "idle"
+        lastBeatAt = System.currentTimeMillis()
+    }
 
     fun modelsRoot(context: Context): File =
         File(context.getExternalFilesDir(null), "models/mnn")
@@ -109,32 +151,41 @@ object LocalLlmEngine {
         target
     }
 
-    private suspend fun loaded(context: Context, model: String): LlmSession = mutex.withLock {
-        session?.takeIf { it.isLoaded && loadedModel == model }?.let { return@withLock it }
-        session?.release()
-        session = null
-        val dir = ensure(context, model)
-        state = "loading"
-        Log.i(TAG, "loading local model $model from ${dir.absolutePath}")
-        val rawConfig = File(dir, "llm_config.json").readText()
-        val merged = JSONObject(rawConfig).apply {
-            put("max_new_tokens", MAX_NEW_TOKENS)
-            put("thread_num", 6)
-            // 评分要稳定：同一篇作文两次跑出 7.5/8.0 的波动不可接受，温度从 0.6 降到 0.2。
-            put("temperature", 0.2)
-        }.toString()
-        val s = LlmSession()
-        val ok = s.load(File(dir, "config.json").absolutePath, merged)
-        state = "idle"
-        if (!ok) throw IOException("本地模型 $model 加载失败（native 返回 0），请检查模型文件完整性")
-        session = s
-        loadedModel = model
-        s
+    private suspend fun loaded(context: Context, model: String): LlmSession {
+        session?.takeIf { it.isLoaded && loadedModel == model }?.let { return it }
+        acquireEngine("加载模型")
+        try {
+            // 抢到闸门后再查一次：等锁期间可能已经有人加载好了。
+            session?.takeIf { it.isLoaded && loadedModel == model }?.let { return it }
+            session?.release()
+            session = null
+            val dir = ensure(context, model)
+            state = "loading"
+            lastBeatAt = System.currentTimeMillis()
+            Log.i(TAG, "loading local model $model from ${dir.absolutePath}")
+            val rawConfig = File(dir, "llm_config.json").readText()
+            val merged = JSONObject(rawConfig).apply {
+                put("max_new_tokens", MAX_NEW_TOKENS)
+                put("thread_num", 6)
+                // 评分要稳定：同一篇作文两次跑出 7.5/8.0 的波动不可接受，温度从 0.6 降到 0.2。
+                put("temperature", 0.2)
+            }.toString()
+            val s = LlmSession()
+            val ok = s.load(File(dir, "config.json").absolutePath, merged)
+            state = "idle"
+            lastBeatAt = System.currentTimeMillis()
+            if (!ok) throw IOException("本地模型 $model 加载失败（native 返回 0），请检查模型文件完整性")
+            session = s
+            loadedModel = model
+            return s
+        } finally {
+            releaseEngine()
+        }
     }
 
     /** 释放模型内存（设置页可调用；下次评分会重新加载）。有生成任务在跑时返回 false，不打断 native 推理。 */
     fun release(): Boolean {
-        if (!generationMutex.tryLock()) return false
+        if (!engineBusy.compareAndSet(false, true)) return false
         return try {
             session?.release()
             session = null
@@ -142,7 +193,7 @@ object LocalLlmEngine {
             state = "idle"
             true
         } finally {
-            generationMutex.unlock()
+            releaseEngine()
         }
     }
 
@@ -240,31 +291,36 @@ object LocalLlmEngine {
     }
 
     /** 阻塞生成一整段文本；native 回调是流式的，这里拼成完整输出。串行执行避免并发调用 native。 */
-    private suspend fun generate(context: Context, model: String, system: String, user: String): String =
-        generationMutex.withLock {
-            val s = loaded(context, model)
-            val prompt = "$system\n\n$user\n\n" +
-                "IMPORTANT: Begin your reply with the JSON object immediately. " +
-                "Do not write any thinking, analysis, or commentary before or after the JSON."
+    private suspend fun generate(context: Context, model: String, system: String, user: String): String {
+        val s = loaded(context, model)
+        val prompt = "$system\n\n$user\n\n" +
+            "IMPORTANT: Begin your reply with the JSON object immediately. " +
+            "Do not write any thinking, analysis, or commentary before or after the JSON."
+        acquireEngine("生成")
+        try {
             val out = StringBuilder()
             val startedAt = System.currentTimeMillis()
             state = "generating"
-            try {
-                val stats = s.submit(prompt, object : GenerateProgressListener {
-                    override fun onProgress(progress: String?): Boolean {
-                        if (progress == null) return false
-                        out.append(progress)
-                        return System.currentTimeMillis() - startedAt > GENERATE_TIMEOUT_MS
-                    }
-                })
-                Log.i(TAG, "local gen done ($model): ${stats["decode_len"]} tokens, ${stats["decode_time"]}us, text=${out.length} chars")
-            } finally {
-                state = "idle"
-            }
+            lastBeatAt = startedAt
+            val stats = s.submit(prompt, object : GenerateProgressListener {
+                override fun onProgress(progress: String?): Boolean {
+                    if (progress == null) return false
+                    out.append(progress)
+                    // 每个 token 都算一次进展：看门狗据此区分「慢」和「卡死」。
+                    lastBeatAt = System.currentTimeMillis()
+                    return System.currentTimeMillis() - startedAt > GENERATE_TIMEOUT_MS
+                }
+            })
+            Log.i(TAG, "local gen done ($model): ${stats["decode_len"]} tokens, ${stats["decode_time"]}us, text=${out.length} chars")
             if (out.isBlank()) throw IOException("本地模型没有输出内容")
             Log.d(TAG, "raw output: ${out.take(1500)}")
-            out.toString()
+            return out.toString()
+        } finally {
+            state = "idle"
+            lastBeatAt = System.currentTimeMillis()
+            releaseEngine()
         }
+    }
 
     private fun weaknessHint(weaknesses: List<String>): String =
         if (weaknesses.isEmpty()) "" else

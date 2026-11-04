@@ -88,3 +88,63 @@
 - [ ] 结果页计时基准改用「评分开始时间」持久化字段，并对 `pending_local` 超过阈值给出明确「已中断，重新评分」。
 - [ ] 验证后台评分（唯一成功样例是前台跑的）。
 - [ ] `pending_local` 的自愈不要在启动时静默重排，应显式提示。
+
+---
+
+# 九、2026-11-04 15:00 后：后台评分已证（负面）+ 卡死自救已实施
+
+> 本节补上 §三 未证项。所有结论用 `/proc/<pid>/stat` 的 utime+stime 差值、cgroup 归属、
+> 窗口可见性三件硬证据，不用 `top` 的 %CPU、不用线程 S 态。
+
+## 9.1 结论
+
+**在 OPPO PKJ110 / ColorOS 上，端侧评分只要 App 窗口不可见（熄屏 / 按 HOME / 窗口 stopped），就必然停摆。**
+
+| 观测 | 前台 | 不可见 |
+|---|---|---|
+| cgroup | `cpuset:/foreground cpu:/foreground` | `cpuset:/background cpu:/background` |
+| `/proc/PID/stat` utime+stime / 10s | 数百 jiffies | **0** |
+| `local gen done` | 70–90 秒出现 | 数分钟不出现，`pending_local` 常驻 |
+
+触发条件不是"后台"这个笼统概念，而是**窗口不可见**。实测三次：
+- 15:02 按 HOME：150 秒内 utime 增量为 0、无完成；`am start` 拉回前台后 **57.3 秒**才跑完
+  （`601 tokens, 57331206us`）。
+- 15:13 按 HOME：连模型加载都卡死（RSS 停在 656MB）；回前台 RSS 立刻跳到 1.86GB，
+  但此后 5 分钟 utime 仍为 0、无任何输出 —— **回前台也不一定救得回来**。
+- 15:35 冷启动跑 e2e：2 秒后日志出现 `VRI[MainActivity]: setWindowStopped stopped:true`，
+  cgroup 随即变 `/background`，utime 增量 0，whisper 转写都跑不完。
+
+设备侧开关都试过：`dumpsys deviceidle whitelist +`、`settings put secure no_frozen`、
+`settings put global cached_apps_freezer disabled`。第三个能让 cgroup 变成 `/foreground`，
+**但模型加载仍会卡在半途** —— 说明 OPPO 在自己的层还有一套冻结/限速，公开 API 改不动。
+
+## 9.2 已实施的代码修复（面向"失败也要能自愈"）
+
+问题不是"慢"，是**静默永久卡死**：`loaded()` 的 `mutex` 与 `generate()` 的 `generationMutex`
+都是**跨阻塞 native 调用持有**的。进程被冻在 `s.load()` / `s.submit()` 里时协程永不返回，
+锁永远不释放 → 之后每次评分都在等锁、CPU 为 0、`pending_local` 常驻，
+**只有重启 App 能恢复**。
+
+改为（`llm/LocalLlmEngine.kt`）：
+
+1. 两把 `Mutex` 换成原子闸门 `engineBusy` + `acquireEngine()`（有 10 分钟等待上限，超时报错而非静默等待）。
+2. 新增 `lastBeatAt` 心跳：加载开始/加载完成/**每收到一段 token** 都刷新。
+3. 新增 `forceReset()`：丢弃 session 并把闸门打开，让下一次评分重新加载模型。
+   故意不对可能仍在 native 里跑的 session 调 `release()`（会崩），宁可泄漏那段内存。
+4. `ScoreService` 增加看门狗 `watchdogLoop()`：心跳断 180 秒即判死 → `forceReset()` +
+   会话退 `pending_eval`（可重试）+ 发「系统把后台评分中断了」通知 + 替卡死协程收尾。
+
+## 9.3 真机验证（15:34）
+
+```
+15:34:04.680 W ScoreService: watchdog: engine stalled 272407ms, forceReset id=18
+15:34:04.726 W LocalLlm: forceReset: state=generating idle_ms=272472
+```
+会话 18 从 `pending_local`（永远卡住）变成 `pending_eval`（可重试），符合预期。
+
+## 9.4 产品结论（给用户的话）
+
+- 想拿到分数，**评分期间别熄屏、别切后台**（文案已在 `LocalWait.retryLabel` 提示）。
+- 真被打断也不会再"永远评分中"：最多 3 分钟会变成「评分被中断，重新评分」，点一下即可。
+- 想后台也能跑，需要系统级白名单（设置 → 电池 → 应用耗电管理 → 本应用 → 允许后台运行），
+  本机实测未必生效，不建议当作可靠路径。

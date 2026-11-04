@@ -19,6 +19,8 @@ import com.txw.ielts.llm.WritingEval
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -59,6 +61,7 @@ class ScoreService : Service() {
             .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "ielts:local-score")
             .apply { setReferenceCounted(false); acquire(12 * 60_000L) }
         scope.launch {
+            val watchdog = launch { watchdogLoop(sessionId, text) }
             try {
                 runScore(sessionId, module, text, task)
             } catch (e: Exception) {
@@ -68,6 +71,7 @@ class ScoreService : Service() {
                 )
                 Notify.scoreFailed(this@ScoreService, e.message ?: "未知错误", sessionId)
             } finally {
+                watchdog.cancel()
                 runCatching { if (wake.isHeld) wake.release() }
                 if (runningJobs.decrementAndGet() == 0) {
                     // 可选：评分结束后释放 2.7GB 模型内存，避免与语音助手等竞争（下次评分重新加载）。
@@ -78,6 +82,37 @@ class ScoreService : Service() {
             }
         }
         return START_STICKY
+    }
+
+    /**
+     * 盯引擎心跳。为什么必须有：
+     * 「加载」和「推理」都是阻塞的 native 调用。App 被 ColorOS 冻结后，协程会停在 s.load()/s.submit()
+     * 里永不返回 —— runScore 的 try/catch 根本没机会执行，session 就永远停在 pending_local，
+     * 结果页也只能无限数「已等待 N 分」。这里用心跳判死，把结果退成可重试，并把卡死的引擎强拆。
+     */
+    private suspend fun CoroutineScope.watchdogLoop(sessionId: Long, text: String) {
+        while (isActive) {
+            delay(15_000)
+            val beat = LocalLlmEngine.lastBeatAt
+            if (beat <= 0 || LocalLlmEngine.state == "idle") continue
+            val idleMs = System.currentTimeMillis() - beat
+            if (idleMs <= STALL_AFTER_MS) continue
+            Log.w("ScoreService", "watchdog: engine stalled ${idleMs}ms, forceReset id=$sessionId")
+            LocalLlmEngine.forceReset()
+            runCatching {
+                AppDb.get(this@ScoreService).sessions().updateResult(
+                    sessionId, text, "", "", "", "", "pending_eval",
+                )
+            }
+            Notify.scoreFailed(
+                this@ScoreService, "系统把后台评分中断了（后台限速/冻结），内容已保存，请重新评分", sessionId,
+            )
+            // 卡死的协程永远不会走到 finally，这里替它收尾。
+            runningJobs.set(maxOf(0, runningJobs.get() - 1))
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return
+        }
     }
 
     /** 系统回收后重启：找回最近 10 分钟内启动、仍未完成的本地评分并继续跑。 */
@@ -274,6 +309,9 @@ class ScoreService : Service() {
     companion object {
         private const val CHANNEL = "score_service"
         private const val NOTIF_ID = 2001
+
+        /** 心跳断多久算卡死。留得比一次「加载+一个 token 批次」的长尾大，避免误判正常慢评分。 */
+        private const val STALL_AFTER_MS = 180_000L
 
         fun start(context: Context, sessionId: Long, module: String, text: String, task: String = "task2"): Boolean {
             val i = Intent(context, ScoreService::class.java).apply {
