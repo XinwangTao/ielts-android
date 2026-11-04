@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.txw.ielts.data.AppDb
 import com.txw.ielts.data.Prefs
 import com.txw.ielts.llm.LocalLlmEngine
+import com.txw.ielts.llm.ScoreGate
 import com.txw.ielts.llm.SpeakingEval
 import com.txw.ielts.llm.WritingEval
 import kotlinx.coroutines.CoroutineScope
@@ -125,6 +126,16 @@ class ScoreService : Service() {
         val weaknesses = com.txw.ielts.ui.topErrors(db.sessions().recent(100))
             .take(3).map { it.label }
 
+        // 空文本不送模型：端侧推理要 3-4 分钟，且必然产出 0 分的假成绩（2026-10-31 遗留过这种记录）。
+        if (!ScoreGate.shouldScore(text)) {
+            Log.w("ScoreService", "skip scoring blank text id=$sessionId module=$module")
+            db.sessions().updateResult(
+                sessionId, session.transcript, session.essayText,
+                session.scoresJson, session.fixesJson, session.polished, "asr_empty",
+            )
+            return
+        }
+
         if (module == "speaking") {
             // topic 形如「Part 2 · question」；模考是「Mock Test · Part 1-3」。
             // 之前恒传字面量 "Part"，模型不知道考的是哪一部分。
@@ -177,10 +188,10 @@ class ScoreService : Service() {
                     put("FC", eval.fluency); put("LR", eval.lexical); put("GRA", eval.grammar)
                     put("P", eval.pronunciation); put("overall", eval.overall)
                 }.toString(),
-                fixesJson, eval.improved, "done",
+                fixesJson, eval.improved, ScoreGate.statusFor(eval.overall),
             )
             markScoreFinished(app, sessionId)
-            Notify.scoreDone(app, eval.overall, sessionId)
+            if (ScoreGate.isValidBand(eval.overall)) Notify.scoreDone(app, eval.overall, sessionId)
         } else {
             val task = taskFromIntent.ifBlank {
                 if (runCatching { JSONObject(session.scoresJson).has("TA") }.getOrDefault(false)) "task1" else "task2"
@@ -226,10 +237,10 @@ class ScoreService : Service() {
                         })
                     }
                 }.toString(),
-                eval.polished, "done",
+                eval.polished, ScoreGate.statusFor(eval.overall),
             )
             markScoreFinished(app, sessionId)
-            Notify.scoreDone(app, eval.overall, sessionId)
+            if (ScoreGate.isValidBand(eval.overall)) Notify.scoreDone(app, eval.overall, sessionId)
         }
     }
 

@@ -55,6 +55,7 @@ import com.txw.ielts.llm.BankExplain
 import com.txw.ielts.llm.LocalLlmEngine
 import com.txw.ielts.llm.LlmClient
 import com.txw.ielts.llm.ScoreSanitizer
+import com.txw.ielts.llm.ScoreGate
 import com.txw.ielts.llm.routeLlm
 import com.txw.ielts.llm.SpeakingEval
 import com.txw.ielts.llm.WritingEval
@@ -816,7 +817,7 @@ private fun App(
                         })
                     }
                 }.toString(),
-                p = eval.polished, st = "done",
+                p = eval.polished, st = ScoreGate.statusFor(scores.overall),
             )
             stage = null
             error = null
@@ -874,7 +875,7 @@ private fun App(
                     put("P", scores.pronunciation); put("overall", scores.overall)
                 }.toString(),
                 f = speakingFixesJson(eval),
-                p = eval.improved, st = "done",
+                p = eval.improved, st = ScoreGate.statusFor(scores.overall),
             )
             stage = null
             error = null

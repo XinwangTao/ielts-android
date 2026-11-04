@@ -510,9 +510,13 @@ internal fun bandText(scoresJson: String): String {
     }.getOrDefault("暂无")
 }
 
-/** 写作/口语记录的 Band 数值（非评分记录返回 null）。 */
+/** 写作/口语记录的 Band 数值（非评分记录、无效成绩返回 null）。 */
 internal fun bandValue(scoresJson: String): Double? = runCatching {
     val o = org.json.JSONObject(scoresJson)
-    if (o.has("overall")) o.optDouble("overall", 0.0) else null
+    if (!o.has("overall")) return@runCatching null
+    val v = o.optDouble("overall", 0.0)
+    // 0 分不是成绩（Band 0 = 未作答）：失败的评分会把四项全写成 0 并退回 pending_eval，
+    // 此前这种记录被当成 done 计入均分，首页显示过「写/说最近 3 次平均 2.8」（0 + 1 + 7.5）。
+    if (!com.txw.ielts.llm.ScoreGate.isValidBand(v)) null else v
 }.getOrNull()
 
