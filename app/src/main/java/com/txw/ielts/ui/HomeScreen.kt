@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -167,7 +168,9 @@ fun HomeScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Spacer(Modifier.height(10.dp))
+        // 分节标题的排版规则：上方空隙要明显大于下方，标题才会「跟着自己的内容」；
+        // 上下相等时标题会浮在两节中间，读者分不清它属于哪一段。
+        Spacer(Modifier.height(24.dp))
 
         // —— 今日任务：基于数据的推荐，碎片时间不用自己想练什么 ——
         if (plan.isNotEmpty()) {
@@ -196,7 +199,7 @@ fun HomeScreen(
                     Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                 }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(20.dp))
         }
 
         // —— 目录标题 ——
@@ -204,7 +207,7 @@ fun HomeScreen(
             "目　录",
             style = MaterialTheme.typography.titleLarge,
             fontFamily = FontFamily.Serif,
-            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp),
         )
 
         ChapterRow("第一章", "写作练习", if (sessions.any { it.module == "writing" }) "已开篇" else "待开篇", onStartWriting)
@@ -309,7 +312,10 @@ private fun ChapterRow(num: String, title: String, note: String, onClick: () -> 
             title,
             style = MaterialTheme.typography.titleLarge,
             fontFamily = FontFamily.Serif,
-            modifier = Modifier.weight(1f),
+        )
+        // 点线落在标题的基线上（居中会偏高约 5dp）；两侧各留 8dp 免得点贴到字
+        DotLeader(
+            Modifier.weight(1f).padding(horizontal = 8.dp).offset(y = 5.dp)
         )
         Text(
             note,

@@ -1,6 +1,7 @@
 package com.txw.ielts.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,6 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import com.txw.ielts.data.Session
@@ -125,6 +128,25 @@ fun DailyBarsCard(sessions: List<Session>) {
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * 目录点线引导（dot leader）：标题与右侧状态之间那 500dp 空白，印刷目录历来用它填。
+ *
+ * 点距 4.8dp、点径 1.2dp —— 再密就读成虚线，再疏就断成碎点。颜色取 bookRuleColor()，
+ * 和卡片细线同一层，不会抢正文。
+ */
+@Composable
+fun DotLeader(modifier: Modifier = Modifier, color: Color = bookRuleColor()) {
+    Canvas(modifier.height(1.2.dp)) {
+        val d = 1.2.dp.toPx()
+        val step = 4.8.dp.toPx()
+        var x = 0f
+        while (x <= size.width - d) {
+            drawCircle(color, radius = d / 2f, center = Offset(x + d / 2f, size.height / 2f))
+            x += step
         }
     }
 }
