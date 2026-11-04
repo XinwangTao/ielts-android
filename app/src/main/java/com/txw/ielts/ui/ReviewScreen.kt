@@ -122,7 +122,7 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         IosNavBar("复盘看板", onBack = onBack)
 

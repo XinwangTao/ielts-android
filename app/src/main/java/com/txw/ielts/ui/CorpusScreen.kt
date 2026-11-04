@@ -62,7 +62,7 @@ fun CorpusHomeScreen(
     val todayNew = minOf(fresh, (dailyLimit).coerceAtLeast(0))
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         IosNavBar("语料积累", onBack = onBack)
         if (!error.isNullOrBlank()) {
@@ -155,7 +155,7 @@ fun StudyScreen(
     Column(
         // 学习页必须可滚动：横屏或系统大字号时，评级按钮会掉出屏幕且无法到达。
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             TextButton(onClick = onExit) { Text("退出") }
