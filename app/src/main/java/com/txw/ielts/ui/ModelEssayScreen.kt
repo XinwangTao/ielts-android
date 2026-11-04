@@ -12,6 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -90,11 +91,14 @@ fun ModelEssayScreen(
                             }
                         }
                     } else {
+                        // take(80) 硬切在宽屏上会白白截掉后半句，窄屏又叠一层 maxLines；
+                        // 交给 Compose 按宽度省略。
                         Text(
-                            e.polished.take(80) + "…",
+                            e.polished,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                 }

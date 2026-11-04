@@ -13,6 +13,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,11 +73,14 @@ fun ArgumentScreen(
                         Text(if (open) "▾" else "▸", style = MaterialTheme.typography.labelLarge)
                     }
                     if (!open) {
+                        // 不再 take(60) 硬切：写死的字符数在宽屏上也会白白截掉后半句，窄屏（360dp）还会
+                        // 被 maxLines 再砍一次。改成让 Compose 按可用宽度省略，计数放最前保证不被吞。
                         Text(
-                            "${t.arguments.size} 组论点 · ${t.prompt.take(60)}…",
+                            "${t.arguments.size} 组论点 · ${t.prompt}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     } else {
                         Text(t.prompt, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
