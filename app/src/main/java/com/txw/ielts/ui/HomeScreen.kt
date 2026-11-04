@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -333,7 +334,6 @@ private fun StreakCalendar(sessions: List<Session>) {
         sessions.groupBy { StreakCalc.dayKey(it.startedAt) }.mapValues { it.value.size }
     }
     val today = LocalDate.now()
-    val start = today.minusWeeks(11).with(DayOfWeek.MONDAY)
     val streak = remember(counts, today) { StreakCalc.currentStreak(counts.keys, today) }
 
     BookCard(Modifier.fillMaxWidth()) {
@@ -347,18 +347,63 @@ private fun StreakCalendar(sessions: List<Session>) {
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                for (week in 0..11) {
-                    val weekStart = start.plusWeeks(week.toLong())
-                    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                        for (day in 0..6) {
-                            val date = weekStart.plusDays(day.toLong())
-                            val count = if (date.isAfter(today)) -1 else (counts[date.toString()] ?: 0)
-                            Box(
-                                Modifier.size(13.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(heatColor(count)),
-                            )
+            // 周数自适应：手机 12 周，平板一路铺到 26 周。原来写死 12 周 + 13dp 格子，
+            // 在这台 711dp 宽的平板上只占 189dp，右边空一大片，看着像没做完。
+            BoxWithConstraints {
+                val gap = 3.dp
+                val labelW = 18.dp
+                // usable 要减掉 labelW 和「标签与第一格之间」的那一个 gap：
+                // spacedBy 是在所有相邻子项间插 gap，漏算它总宽就超一行，末列会被挤成 0 宽
+                val usable = (maxWidth - labelW - gap).coerceAtLeast(120.dp)
+                val weeks = ((usable + gap) / 17.dp).toInt().coerceIn(12, 26)
+                // 上限 22dp：周数封顶后让格子继续长，正好铺满卡片内容宽，不留空档
+                val cell = (((usable + gap) / weeks) - gap).coerceIn(9.dp, 22.dp)
+                val start = today.minusWeeks((weeks - 1).toLong()).with(DayOfWeek.MONDAY)
+
+                Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    // 月份：只在「换月的那一周」标一次，避免每个格子都带字
+                    Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                        Spacer(Modifier.width(labelW))
+                        for (w in 0 until weeks) {
+                            val monday = start.plusWeeks(w.toLong())
+                            val prev = if (w == 0) null else start.plusWeeks((w - 1).toLong())
+                            Box(Modifier.width(cell), contentAlignment = Alignment.CenterStart) {
+                                if (prev == null || prev.month != monday.month) {
+                                    Text(
+                                        "${monday.monthValue}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    for (day in 0..6) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(gap),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(Modifier.width(labelW), contentAlignment = Alignment.CenterStart) {
+                                // 只标一/三/五，七天全标会挤成一竖列噪点
+                                if (day == 0 || day == 2 || day == 4) {
+                                    Text(
+                                        listOf("一", "二", "三", "四", "五", "六", "日")[day],
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                    )
+                                }
+                            }
+                            for (w in 0 until weeks) {
+                                val date = start.plusWeeks(w.toLong()).plusDays(day.toLong())
+                                val count = if (date.isAfter(today)) -1 else (counts[date.toString()] ?: 0)
+                                Box(
+                                    Modifier.size(cell)
+                                        .clip(RoundedCornerShape(cell * 0.2f))
+                                        .background(heatColor(count)),
+                                )
+                            }
                         }
                     }
                 }
