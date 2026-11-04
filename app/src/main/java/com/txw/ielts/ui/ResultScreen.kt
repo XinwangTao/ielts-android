@@ -37,6 +37,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.txw.ielts.data.LocalWait
 import com.txw.ielts.data.ModelEssay
 import com.txw.ielts.data.ModelEssayStore
 import com.txw.ielts.data.Session
@@ -141,14 +142,11 @@ fun ResultScreen(
                     if (!error.isNullOrBlank()) {
                         Text(error, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     }
-                    TextButton(onClick = onRetry, enabled = staleLocal && busy == null) {
-                        Text(
-                            when {
-                                busy != null -> busy
-                                staleLocal -> "评分已中断，重新评分"
-                                else -> "评分中…（10 分钟后可重试）"
-                            }
-                        )
+                    // staleLocal 是父级组合期算的快照，Room Flow 不变它就永远不变；
+                    // waitedSec 每秒刷新，才是判定的真实驱动源（否则过了 10 分钟出口仍不激活）。
+                    val staleNow = LocalWait.isStale(waitedSec, staleLocal)
+                    TextButton(onClick = onRetry, enabled = staleNow && busy == null) {
+                        Text(LocalWait.retryLabel(busy, staleNow))
                     }
                 }
             }
