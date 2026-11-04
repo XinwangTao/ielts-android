@@ -15,8 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.txw.ielts.data.Session
+import com.txw.ielts.data.StatusLabel
 import org.json.JSONObject
 
 /**
@@ -70,15 +72,17 @@ fun MockResultScreen(
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            moduleLabel(s.module) + " · " + s.topic.take(46),
+                            moduleLabel(s.module) + " · " + s.topic,
                             style = MaterialTheme.typography.titleSmall,
                             modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(
                             when (s.status) {
-                                "done" -> "Band %.1f".format(bandOf(s) ?: 0.0)
-                                "pending_local" -> "评分中"
-                                else -> "待评分"
+                                StatusLabel.DONE -> "Band %.1f".format(bandOf(s) ?: 0.0)
+                                // 不再用 else -> "待评分" 把 asr_empty（没听清、要重录）也扮成待评分。
+                                else -> StatusLabel.label(s.status)
                             },
                             style = MaterialTheme.typography.titleMedium,
                             color = if (s.status == "done") MaterialTheme.colorScheme.primary

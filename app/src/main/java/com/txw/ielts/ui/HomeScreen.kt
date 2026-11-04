@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.txw.ielts.data.Session
@@ -463,7 +464,7 @@ private fun SessionRow(s: Session, onClick: () -> Unit) {
                         modifier = Modifier.weight(1f))
                     Text(bandText(s.scoresJson), style = MaterialTheme.typography.labelLarge)
                 }
-                Text(s.topic.take(60), style = MaterialTheme.typography.bodyMedium, maxLines = 2)
+                Text(s.topic, style = MaterialTheme.typography.bodyMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
                     if (s.module == "reading" || s.module == "listening") {
                         "${s.durationSec / 60} 分 ${s.durationSec % 60} 秒 · 离线判分"

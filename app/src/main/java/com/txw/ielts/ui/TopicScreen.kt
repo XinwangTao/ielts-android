@@ -21,6 +21,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.txw.ielts.data.SpeakingTopic
 
@@ -77,6 +78,7 @@ fun TopicScreen(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     } else {
                         Text(t.prompt, style = MaterialTheme.typography.bodyMedium)

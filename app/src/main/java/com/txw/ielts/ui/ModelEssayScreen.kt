@@ -69,10 +69,12 @@ fun ModelEssayScreen(
                             color = MaterialTheme.colorScheme.primary,
                         )
                         Text(
-                            "  ·  ${e.topic.take(40)}",
+                            "  ·  ${e.topic}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                         Text(if (open) "▾" else "▸", style = MaterialTheme.typography.labelLarge)
                     }
