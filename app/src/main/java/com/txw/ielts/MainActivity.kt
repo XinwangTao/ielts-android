@@ -792,6 +792,7 @@ private fun App(
                 eval.tr, eval.cc, eval.lr, eval.gra, eval.overall, words, task,
                 essayText = text,
                 sentenceFixCount = eval.sentenceFixes.size,
+                grammarIssueCount = ScoreSanitizer.grammarIssueCount(eval.sentenceFixes),
                 hasFixes = eval.fixes.isNotEmpty(),
             )
             db.sessions().updateResult(

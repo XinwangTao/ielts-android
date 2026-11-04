@@ -29,6 +29,58 @@ object ScoreSanitizer {
         "lastly", "in my view", "in my opinion", "in summary", "to sum up",
     )
 
+    /** 带词边界的例证标记（结尾是标点的不能加 \b，见下面 PLAIN）。 */
+    private val EVIDENCE_WORDS = listOf(
+        "for example", "for instance", "such as", "a case in point",
+        "consider the case", "according to", "research shows", "studies show",
+        "take the case",
+    )
+
+    /** 结尾是点的标记：\b 在标点后会失效，改用纯包含判断。 */
+    private val EVIDENCE_PLAIN = listOf("e.g.")
+
+    /**
+     * 明确指向「语法/准确性」的措辞。
+     * 刻意不收「句子结构」「表达」「用词」「重复」「空洞」—— 那些是文风与内容批评，
+     * 属 CC/LR/TR 的事，压 GRA 属错位。
+     */
+    private val GRAMMAR_MARKERS = listOf(
+        "语法", "时态", "主谓", "单复数", "冠词", "介词", "语态", "被动",
+        "非谓语", "动词形态", "词性", "拼写", "从句错误", "标点", "悬垂", "搭配错误",
+    )
+
+    /**
+     * 一条逐句建议是不是「语法类」问题。
+     *
+     * 为什么要分类型：提示词现在强制 sentence_fixes 2–5 条「即使写得好也要挑最弱的句子」，
+     * 于是条数只反映模型服从度，不再反映错误密度。OPPO 真机实测（id=9，269 词）那 5 条
+     * 全是「句子空洞 / 用词泛泛 / 显得机械」这类文风建议，一条语法错误都没有，
+     * 却因命中「≥4 条 → GRA ≤ 6.5」把 GRA 从 8.0 压到 6.5 —— 等于告诉学生语法是短板，
+     * 而这篇的真实短板是 TR（零例证）。诊断指错方向比给分轻一点更糟。
+     */
+    fun isGrammarIssue(issue: String): Boolean {
+        val t = issue.lowercase()
+        return GRAMMAR_MARKERS.any { t.contains(it) }
+    }
+
+    /** 语法类建议的条数（GRA 只认这个，不认总条数）。 */
+    fun grammarIssueCount(fixes: List<SentenceFix>): Int = fixes.count { isGrammarIssue(it.issue) }
+
+    /**
+     * 统计不同种类的例证标记数（含百分比/统计数据）。
+     * B7 与 B8 在任务回应上最可检测的差别就是「有没有具体支撑」：B7 可以只讲道理（易过度概括），
+     * B8 要求每个论点都被展开、被支撑。4B 模型对任何文章都给 TR 8，这条规则把它拉回现实。
+     */
+    fun evidenceKinds(text: String): Int {
+        val lower = text.lowercase()
+        var n = EVIDENCE_WORDS.count { p ->
+            Regex("\\b" + Regex.escape(p) + "\\b").containsMatchIn(lower)
+        }
+        n += EVIDENCE_PLAIN.count { lower.contains(it) }
+        if (Regex("\\d+\\s*(%|percent|per cent)").containsMatchIn(lower)) n++
+        return n
+    }
+
     /** 统计文章中出现的不同公式化连接词种类数（同一短语多次出现只算一种）。 */
     fun formulaicLinkerKinds(text: String): Int {
         val lower = text.lowercase()
@@ -43,6 +95,7 @@ object ScoreSanitizer {
         overall: Double, wordCount: Int, task: String = "task2",
         essayText: String = "",
         sentenceFixCount: Int = 0,
+        grammarIssueCount: Int = 0,
         hasFixes: Boolean = false,
     ): WritingScores {
         var tr2 = band(tr)
@@ -55,6 +108,15 @@ object ScoreSanitizer {
             if (wordCount < 150) tr2 = tr2.coerceAtMost(4.0)
             else if (wordCount < 250) tr2 = tr2.coerceAtMost(5.0)
         }
+        // TR 校准（仅 Task 2，字数已达标）：B8 要求「充分展开并支撑每个论点」，
+        // 而 4B 模型对任何文章都给 8.0。全文零例证 = 典型「过度概括」（B7 特征）→ TR ≤ 7.0；
+        // 只有一处 → ≤ 7.5。Task 1 是描述数据，不需要例证，不能套这条。
+        if (task != "task1" && wordCount >= 250 && essayText.isNotBlank()) {
+            when (evidenceKinds(essayText)) {
+                0 -> tr2 = tr2.coerceAtMost(7.0)
+                1 -> tr2 = tr2.coerceAtMost(7.5)
+            }
+        }
         // 公式化连接词越多，衔接越依赖「显式胶水」，与 B8「不引人注意」相悖。
         val linkerKinds = if (essayText.isBlank()) 0 else formulaicLinkerKinds(essayText)
         val cc2 = band(cc).let {
@@ -64,10 +126,13 @@ object ScoreSanitizer {
                 else -> it
             }
         }
-        // GRA 与模型自己列出的错误数一致：列了错误就不能给近满分。
+        // GRA 只看「语法类」建议。总条数已被提示词的「2–5 条永不为空」污染：
+        // 挑最弱句子给更好改写是文风打磨，不该算成语法错误。
         val gra2 = band(gra).let {
             when {
-                sentenceFixCount >= 4 -> it.coerceAtMost(6.5)
+                grammarIssueCount >= 4 -> it.coerceAtMost(6.5)
+                grammarIssueCount >= 1 -> it.coerceAtMost(7.0)
+                // 有打磨建议但没提语法：不给满分，但也不冤枉。
                 sentenceFixCount >= 1 -> it.coerceAtMost(7.5)
                 else -> it
             }
@@ -169,8 +234,91 @@ object ScoreSanitizer {
             }
             if (i > 0) o.put("polished", rest.substring(0, i))
         }
+        // 兜底提取 sentence_fixes：top_fixes / polished 里的裸引号会让整体 JSONObject 解析失败，
+        // 但逐句改法是最高价值字段，而且它一丢就会连带 GRA 封顶失效（sentenceFixCount=0）。
+        extractArrayBody(raw, "sentence_fixes")?.let { body ->
+            val arr = JSONArray()
+            Regex("\\{(?:[^{}]|\\{[^{}]*\\})*\\}", RegexOption.DOT_MATCHES_ALL).findAll(body).forEach { m ->
+                val obj = m.value
+                val sentence = jsonStringField(obj, "sentence")
+                val better = jsonStringField(obj, "better")
+                if (!sentence.isNullOrBlank() && !better.isNullOrBlank()) {
+                    arr.put(
+                        JSONObject()
+                            .put("sentence", sentence)
+                            .put("issue", jsonStringField(obj, "issue") ?: "")
+                            .put("better", better)
+                    )
+                }
+            }
+            if (arr.length() > 0) o.put("sentence_fixes", arr)
+        }
         if (!o.has("overall")) throw java.io.IOException("模型输出无法解析出评分：${raw.take(160)}")
         return o
+    }
+
+    /**
+     * 取出 `"key": [ ... ]` 的方括号内容（跳过字符串内的括号）。
+     * 用于兜底提取 sentence_fixes —— 这段内容丢了不只是少个展示字段，
+     * 还会让 GRA 封顶（列了错误就不能给近满分）失效。
+     */
+    private fun extractArrayBody(raw: String, key: String): String? {
+        val m = Regex("\"$key\"\\s*:\\s*\\[").find(raw) ?: return null
+        var depth = 0
+        var inStr = false
+        var esc = false
+        var i = m.range.last
+        val start = i + 1
+        while (i < raw.length) {
+            val c = raw[i]
+            when {
+                esc -> esc = false
+                c == '\\' -> esc = true
+                c == '"' -> inStr = !inStr
+                inStr -> Unit
+                c == '[' -> depth++
+                c == ']' -> {
+                    depth--
+                    if (depth == 0) return raw.substring(start, i)
+                }
+            }
+            i++
+        }
+        return null
+    }
+
+    /** 从对象字面量里取字符串字段并反转义。 */
+    private fun jsonStringField(obj: String, key: String): String? {
+        val m = Regex("\"$key\"\\s*:\\s*\"((?:[^\"\\\\]|\\\\.)*)\"").find(obj) ?: return null
+        return unescapeJson(m.groupValues[1])
+    }
+
+    private fun unescapeJson(s: String): String {
+        if (!s.contains('\\')) return s
+        val sb = StringBuilder(s.length)
+        var i = 0
+        while (i < s.length) {
+            val c = s[i]
+            if (c != '\\' || i == s.length - 1) {
+                sb.append(c); i++; continue
+            }
+            when (val n = s[i + 1]) {
+                'n' -> { sb.append('\n'); i += 2 }
+                't' -> { sb.append('\t'); i += 2 }
+                'r' -> { sb.append('\r'); i += 2 }
+                '"' -> { sb.append('"'); i += 2 }
+                '\\' -> { sb.append('\\'); i += 2 }
+                '/' -> { sb.append('/'); i += 2 }
+                'u' -> {
+                    val hex = s.substring(i + 2, minOf(i + 6, s.length))
+                    val code = hex.toIntOrNull(16)
+                    if (code != null && hex.length == 4) { sb.append(code.toChar()); i += 6 }
+                    else { sb.append(n); i += 2 }
+                }
+                else -> { sb.append(n); i += 2 }
+            }
+        }
+        return sb.toString()
     }
     fun extractJson(content: String): String {
         val cleaned = content.replace("```json", "").replace("```", "").trim()
@@ -253,6 +401,7 @@ object ScoreSanitizer {
             wordCount = wordCount, task = task,
             essayText = essay,
             sentenceFixCount = sentenceFixes.size,
+            grammarIssueCount = grammarIssueCount(sentenceFixes),
             hasFixes = fixes.isNotEmpty(),
         )
         return WritingEval(
