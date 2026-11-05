@@ -452,6 +452,7 @@ def main() -> int:
     ap.add_argument("--only", default="")
     ap.add_argument("--report", default="")
     ap.add_argument("--fixtures", default="", help="把原始输出写入该目录（供 AiProbeFixtureTest 使用）")
+    ap.add_argument("--max-tokens", type=int, default=4000, help="每次生成上限（默认 4000；本地预算 3500 可复测）")
     args = ap.parse_args()
 
     all_cases = cases()
@@ -464,7 +465,7 @@ def main() -> int:
         t0 = time.time()
         print(f"[{c['name']}] 请求中…", flush=True)
         try:
-            raw = call_model(args.base, args.model, c["system"], c["user"])
+            raw = call_model(args.base, args.model, c["system"], c["user"], max_tokens=args.max_tokens)
             issues = validate(c, raw)
         except urllib.error.HTTPError as e:
             raw = ""
