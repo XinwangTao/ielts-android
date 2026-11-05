@@ -67,10 +67,6 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE source NOT IN ('seed','error','fix')")
     suspend fun countGenerated(): Int
 
-    /** 去重判断；大小写不敏感，避免 "However" 与 "however" 各建一张。 */
-    @Query("SELECT COUNT(*) FROM cards WHERE front = :front COLLATE NOCASE")
-    suspend fun countByFront(front: String): Int
-
     /** 全部正面：AI 批注/错题入库时用 CardText.key 归一化后做跨会话判重（标点、空白差异也不重复建卡）。 */
     @Query("SELECT front FROM cards")
     suspend fun allFronts(): List<String>

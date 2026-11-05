@@ -95,7 +95,6 @@ class CardRepo(private val context: Context, private val db: AppDb) {
             val head = CardText.front(raw, CardText.FIX_MAX)
             if (head.isBlank()) return@mapNotNull null
             if (!seen.add(CardText.key(head))) return@mapNotNull null
-            if (db.cards().countByFront(head) > 0) return@mapNotNull null
             Card(
                 type = "error",
                 front = head,
@@ -116,10 +115,11 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     /** 逐句改法 → 改错卡（type=cloze, source=fix）：正面原句，背面改写与中文问题。 */
     suspend fun addSentenceFixesAsCards(items: List<Triple<String, String, String>>, module: String): Int {
         if (items.isEmpty()) return 0
+        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
         val cards = items.mapNotNull { (sentence, issue, better) ->
             if (sentence.isBlank() || better.isBlank()) return@mapNotNull null
             val front = "改错：" + CardText.front(sentence, 160)
-            if (db.cards().countByFront(front) > 0) return@mapNotNull null
+            if (!seen.add(CardText.key(front))) return@mapNotNull null
             Card(
                 type = "cloze",
                 front = front,
@@ -154,7 +154,6 @@ class CardRepo(private val context: Context, private val db: AppDb) {
             val head = CardText.front(row.prompt, CardText.BANK_MAX)
             if (head.isBlank()) return@mapNotNull null
             if (!seen.add(CardText.key(head))) return@mapNotNull null
-            if (db.cards().countByFront(head) > 0) return@mapNotNull null
             Card(
                 type = "error",
                 front = head,

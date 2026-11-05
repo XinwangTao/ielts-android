@@ -15,3 +15,4 @@
 | 2026-11-05 22:55 | 删除 AI 套题时清理私有目录音频：新增 `BankAudio.ownedWavName`（只认 wav 文件名，防路径穿越），`deleteAiSet` 同步删除 filesDir/bank 下的 TTS 音频 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`BankAudioTest` 3/3 通过 |
 | 2026-11-05 22:57 | 断网/降级提示：新增 `ChannelPick.localReason`（断网 > 额度冷却 > 额度用完）与 `NetworkStatus`，设置页评分通道下方显示「为何自动模式走本地」 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`ChannelPickTest` 8/8 通过 |
 | 2026-11-05 22:57 | 查词/跟读/AI 生词卡也改用归一化 key 跨会话判重，与批注/错题一致（大小写、首尾标点不再重复建卡） | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL |
+| 2026-11-05 22:58 | 逐句改法卡也走归一化 key 判重；移除已无调用的 `CardDao.countByFront`，所有入库入口统一用 `allFronts` + `CardText.key` | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL |
