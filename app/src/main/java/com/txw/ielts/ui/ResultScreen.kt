@@ -324,13 +324,9 @@ fun ResultScreen(
                                 )
                             },
                         ) { Text(if (busyHere) "提取中…" else "提取生词 / 搭配") }
-                        if (busyHere) {
-                            Text(
-                                "约 30-60 秒，请留在 App 内",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                    }
+                    if (busyHere) {
+                        LocalAiBusy("本地模型提取生词中（请留在 App 内）")
                     }
                     if (vocabHere) {
                         vocabError?.let {

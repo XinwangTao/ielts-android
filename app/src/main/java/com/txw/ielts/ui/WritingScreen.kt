@@ -423,13 +423,9 @@ fun WritingScreen(
                         enabled = !busy && !recording && !outlineBusy,
                         onClick = { onRequestOutline(topic, task) },
                     ) { Text(if (outlineBusyHere) "生成提纲中…" else "AI 提纲") }
-                    if (outlineBusyHere) {
-                        Text(
-                            "本地模型生成，约 30-60 秒，请留在 App 内",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+                }
+                if (outlineBusyHere) {
+                    LocalAiBusy("本地模型生成提纲中（请留在 App 内）")
                 }
                 if (outlineTopic == topic) {
                     outlineError?.let {
@@ -578,6 +574,7 @@ fun WritingScreen(
 /** 写作提纲卡：立场 + 3 组论点/解释/例子 + 可复用短语；纯展示，不写进正文。 */
 @Composable
 private fun OutlineCard(outline: com.txw.ielts.llm.StudyOutline) {
+    val context = LocalContext.current
     BookCard(
         Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
@@ -610,6 +607,23 @@ private fun OutlineCard(outline: com.txw.ielts.llm.StudyOutline) {
             if (outline.stance.isBlank() && outline.arguments.isEmpty() && outline.raw.isNotBlank()) {
                 Text(outline.raw.take(1500), style = MaterialTheme.typography.bodySmall)
             }
+            TextButton(onClick = {
+                val text = buildString {
+                    if (outline.stance.isNotBlank()) append("立场：").append(outline.stance).append("\n\n")
+                    outline.arguments.forEachIndexed { i, a ->
+                        append("${i + 1}. ${a.point}\n")
+                        if (a.explain.isNotBlank()) append(a.explain).append("\n")
+                        if (a.example.isNotBlank()) append("例：").append(a.example).append("\n")
+                        append("\n")
+                    }
+                    if (outline.phrases.isNotEmpty()) {
+                        append("可复用表达：\n")
+                        outline.phrases.forEach { append("· ").append(it).append("\n") }
+                    }
+                }
+                (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                    .setPrimaryClip(android.content.ClipData.newPlainText("IELTS outline", text))
+            }) { Text("复制提纲") }
             Text(
                 "本地模型生成，仅供参考；写完用「提交评分」检验。",
                 style = MaterialTheme.typography.labelSmall,

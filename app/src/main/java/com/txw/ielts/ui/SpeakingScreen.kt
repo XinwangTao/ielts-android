@@ -304,13 +304,9 @@ fun SpeakingScreen(
                 enabled = !busy && !recording && countdown == 0 && !sampleBusy,
                 onClick = { onRequestSample(part, question) },
             ) { Text(if (sampleBusyHere) "生成范例中…" else "AI 范例答案") }
-            if (sampleBusyHere) {
-                Text(
-                    "本地模型生成，约 30-60 秒，请留在 App 内",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        }
+        if (sampleBusyHere) {
+            LocalAiBusy("本地模型生成范例中（请留在 App 内）")
         }
         if (sampleQuestion == question) {
             sampleError?.let {
@@ -484,6 +480,7 @@ private fun SpeakingSampleCard(
     ttsAvailable: Boolean,
     speak: (String) -> Unit,
 ) {
+    val context = LocalContext.current
     // Part 2 范例 180-220 词，整段铺开会把录音按钮顶到屏幕外；默认只显示前 8 行。
     var expanded by remember(sample) { mutableStateOf(false) }
     BookCard(Modifier.fillMaxWidth()) {
@@ -519,12 +516,27 @@ private fun SpeakingSampleCard(
                 if (ttsAvailable && sample.answer.isNotBlank()) {
                     TextButton(onClick = { speak(sample.answer) }) { Text("朗读范例") }
                 }
-                Text(
-                    "仅供模仿，不要背成模板",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                TextButton(onClick = {
+                    val text = buildString {
+                        append(sample.answer)
+                        if (sample.keywords.isNotEmpty()) {
+                            append("\n\n可复用表达：\n")
+                            sample.keywords.forEach { append("· ").append(it).append("\n") }
+                        }
+                        if (sample.structure.isNotEmpty()) {
+                            append("\n结构提示：\n")
+                            sample.structure.forEach { append("· ").append(it).append("\n") }
+                        }
+                    }
+                    (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager)
+                        .setPrimaryClip(android.content.ClipData.newPlainText("IELTS sample", text))
+                }) { Text("复制范例") }
             }
+            Text(
+                "仅供模仿，不要背成模板",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
