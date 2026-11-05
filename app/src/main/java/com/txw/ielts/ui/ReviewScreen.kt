@@ -21,10 +21,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -321,6 +323,7 @@ private fun AiReviewSection(
     error: String?,
     onRequest: () -> Unit,
 ) {
+    val context = LocalContext.current
     BookCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("AI 复盘 · 本地模型", style = MaterialTheme.typography.labelLarge)
@@ -348,14 +351,34 @@ private fun AiReviewSection(
                     Text(review.raw.take(1200), style = MaterialTheme.typography.bodySmall)
                 }
             }
-            OutlinedButton(enabled = !busy, onClick = onRequest) {
-                Text(
-                    when {
-                        busy -> "复盘生成中…"
-                        review == null -> "让本地模型复盘最近 7 天"
-                        else -> "重新复盘"
-                    }
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(enabled = !busy, onClick = onRequest) {
+                    Text(
+                        when {
+                            busy -> "复盘生成中…"
+                            review == null -> "让本地模型复盘最近 7 天"
+                            else -> "重新复盘"
+                        }
+                    )
+                }
+                if (review != null) {
+                    TextButton(onClick = {
+                        val text = buildString {
+                            append("AI 复盘（最近 7 天）\n")
+                            if (review.summary.isNotBlank()) append(review.summary).append("\n\n")
+                            review.tasks.forEachIndexed { i, t ->
+                                append("${i + 1}. ${t.title}\n")
+                                if (t.why.isNotBlank()) append("为什么：${t.why}\n")
+                                if (t.how.isNotBlank()) append("怎么做：${t.how}\n")
+                                append("\n")
+                            }
+                            if (review.encouragement.isNotBlank()) append(review.encouragement)
+                        }
+                        (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                            as android.content.ClipboardManager)
+                            .setPrimaryClip(android.content.ClipData.newPlainText("IELTS review", text))
+                    }) { Text("复制复盘") }
+                }
             }
             if (busy) LocalAiBusy("本地模型复盘最近练习中（请留在 App 内）")
             error?.let {

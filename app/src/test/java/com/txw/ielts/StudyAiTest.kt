@@ -105,4 +105,35 @@ class StudyAiTest {
         assertEquals("承担费用", v.items[0].meaning)
         assertEquals("Taxpayers bear the cost of public services.", v.items[0].example)
     }
+
+    @Test
+    fun `复盘解析正常 JSON`() {
+        val raw = """
+            {"summary":"最近写作 6.0，衔接和展开是短板。","tasks":[
+              {"title":"今天写一篇 Task 2","why":"展开不足","how":"写 280 词并检查每个论点"},
+              {"title":"复盘错题","why":"衔接弱","how":"重刷 3 张衔接错题卡"},
+              {"title":"口语 10 分钟","why":"保持输出","how":"录一段 Part 2 并跟读"}
+            ],"encouragement":"每天一个小闭环就够。"}
+        """.trimIndent()
+        val r = StudyAi.parseReview(raw)
+        assertEquals("最近写作 6.0，衔接和展开是短板。", r.summary)
+        assertEquals(3, r.tasks.size)
+        assertEquals("今天写一篇 Task 2", r.tasks[0].title)
+        assertEquals("每天一个小闭环就够。", r.encouragement)
+    }
+
+    @Test
+    fun `复盘坏 JSON 退原文`() {
+        val raw = "先写一篇 Task 2，再复习错题。"
+        val r = StudyAi.parseReview(raw)
+        assertEquals(raw, r.raw)
+        assertTrue(r.tasks.isEmpty())
+    }
+
+    @Test
+    fun `复盘缺少 tasks 时不崩`() {
+        val r = StudyAi.parseReview("""{"summary":"保持节奏","encouragement":"继续"}""")
+        assertEquals("保持节奏", r.summary)
+        assertTrue(r.tasks.isEmpty())
+    }
 }
