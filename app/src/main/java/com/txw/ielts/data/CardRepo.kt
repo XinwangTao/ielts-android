@@ -107,6 +107,7 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         if (cards.isEmpty()) return 0
         db.cards().insertAll(cards)
         enforceGeneratedCap()
+        enforceFeedbackCap()
         return cards.size
     }
 
@@ -127,6 +128,7 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         }
         if (cards.isEmpty()) return 0
         db.cards().insertAll(cards)
+        enforceFeedbackCap()
         return cards.size
     }
 
@@ -134,6 +136,12 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     private suspend fun enforceGeneratedCap() {
         val over = db.cards().countGenerated() - AI_CARD_CAP
         if (over > 0) db.cards().evictGenerated(over)
+    }
+
+    /** 反馈卡上限：只淘汰已复习过的（策略见 FeedbackCap），未复习的反馈一张不删。 */
+    private suspend fun enforceFeedbackCap() {
+        val victims = FeedbackCap.victims(db.cards().feedbackCards())
+        if (victims.isNotEmpty()) db.cards().deleteByIds(victims)
     }
 
     /** 听读错题入库：题干做正面，正确答案 + 解析做背面；去重后与 AI 池共用上限。 */

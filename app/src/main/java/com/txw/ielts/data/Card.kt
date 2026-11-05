@@ -75,6 +75,13 @@ interface CardDao {
     @Query("DELETE FROM cards WHERE id IN (SELECT id FROM cards WHERE source NOT IN ('seed','error','fix') ORDER BY reps ASC, createdAt ASC LIMIT :n)")
     suspend fun evictGenerated(n: Int)
 
+    /** 反馈卡（练习批注 error + 逐句改法 fix）：数量上限单独管理，见 FeedbackCap。 */
+    @Query("SELECT * FROM cards WHERE source IN ('error','fix')")
+    suspend fun feedbackCards(): List<Card>
+
+    @Query("DELETE FROM cards WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+
     @Query("SELECT type, COUNT(*) AS n FROM cards GROUP BY type")
     suspend fun countByType(): List<TypeCount>
 
