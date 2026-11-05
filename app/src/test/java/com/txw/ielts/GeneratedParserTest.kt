@@ -230,6 +230,40 @@ class GeneratedParserTest {
     }
 
     @Test
+    fun `答案写成数字或布尔时整题不再被判残题丢弃`() {
+        // 听力里的价格/时间/数量题，模型（尤其本地 4B）常把答案写成裸 JSON 数字。
+        // 只认 String 的话这些题会以「缺答案」被整题丢掉，用户还没做就少了几道。
+        val raw = """{"transcript":"A: The ticket costs 35 pounds.","questions":[
+            {"type":"gap","prompt":"Q1 How much is the ticket?","answers":[35]},
+            {"type":"gap","prompt":"Q2 How many days?","answers":[20.0]},
+            {"type":"gap","prompt":"Q3 Price in pounds?","answers":[12.5]},
+            {"type":"gap","prompt":"Q4 Still open?","answers":[true]}
+        ]}"""
+        val l = GeneratedParser.listening(raw, 5)
+        assertEquals(4, l.questions.size)
+        assertEquals("35", l.questions[0].answers[0])
+        // 20.0 解析成 Double，但整数值要还原成「20」，否则用户打 20 会被判错
+        assertEquals("20", l.questions[1].answers[0])
+        assertEquals("12.5", l.questions[2].answers[0])
+        assertEquals("true", l.questions[3].answers[0])
+    }
+
+    @Test
+    fun `单个数字答案与数字选项也折成文本`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"gap","prompt":"Q1","answers":35},
+            {"type":"choice","prompt":"Q2","options":[1970,1980,1990],"answers":[1980]},
+            {"type":"gap","prompt":"Q3","answers":[null,"hive"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals("35", r.questions[0].answers[0])
+        assertEquals(listOf("1970", "1980", "1990"), r.questions[1].options)
+        assertEquals("1980", r.questions[1].answers[0])
+        // 数组里的 null 跳过，其余照收
+        assertEquals("hive", r.questions[2].answers[0])
+    }
+
+    @Test
     fun `精讲兼容 cn-en 与 explain 两套键名`() {
         val a = GeneratedParser.bankExplain("""{"cn":"中文","en":"English","keys":["k1"]}""")
         assertEquals("中文", a.cn)

@@ -3,6 +3,8 @@ package com.txw.ielts.llm
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import kotlin.math.abs
+import kotlin.math.floor
 
 /**
  * AI 出题 / 错题精讲的 JSON 解析（云端与本地模型共用）。
@@ -242,12 +244,36 @@ object GeneratedParser {
         prompt.replace(ws, " ").lowercase() + "|" +
             answers.joinToString("|") { it.replace(ws, " ").lowercase() }
 
+    /**
+     * 读答案/选项/关键词这类文本数组。
+     *
+     * 模型（尤其本地 4B）常把数字、布尔答案写成裸 JSON 值：`"answers":[35]`、
+     * `"answers":[true]`。原来只认 String，这类题会因「缺答案」被整题丢掉——
+     * 听力里的价格、时间、数量题恰好最容易写成数字，用户还没做就先少了几道。
+     * 这里把标量统一折成文本，整数值不补 ".0"（`20.0` 还原成 `20`，用户才会这么打）。
+     * 单个答案被写成裸字符串/数字时同样收下。
+     */
     private fun strings(o: JSONObject, key: String): List<String> {
         val a: JSONArray? = o.optJSONArray(key)
-        if (a != null) return (0 until a.length()).mapNotNull { i ->
-            (a.opt(i) as? String)?.trim()?.takeIf { it.isNotBlank() }
+        if (a != null) return (0 until a.length()).mapNotNull { i -> scalarText(a.opt(i)) }
+        return scalarText(o.opt(key))?.let { listOf(it) } ?: emptyList()
+    }
+
+    /** JSON 标量转文本；对象/数组/缺失/null 都返回 null（交给调用方按缺字段处理）。 */
+    private fun scalarText(v: Any?): String? {
+        if (v == null || v == JSONObject.NULL) return null
+        val text = when (v) {
+            is String -> v.trim()
+            is Number -> numberText(v)
+            is Boolean -> v.toString()
+            else -> return null
         }
-        // 单个答案/单个关键词被写成裸字符串时也收下
-        return o.optString(key).trim().takeIf { it.isNotBlank() }?.let { listOf(it) } ?: emptyList()
+        return text.takeIf { it.isNotBlank() }
+    }
+
+    /** JSON 无整数类型之分：35 可能是 Integer/Long，20.0 是 Double。整数值按整数文本输出。 */
+    private fun numberText(n: Number): String {
+        val d = n.toDouble()
+        return if (d.isFinite() && d == floor(d) && abs(d) < 1e15) d.toLong().toString() else n.toString()
     }
 }
