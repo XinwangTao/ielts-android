@@ -35,11 +35,12 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         return cards.size
     }
 
-    /** 到期卡优先，再补新卡（受每日上限约束）。 */
+    /** 到期卡优先，再补新卡（受每日上限与队列总长约束）。 */
     suspend fun buildQueue(dailyNew: Int, limit: Int = 60): List<Card> {
         val now = System.currentTimeMillis()
         val due = db.cards().due(now, limit)
-        val fresh = db.cards().fresh((dailyNew - countStudiedToday()).coerceAtLeast(0))
+        val dailyLeft = (dailyNew - countStudiedToday()).coerceAtLeast(0)
+        val fresh = db.cards().fresh(QueuePolicy.freshSlots(limit, due.size, dailyLeft))
         return due + fresh
     }
 
