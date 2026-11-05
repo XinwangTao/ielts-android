@@ -67,6 +67,7 @@ fun ResultScreen(
     onAddVocab: (List<com.txw.ielts.llm.VocabItem>) -> Unit = {},
 ) {
     val speaking = session.module == "speaking"
+    val context = LocalContext.current
     var addedToCorpus by remember { mutableStateOf(false) }
     // 生词卡勾选：默认全选，用户可去掉已经会的；换了结果就重置。
     var vocabChecked by remember(session.id, vocabResult) {
@@ -343,6 +344,23 @@ fun ResultScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         } else {
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "已选 ${vocabChecked.size} / ${result.items.size}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(onClick = {
+                                    vocabChecked = if (vocabChecked.size == result.items.size) {
+                                        emptySet()
+                                    } else {
+                                        result.items.indices.toSet()
+                                    }
+                                }) {
+                                    Text(if (vocabChecked.size == result.items.size) "取消全选" else "全选")
+                                }
+                            }
                             result.items.forEachIndexed { i, item ->
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Checkbox(
@@ -374,6 +392,17 @@ fun ResultScreen(
                             ) {
                                 Text(if (vocabAdded) "已加入词汇积累" else "加入词汇积累（${vocabChecked.size}）")
                             }
+                            TextButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = {
+                                    val text = result.items.joinToString("\n") {
+                                        "${it.phrase} — ${it.meaning}"
+                                    }
+                                    (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                        as android.content.ClipboardManager)
+                                        .setPrimaryClip(android.content.ClipData.newPlainText("IELTS vocab", text))
+                                },
+                            ) { Text("复制生词列表") }
                         }
                     }
                 }
