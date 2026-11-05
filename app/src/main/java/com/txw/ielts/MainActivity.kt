@@ -449,32 +449,12 @@ private fun App(
         }
     }
 
-    /** 把最近 7 天的成绩与高频问题拼成给模型的摘要（控制长度，避免长上下文拖慢 4B）。 */
-    fun buildReviewSummary(): String {
-        val cutoff = System.currentTimeMillis() - 7 * 86_400_000L
-        val recent = sessions
-            .filter { it.status == "done" && it.startedAt >= cutoff }
-            .sortedBy { it.startedAt }
-            .takeLast(10)
-        val lines = recent.map { s ->
-            val o = runCatching { JSONObject(s.scoresJson) }.getOrNull()
-            val band = o?.optDouble("overall", 0.0) ?: 0.0
-            val fixes = runCatching {
-                JSONObject(s.fixesJson).optJSONArray("fixes")?.let { a ->
-                    (0 until a.length()).map { a.get(it).toString() }.filter { it.isNotBlank() }.take(2)
-                } ?: emptyList()
-            }.getOrDefault(emptyList())
-            "- ${s.module}: Band ${"%.1f".format(band)}; fixes: ${fixes.joinToString("; ").ifBlank { "无" }}"
-        }.ifEmpty { listOf("- 最近 7 天没有完成的练习") }
-        val weak = com.txw.ielts.ui.topErrors(sessions).take(5)
-            .joinToString(", ") { "${it.label} (${it.count})" }
-        return buildString {
-            append("Recent sessions (last 7 days):\n")
-            append(lines.joinToString("\n"))
-            append("\nTop weaknesses: ").append(weak.ifBlank { "暂无" })
-            append("\nTarget Band: ").append(prefs.targetBand)
-        }
-    }
+    /** 复盘输入：最近 7 天成绩 + 高频问题；纯函数在 ReviewSummary，听读显示 correct/total 而不是 Band 0。 */
+    fun buildReviewSummary(): String = com.txw.ielts.llm.ReviewSummary.build(
+        sessions = sessions,
+        targetBand = prefs.targetBand,
+        weaknesses = com.txw.ielts.ui.topErrors(sessions).map { it.label to it.count },
+    )
 
     suspend fun requestAiReview() {
         aiReviewBusy = true
