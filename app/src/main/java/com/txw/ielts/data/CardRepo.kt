@@ -88,7 +88,8 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     /** 把一次练习的批注转成复习卡，不调用模型；去重后写入 AI 池，超上限自动淘汰。 */
     suspend fun addFixesAsCards(fixes: List<String>, module: String): Int {
         if (fixes.isEmpty()) return 0
-        val seen = HashSet<String>()
+        // 跨会话判重：库里的正面也按 CardText.key 归一化，标点/空白不同的旧卡同样算重复。
+        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
         val cards = fixes.mapNotNull { raw ->
             val text = raw.trim()
             val head = CardText.front(raw, CardText.FIX_MAX)
@@ -146,8 +147,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     }
 
     /** 听读错题入库：题干做正面，正确答案 + 解析做背面；去重后与 AI 池共用上限。 */
-    suspend fun addBankWrong(rows: List<BankWrong>, module: String): Int {        if (rows.isEmpty()) return 0
-        val seen = HashSet<String>()
+    suspend fun addBankWrong(rows: List<BankWrong>, module: String): Int {
+        if (rows.isEmpty()) return 0
+        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
         val cards = rows.mapNotNull { row ->
             val head = CardText.front(row.prompt, CardText.BANK_MAX)
             if (head.isBlank()) return@mapNotNull null

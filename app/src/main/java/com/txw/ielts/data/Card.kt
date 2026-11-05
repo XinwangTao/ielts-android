@@ -71,6 +71,10 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE front = :front COLLATE NOCASE")
     suspend fun countByFront(front: String): Int
 
+    /** 全部正面：AI 批注/错题入库时用 CardText.key 归一化后做跨会话判重（标点、空白差异也不重复建卡）。 */
+    @Query("SELECT front FROM cards")
+    suspend fun allFronts(): List<String>
+
     /** 淘汰：先删从未复习的，再删复习次数最少的；内置卡、练习批注与逐句改法卡永不删除。 */
     @Query("DELETE FROM cards WHERE id IN (SELECT id FROM cards WHERE source NOT IN ('seed','error','fix') ORDER BY reps ASC, createdAt ASC LIMIT :n)")
     suspend fun evictGenerated(n: Int)
