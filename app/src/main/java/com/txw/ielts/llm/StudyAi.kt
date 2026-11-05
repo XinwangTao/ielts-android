@@ -129,15 +129,9 @@ object StudyAi {
 
     // ---- 解析：JSON 优先，坏了退纯文本 ----
 
-    private fun jsonBody(raw: String): String? {
-        val cleaned = raw.trim()
-            .removePrefix("```json").removePrefix("```JSON").removePrefix("```")
-            .removeSuffix("```").trim()
-        val start = cleaned.indexOf('{')
-        val end = cleaned.lastIndexOf('}')
-        if (start < 0 || end <= start) return null
-        return cleaned.substring(start, end + 1)
-    }
+    private fun jsonBody(raw: String): String? =
+        // 与评分共用一套提取：括号配对、字符串内裸换行清洗，且不会把 JSON 后面的说明文字一起吞掉。
+        runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
 
     fun parseOutline(raw: String): StudyOutline {
         val body = jsonBody(raw) ?: return StudyOutline("", emptyList(), emptyList(), raw.trim())

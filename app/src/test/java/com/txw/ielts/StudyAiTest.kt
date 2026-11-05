@@ -136,4 +136,18 @@ class StudyAiTest {
         assertEquals("保持节奏", r.summary)
         assertTrue(r.tasks.isEmpty())
     }
+
+    @Test
+    fun `解析容忍 JSON 后面的说明文字和花括号`() {
+        // 旧实现用 lastIndexOf('}')，会被尾部说明里的括号带偏；现在与评分共用括号配对提取。
+        val raw = """
+            Here is the plan:
+            {"stance":"s","arguments":[{"point":"p","explain":"e","example":"x"}],"phrases":["a"]}
+            Hope this helps. }
+        """.trimIndent()
+        val o = StudyAi.parseOutline(raw)
+        assertEquals("s", o.stance)
+        assertEquals(1, o.arguments.size)
+        assertEquals("a", o.phrases.single())
+    }
 }
