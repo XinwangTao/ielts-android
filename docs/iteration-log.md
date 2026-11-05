@@ -19,3 +19,4 @@
 | 2026-11-05 23:00 | 收尾验证：全量单测（含并发提交的复盘功能）+ 完整 AI 探针 | `./gradlew.bat :app:testDebugUnitTest --offline`；`python tools/ai_probe.py` | 170 tests / 0 failures；AI 18/18 PASS，EXIT=0 |
 | 2026-11-05 23:03 | 判分归一化新增 `AnswerKey`：全角数字/字母/空格折回半角后再清洗，中文输入法打出的「２５」「ＡＢＣ」不再被判错 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`AnswerKeyTest` 4/4 通过 |
 | 2026-11-06 00:47 | AI 出题 choice 答案归一化：模型把答案写成 `B` / `(B)` / `B. 选项原文` 时折回选项原文，越界字母原样保留，避免「选对判错」 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；181 tests / 0 failures，`GeneratedParserTest` 13/13 通过 |
+| 2026-11-06 00:50 | AI 出题题型别名归一化：`Multiple Choice` / `True/False/Not Given` / `fill-in-the-blank` / `multiple_choice` 等折回 choice/tfng/gap；题型缺失或认不出时按选项与答案推断（答案能对上选项→choice，答案像 T/F/NG→tfng），避免有选项的题在 UI 里退化成文本框 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；183 tests / 0 failures，`GeneratedParserTest` 15/15 通过 |
