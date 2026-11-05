@@ -1,0 +1,94 @@
+{
+  "name": "ielts-local-ai_workflow",
+  "title": "本地 AI 学习助手（写作提纲 / 口语范例 / 生词卡）",
+  "level": "L2",
+  "version": "v1.1-implemented",
+  "updated": "2026-11-05",
+  "context": "雅思随身练 F:\\projects\\ielts-android。云端讯飞额度已死，端侧 qwen3-4b-instruct 已就位；本批把本地模型从「评分/出题」扩展到写作前、口语前、评分后三个学习环节。",
+  "nodes": [
+    {
+      "id": "entry",
+      "label": "入口",
+      "kind": "ui",
+      "detail": "写作页「AI 提纲」；口语页/话题库「AI 范例」；结果页「生词卡」。均为用户主动点击，不自动触发。"
+    },
+    {
+      "id": "gate",
+      "label": "本地模型检查",
+      "kind": "logic",
+      "detail": "检查 LocalLlmEngine 是否有可用模型（qwen3-4b-instruct / qwen35-2b）；未就绪直接给设置页引导。本批不接云端：讯飞额度已死，功能定位就是离线可用。"
+    },
+    {
+      "id": "gen",
+      "label": "本地生成",
+      "kind": "service",
+      "detail": "LocalLlmEngine.generateText（串行闸门 + 心跳 + 8 分钟上限）；与评分共用同一引擎，评分进行中会排队。"
+    },
+    {
+      "id": "parse",
+      "label": "解析与兜底",
+      "kind": "logic",
+      "detail": "优先解析约定 JSON；字段缺失按单项丢弃；整体坏了退化为纯文本展示，保证永远有东西可看。"
+    },
+    {
+      "id": "outline",
+      "label": "写作提纲卡",
+      "kind": "ui",
+      "detail": "立场 + 3 组「论点/解释/例子」+ 5 个可复用短语；只展示，不预填正文；可复制。"
+    },
+    {
+      "id": "sample",
+      "label": "口语范例卡",
+      "kind": "ui",
+      "detail": "Band 7 范例答案 + 5 个关键词 + 3 段结构提示；接现有 TTS 朗读；可收藏进素材库。"
+    },
+    {
+      "id": "vocab",
+      "label": "生词预览与入库",
+      "kind": "storage",
+      "detail": "从本次作文/转写 + 逐句改法提取 5-8 条搭配；勾选后写入 cards 表（source=ai_vocab，按 front 去重），进入现有 SRS。"
+    },
+    {
+      "id": "fail",
+      "label": "失败出口",
+      "kind": "manual",
+      "detail": "超时/空输出/模型未就绪：明确文案 + 重试按钮；写作与口语主流程不被阻断，结果页已有内容照常展示。"
+    }
+  ],
+  "edges": [
+    { "from": "entry", "to": "gate", "label": "用户点击" },
+    { "from": "gate", "to": "gen", "label": "模型就绪" },
+    { "from": "gate", "to": "fail", "label": "模型未就绪" },
+    { "from": "gen", "to": "parse", "label": "原始输出" },
+    { "from": "parse", "to": "outline", "label": "提纲请求" },
+    { "from": "parse", "to": "sample", "label": "范例请求" },
+    { "from": "parse", "to": "vocab", "label": "生词请求" },
+    { "from": "parse", "to": "fail", "label": "空输出" },
+    { "from": "outline", "to": "fail", "label": "用户放弃/重试" },
+    { "from": "sample", "to": "fail", "label": "用户放弃/重试" },
+    { "from": "vocab", "to": "fail", "label": "全部去重后为空" }
+  ],
+  "scope": {
+    "in": [
+      "写作 Task 2 提纲（Task 1 复用同一入口，输出结构改为 overview + 2 段数据要点）",
+      "口语 Part 1/2/3 范例答案（从当前题目生成）",
+      "评分结果生成生词/搭配卡并进入 SRS"
+    ],
+    "out": [
+      "不做实时语音评分（端侧 ASR + LLM 时延过高）",
+      "不做自动改写用户正文（保留用户自己的产出）",
+      "不改云端 provider 与计费策略",
+      "不做后台自动生成（必须用户主动触发，避免抢内存）"
+    ]
+  },
+  "decisions": [
+    "生成一律走 generateText + 专用 system prompt，不新增 JNI / 不换模型",
+    "本批只走本地模型，不接云端：讯飞额度已死，功能定位是离线可用",
+    "所有输出先展示、再由用户决定是否落库；只有生词卡写 cards 表",
+    "文案强调「本地模型生成，仅供参考」，避免与考官评分混淆"
+  ],
+  "open_questions": [
+    "口语范例是否需要一键收藏进 assets/topics.json 同款素材库（需要新增持久化）？",
+    "生词卡是否同时支持从「范文/材料」而不只是本次结果提取？"
+  ]
+}

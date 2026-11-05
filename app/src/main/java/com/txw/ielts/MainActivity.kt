@@ -52,6 +52,7 @@ import com.txw.ielts.data.ShadowDiff
 import com.txw.ielts.data.ShadowPassage
 import com.txw.ielts.data.ShadowRepo
 import com.txw.ielts.llm.BankExplain
+import com.txw.ielts.llm.ChannelPick
 import com.txw.ielts.llm.LocalLlmEngine
 import com.txw.ielts.llm.LlmClient
 import com.txw.ielts.llm.ScoreSanitizer
@@ -289,6 +290,16 @@ private fun hasNetwork(context: Context): Boolean = runCatching {
     caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
 }.getOrDefault(true)
 
+/**
+ * 额度类失败（403/429/11200/quota/额度）→ 云端冷却 1 小时，auto 直接走本地。
+ * 这类失败不会自愈，不冷却的话每条云端路径都会先白试一次再回退。
+ */
+private fun markCloudDown(prefs: Prefs, e: Throwable?) {
+    if (ChannelPick.isQuotaFailure(e?.message)) {
+        prefs.cloudDownUntil = System.currentTimeMillis() + 3_600_000
+    }
+}
+
 /** 无法从空 scoresJson 判断题型时的启发式：图表/流程图题干 → task1（Task2 议论文题干一般含 discuss）。 */
 internal fun guessTask(topic: String): String {
     val t = topic.lowercase()
@@ -328,6 +339,92 @@ private fun App(
     var speakingPresetQuestion by remember { mutableStateOf<String?>(null) }
     var writingPresetTopic by remember { mutableStateOf<String?>(null) }
     var writingPresetChart by remember { mutableStateOf<com.txw.ielts.data.ChartSpec?>(null) }
+
+    // 本地 AI 学习助手（图：docs/archify/ielts-local-ai_workflow）：
+    // 提纲/范例/生词卡都只在用户点击时生成，不自动跑，避免和评分抢引擎。
+    var writingOutline by remember { mutableStateOf<com.txw.ielts.llm.StudyOutline?>(null) }
+    var writingOutlineTopic by remember { mutableStateOf<String?>(null) }
+    var writingOutlineBusy by remember { mutableStateOf(false) }
+    var writingOutlineError by remember { mutableStateOf<String?>(null) }
+    var speakingSample by remember { mutableStateOf<com.txw.ielts.llm.SpeakingSample?>(null) }
+    var speakingSampleQuestion by remember { mutableStateOf<String?>(null) }
+    var speakingSampleBusy by remember { mutableStateOf(false) }
+    var speakingSampleError by remember { mutableStateOf<String?>(null) }
+    var vocabResult by remember { mutableStateOf<com.txw.ielts.llm.VocabResult?>(null) }
+    var vocabSessionId by remember { mutableStateOf<Long?>(null) }
+    var vocabBusy by remember { mutableStateOf(false) }
+    var vocabError by remember { mutableStateOf<String?>(null) }
+
+    // 本地评分或本地 AI 生成在跑时钉住屏幕：熄屏会让 ColorOS 冻结进程，
+    // 端侧推理（评分 / 提纲 / 范例 / 生词卡）必然中断（docs/oppo-background-scoring-findings.md §九）。
+    com.txw.ielts.ui.KeepScreenOn(
+        sessionsOrNull?.any { it.status == "pending_local" } == true ||
+            writingOutlineBusy || speakingSampleBusy || vocabBusy,
+    )
+
+    // 三个入口共用本地引擎闸门；生成期间界面显示「约 30-60 秒」，失败只影响当前卡片。
+    suspend fun requestWritingOutline(topic: String, task: String) {
+        writingOutlineBusy = true
+        writingOutlineError = null
+        writingOutlineTopic = topic
+        if (LocalLlmEngine.isBusy) {
+            writingOutlineError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            writingOutlineBusy = false
+            return
+        }
+        try {
+            val r = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.outline(context, prefs.localModel, topic, task)
+            }
+            if (r.isEmpty) writingOutlineError = "本地模型没有输出可用的提纲，请重试" else writingOutline = r
+        } catch (e: Exception) {
+            writingOutlineError = "提纲生成失败：${e.message}"
+        } finally {
+            writingOutlineBusy = false
+        }
+    }
+
+    suspend fun requestSpeakingSample(part: String, question: String) {
+        speakingSampleBusy = true
+        speakingSampleError = null
+        speakingSampleQuestion = question
+        if (LocalLlmEngine.isBusy) {
+            speakingSampleError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            speakingSampleBusy = false
+            return
+        }
+        try {
+            val r = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.speakingSample(context, prefs.localModel, part, question)
+            }
+            if (r.isEmpty) speakingSampleError = "本地模型没有输出可用的范例，请重试" else speakingSample = r
+        } catch (e: Exception) {
+            speakingSampleError = "范例生成失败：${e.message}"
+        } finally {
+            speakingSampleBusy = false
+        }
+    }
+
+    suspend fun requestVocab(sessionId: Long, text: String, fixes: List<Triple<String, String, String>>) {
+        vocabBusy = true
+        vocabError = null
+        vocabSessionId = sessionId
+        if (LocalLlmEngine.isBusy) {
+            vocabError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            vocabBusy = false
+            return
+        }
+        try {
+            val r = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.vocab(context, prefs.localModel, text, fixes)
+            }
+            vocabResult = r
+        } catch (e: Exception) {
+            vocabError = "生词提取失败：${e.message}"
+        } finally {
+            vocabBusy = false
+        }
+    }
 
     // 启动时清理「卡死的本地评分」：进程被系统杀死后 pending_local 会永远停在评分中，超过 10 分钟重置为可重试。
     LaunchedEffect(Unit) {
@@ -769,7 +866,10 @@ private fun App(
     suspend fun evaluateWriting(session: Session, text: String, task: String = "task2") {
         val mode = prefs.scoreChannel
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
-        if (mode == "local" || (mode == "auto" && (prefs.remainingCalls() <= 0 || cloudDown || !hasNetwork(context)))) {
+        if (ChannelPick.effective(
+                mode, cloudDown, hasNetwork(context), prefs.remainingCalls()
+            ) == "local"
+        ) {
             startLocalWriting(session, text, task)
             return
         }
@@ -832,11 +932,7 @@ private fun App(
             if (mode == "cloud") throw e
             val msg = e.message ?: ""
             // 额度耗尽/限流：冷却 1 小时，auto 直接走本地，避免每次评分都先白试云端。
-            if (msg.contains("403") || msg.contains("429") || msg.contains("11200") ||
-                msg.contains("quota", ignoreCase = true) || msg.contains("额度")
-            ) {
-                prefs.cloudDownUntil = System.currentTimeMillis() + 3_600_000
-            }
+            markCloudDown(prefs, e)
             Log.w(TAG, "cloud writing eval failed, fallback local: $msg")
             startLocalWriting(session, text, task)
         }
@@ -850,7 +946,10 @@ private fun App(
             else -> "Part"
         }
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
-        if (mode == "local" || (mode == "auto" && (prefs.remainingCalls() <= 0 || cloudDown || !hasNetwork(context)))) {
+        if (ChannelPick.effective(
+                mode, cloudDown, hasNetwork(context), prefs.remainingCalls()
+            ) == "local"
+        ) {
             startLocalSpeaking(session, text)
             return
         }
@@ -889,11 +988,7 @@ private fun App(
         } catch (e: Exception) {
             if (mode == "cloud") throw e
             val msg = e.message ?: ""
-            if (msg.contains("403") || msg.contains("429") || msg.contains("11200") ||
-                msg.contains("quota", ignoreCase = true) || msg.contains("额度")
-            ) {
-                prefs.cloudDownUntil = System.currentTimeMillis() + 3_600_000
-            }
+            markCloudDown(prefs, e)
             Log.w(TAG, "cloud speaking eval failed, fallback local: $msg")
             startLocalSpeaking(session, text)
         }
@@ -1191,7 +1286,13 @@ private fun App(
         aiGenBusy = true
         aiGenError = null
         // 本地模型要几分钟才出题，先说清楚，否则用户以为卡死；auto 模式也提示会自动兜底。
-        val channelNow = prefs.scoreChannel
+        // 云端处于冷却期时这里直接落成 local，否则每次出题都要先白试一次云端。
+        val channelNow = ChannelPick.effective(
+            prefs.scoreChannel,
+            System.currentTimeMillis() < prefs.cloudDownUntil,
+            hasNetwork(context),
+            prefs.remainingCalls(),
+        )
         aiGenStage = if (channelNow == "local") "本地模型生成中（可能要几分钟）…"
         else if (channelNow == "cloud") "正在请求模型…"
         else "正在请求模型（云端失败会自动转本地）…"
@@ -1219,6 +1320,7 @@ private fun App(
                     routeLlm(
                         channel = channelNow,
                         label = "AI 出题（听力）",
+                        onCloudFail = { markCloudDown(prefs, it) },
                         cloud = {
                             LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
                                 .generateListening(difficulty, types, count)
@@ -1257,6 +1359,7 @@ private fun App(
                     routeLlm(
                         channel = channelNow,
                         label = "AI 出题（阅读）",
+                        onCloudFail = { markCloudDown(prefs, it) },
                         cloud = {
                             LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
                                 .generateReading(difficulty, types, count)
@@ -1307,6 +1410,7 @@ private fun App(
                 routeLlm(
                     channel = prefs.scoreChannel,
                     label = "错题精讲",
+                    onCloudFail = { markCloudDown(prefs, it) },
                     cloud = {
                         LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
                             .explainBankWrong(item.prompt, item.right, item.yours, item.explain)
@@ -1499,6 +1603,13 @@ private fun App(
                     onOpenArguments = { route = Route.Arguments },
                     onOpenMock = { route = Route.WritingMock },
                     onOpenChartGen = { route = Route.ChartGen },
+                    outline = writingOutline,
+                    outlineTopic = writingOutlineTopic,
+                    outlineBusy = writingOutlineBusy,
+                    outlineError = writingOutlineError,
+                    onRequestOutline = { topic, task ->
+                        scope.launch { requestWritingOutline(topic, task) }
+                    },
                 )
 
                 is Route.Arguments -> ArgumentScreen(
@@ -1568,6 +1679,13 @@ private fun App(
                     onOpenTopics = { route = Route.Topics },
                     onOpenMock = { route = Route.SpeakingMock },
                     onOpenPartner = { route = Route.SpeakingPartner },
+                    sample = speakingSample,
+                    sampleQuestion = speakingSampleQuestion,
+                    sampleBusy = speakingSampleBusy,
+                    sampleError = speakingSampleError,
+                    onRequestSample = { part, question ->
+                        scope.launch { requestSpeakingSample(part, question) }
+                    },
                 )
 
                 is Route.Topics -> TopicScreen(
@@ -1732,6 +1850,16 @@ private fun App(
                                     part = if (isSpeaking) session.topic.substringBefore(" · ").trim() else "Part 2",
                                 )
                                 route = if (isSpeaking) Route.Speaking else Route.Writing
+                            },
+                            vocabResult = vocabResult,
+                            vocabSessionId = vocabSessionId,
+                            vocabBusy = vocabBusy,
+                            vocabError = vocabError,
+                            onRequestVocab = { text, fixes ->
+                                scope.launch { requestVocab(session.id, text, fixes) }
+                            },
+                            onAddVocab = { items ->
+                                scope.launch { repo.addVocabCards(items) }
                             },
                             onBack = { route = Route.Home },
                         )

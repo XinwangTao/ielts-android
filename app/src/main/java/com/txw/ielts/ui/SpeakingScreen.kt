@@ -15,6 +15,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -149,6 +151,7 @@ private fun pickRandom(list: List<String>, avoid: String?): String {
     return pick
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SpeakingScreen(
     stage: String?,
@@ -161,8 +164,15 @@ fun SpeakingScreen(
     onOpenTopics: () -> Unit = {},
     onOpenMock: () -> Unit = {},
     onOpenPartner: () -> Unit = {},
+    // 本地 AI 范例答案：给「不知道怎么说」的题一个 Band 7 参考。
+    sample: com.txw.ielts.llm.SpeakingSample? = null,
+    sampleQuestion: String? = null,
+    sampleBusy: Boolean = false,
+    sampleError: String? = null,
+    onRequestSample: (part: String, question: String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
+    val (ttsAvailable, speakSample) = rememberTts()
     var part by remember { mutableStateOf(presetPart ?: "Part 2") }
     val questions = when (part) {
         "Part 1" -> PART1
@@ -285,6 +295,33 @@ fun SpeakingScreen(
             }
         }
 
+        val sampleBusyHere = sampleBusy && sampleQuestion == question
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedButton(
+                enabled = !busy && !recording && countdown == 0 && !sampleBusy,
+                onClick = { onRequestSample(part, question) },
+            ) { Text(if (sampleBusyHere) "生成范例中…" else "AI 范例答案") }
+            if (sampleBusyHere) {
+                Text(
+                    "本地模型生成，约 30-60 秒，请留在 App 内",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (sampleQuestion == question) {
+            sampleError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        // 题目换了就隐藏旧范例，避免拿上一题的答案去准备这一题。
+        if (!sampleBusy && sample != null && sampleQuestion == question && !sample.isEmpty) {
+            SpeakingSampleCard(sample, ttsAvailable, speakSample)
+        }
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
@@ -366,7 +403,10 @@ fun SpeakingScreen(
                         modifier = Modifier.weight(1f),
                     )
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     if (part == "Part 2" && !recording && countdown == 0 && audioFile == null) {
                         OutlinedButton(
                             enabled = !busy,
@@ -433,6 +473,58 @@ private fun ProgressRing(progress: Float, valueText: String, labelText: String, 
                 color = color,
             )
             Text(labelText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** 口语范例卡：Band 7 答案 + 关键词 + 中文结构提示；可朗读。 */
+@Composable
+private fun SpeakingSampleCard(
+    sample: com.txw.ielts.llm.SpeakingSample,
+    ttsAvailable: Boolean,
+    speak: (String) -> Unit,
+) {
+    // Part 2 范例 180-220 词，整段铺开会把录音按钮顶到屏幕外；默认只显示前 8 行。
+    var expanded by remember(sample) { mutableStateOf(false) }
+    BookCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("AI 范例答案 · 本地模型", style = MaterialTheme.typography.labelLarge)
+            Text(
+                sample.answer,
+                style = MaterialTheme.typography.bodyMedium,
+                fontFamily = FontFamily.Serif,
+                maxLines = if (expanded) Int.MAX_VALUE else 8,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+            if (sample.answer.length > 260) {
+                TextButton(onClick = { expanded = !expanded }) {
+                    Text(if (expanded) "收起" else "展开全文")
+                }
+            }
+            if (sample.keywords.isNotEmpty()) {
+                Text("可复用表达", style = MaterialTheme.typography.labelLarge)
+                sample.keywords.forEach { Text("· $it", style = MaterialTheme.typography.bodySmall) }
+            }
+            if (sample.structure.isNotEmpty()) {
+                Text("结构提示", style = MaterialTheme.typography.labelLarge)
+                sample.structure.forEach {
+                    Text(
+                        "· $it",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (ttsAvailable && sample.answer.isNotBlank()) {
+                    TextButton(onClick = { speak(sample.answer) }) { Text("朗读范例") }
+                }
+                Text(
+                    "仅供模仿，不要背成模板",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

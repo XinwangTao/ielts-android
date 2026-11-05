@@ -15,6 +15,8 @@ import kotlinx.coroutines.CancellationException
 suspend fun <T> routeLlm(
     channel: String,
     label: String,
+    /** 云端失败时的回调（不会收到 CancellationException）：用于标记额度失效、触发冷却。 */
+    onCloudFail: (Exception) -> Unit = {},
     cloud: suspend () -> T,
     local: suspend () -> T,
 ): T = when (channel) {
@@ -26,6 +28,7 @@ suspend fun <T> routeLlm(
         throw e
     } catch (e: Exception) {
         Log.w("LlmRouter", "$label 云端不可用，回退本地模型：${e.message}")
+        runCatching { onCloudFail(e) }
         local()
     }
 }

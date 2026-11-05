@@ -63,7 +63,9 @@ fun ChartView(spec: ChartSpec, modifier: Modifier = Modifier) {
 private const val LEFT = 40f
 private const val RIGHT = 12f
 private const val TOP = 18f
-private const val BOTTOM = 42f
+// 底部留白要同时容纳「年份刻度」和「图表标题」两行：42 时两行基线只差 24px，
+// 手机窄屏上标题会压在刻度上。56 让刻度上移，标题保持在最底部。
+private const val BOTTOM = 56f
 
 private fun DrawScope.drawLineChart(
     spec: ChartSpec,

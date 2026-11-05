@@ -2,6 +2,8 @@ package com.txw.ielts.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +26,7 @@ import org.json.JSONObject
 /**
  * 模考结果聚合：写作模考（Task1+Task2）或口语模考（Part1-3）完成后统一展示。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MockResultScreen(
     sessions: List<Session>,
@@ -51,16 +54,18 @@ fun MockResultScreen(
         IosNavBar("模考结果", onBack = onBack)
 
         if (overall != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            // 窄屏下「总分 + 权重说明 + 完成段数」挤一行会把右侧压成一字一行；
+            // 总分单独一行，说明与段数放第二行小字。
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    if (done.all { it.module != "speaking" }) "总分 Band %.1f（Task1:Task2=1:2）".format(overall)
-                    else "总分 Band %.1f".format(overall),
+                    "总分 Band %.1f".format(overall),
                     style = MaterialTheme.typography.headlineSmall,
                     fontFamily = FontFamily.Serif,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    "（${done.size} 段已完成）",
+                    if (done.all { it.module != "speaking" }) "Task1:Task2 = 1:2 · ${done.size} 段已完成"
+                    else "${done.size} 段已完成",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -99,7 +104,10 @@ fun MockResultScreen(
                             }
                             keys.filter { o.has(it.first) }
                         }.getOrDefault(emptyList())
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalArrangement = Arrangement.spacedBy(2.dp),
+                        ) {
                             dims.forEach { (k, label) ->
                                 Text(
                                     "$label ${scoresOf(s, k)}",

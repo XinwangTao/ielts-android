@@ -142,7 +142,7 @@ fun QuizScreen(
                 "${pageIndex + 1} / ${set.questions.size}",
                 style = MaterialTheme.typography.labelLarge,
                 fontFamily = FontFamily.Serif,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.padding(horizontal = 4.dp),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
             OutlinedButton(
@@ -215,11 +215,6 @@ private fun ReadingCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text("阅读原文", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
-                Text(
-                    "长按生词可查释义",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
                 TextButton(onClick = { fontSize = (fontSize - 1).coerceAtLeast(13); prefs.readerFontSize = fontSize }) {
                     Text("A−", fontSize = 14.sp)
                 }
@@ -232,6 +227,12 @@ private fun ReadingCard(
                     Text("A+", fontSize = 19.sp)
                 }
             }
+            // 提示单独占一行：和字号控件挤同一行时，360dp 屏上标题只剩几十 dp。
+            Text(
+                "长按生词可查释义",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("行距", style = MaterialTheme.typography.labelMedium)
                 IosSegmented(

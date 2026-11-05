@@ -205,6 +205,31 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         return cards.size
     }
 
+    /** AI 生词/搭配卡：正面=搭配，背面=中文释义，例句单独存；按 front 去重后进入 AI 池。 */
+    suspend fun addVocabCards(items: List<com.txw.ielts.llm.VocabItem>): Int {
+        if (items.isEmpty()) return 0
+        val seen = HashSet<String>()
+        val cards = items.mapNotNull { v ->
+            val front = v.phrase.trim().lowercase()
+            if (front.isBlank()) return@mapNotNull null
+            if (!seen.add(front)) return@mapNotNull null
+            if (db.cards().countByFront(front) > 0) return@mapNotNull null
+            Card(
+                type = "collocation",
+                front = front,
+                back = v.meaning.trim(),
+                example = v.example.trim(),
+                exampleCn = "",
+                tags = "ai,生词卡",
+                source = "ai_vocab",
+            )
+        }
+        if (cards.isEmpty()) return 0
+        db.cards().insertAll(cards)
+        enforceGeneratedCap()
+        return cards.size
+    }
+
     suspend fun generatedStats(): Pair<Int, Int> = db.cards().countGenerated() to AI_CARD_CAP
 
     suspend fun stats(): Triple<Int, Int, Int> = Triple(

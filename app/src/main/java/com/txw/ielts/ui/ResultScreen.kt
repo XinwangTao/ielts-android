@@ -15,7 +15,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -56,9 +58,21 @@ fun ResultScreen(
     onAddToCorpus: (List<String>, List<Triple<String, String, String>>) -> Unit,
     onPracticeAgain: () -> Unit,
     onBack: () -> Unit,
+    // 本地 AI 生词卡：从本次正文 + 逐句改法里提搭配，勾选后进 SRS。
+    vocabResult: com.txw.ielts.llm.VocabResult? = null,
+    vocabSessionId: Long? = null,
+    vocabBusy: Boolean = false,
+    vocabError: String? = null,
+    onRequestVocab: (text: String, fixes: List<Triple<String, String, String>>) -> Unit = { _, _ -> },
+    onAddVocab: (List<com.txw.ielts.llm.VocabItem>) -> Unit = {},
 ) {
     val speaking = session.module == "speaking"
     var addedToCorpus by remember { mutableStateOf(false) }
+    // 生词卡勾选：默认全选，用户可去掉已经会的；换了结果就重置。
+    var vocabChecked by remember(session.id, vocabResult) {
+        mutableStateOf(vocabResult?.items?.indices?.toSet() ?: emptySet())
+    }
+    var vocabAdded by remember(session.id) { mutableStateOf(false) }
     // 展示真实已等待时间：本地评分 1-4 分钟，用户需要知道还要等多久。
     var waitedSec by remember { mutableLongStateOf(0L) }
     LaunchedEffect(session.status, waitStartedAt) {
@@ -278,6 +292,86 @@ fun ResultScreen(
                                 color = MaterialTheme.colorScheme.error,
                             )
                             Text("更好：$better", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (session.status == "done" && (session.essayText.isNotBlank() || session.transcript.isNotBlank())) {
+            BookCard {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("AI 生词卡（本地模型）", style = MaterialTheme.typography.titleSmall)
+                    // 状态按 session 隔离：切到另一条结果时，不要把上一条的「提取中/失败」带过来。
+                    val vocabHere = vocabSessionId == session.id
+                    val busyHere = vocabBusy && vocabHere
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        OutlinedButton(
+                            enabled = !vocabBusy,
+                            onClick = {
+                                onRequestVocab(
+                                    session.essayText.ifBlank { session.transcript },
+                                    sentenceFixes,
+                                )
+                            },
+                        ) { Text(if (busyHere) "提取中…" else "提取生词 / 搭配") }
+                        if (busyHere) {
+                            Text(
+                                "约 30-60 秒，请留在 App 内",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                    if (vocabHere) {
+                        vocabError?.let {
+                            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
+                    val result = vocabResult?.takeIf { vocabSessionId == session.id }
+                    if (result != null) {
+                        if (result.items.isEmpty()) {
+                            Text("模型没有返回可用的生词。原文：", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                result.raw.take(800),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else {
+                            result.items.forEachIndexed { i, item ->
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Checkbox(
+                                        checked = i in vocabChecked,
+                                        onCheckedChange = { on ->
+                                            vocabChecked = if (on) vocabChecked + i else vocabChecked - i
+                                        },
+                                    )
+                                    Column(Modifier.weight(1f)) {
+                                        Text(item.phrase, style = MaterialTheme.typography.titleSmall)
+                                        Text(item.meaning, style = MaterialTheme.typography.bodySmall)
+                                        if (item.example.isNotBlank()) {
+                                            Text(
+                                                item.example,
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                            Button(
+                                modifier = Modifier.fillMaxWidth(),
+                                enabled = vocabChecked.isNotEmpty() && !vocabAdded,
+                                onClick = {
+                                    onAddVocab(result.items.filterIndexed { i, _ -> i in vocabChecked })
+                                    vocabAdded = true
+                                },
+                            ) {
+                                Text(if (vocabAdded) "已加入词汇积累" else "加入词汇积累（${vocabChecked.size}）")
+                            }
                         }
                     }
                 }

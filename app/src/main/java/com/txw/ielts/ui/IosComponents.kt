@@ -2,9 +2,18 @@ package com.txw.ielts.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -40,18 +49,26 @@ fun IosSegmented(
 ) {
     val innerShape = RoundedCornerShape(8.dp)
     val outerShape = RoundedCornerShape(10.dp)
-    Row(
+    BoxWithConstraints(
         modifier = modifier
             .clip(outerShape)
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(2.dp),
     ) {
-        options.forEachIndexed { i, label ->
-            val isSel = i == selected
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .minimumInteractiveComponentSize()   // 触摸目标 ≥48dp（R-03）
+        // 每段至少 56dp：段数多到一屏放不下时改为横向滚动，而不是把最后几段裁掉。
+        // 实测 360dp 手机上 AI 出题的 7 档难度、设置页的模型列表都会超过一屏。
+        val scrollable = maxWidth < 56.dp * options.size
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(if (scrollable) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
+        ) {
+            options.forEachIndexed { i, label ->
+                val isSel = i == selected
+                Box(
+                    modifier = Modifier
+                        .then(if (scrollable) Modifier.widthIn(min = 56.dp) else Modifier.weight(1f))
+                        .minimumInteractiveComponentSize()   // 触摸目标 ≥48dp（R-03）
                     .then(
                         if (isSel) Modifier.shadow(1.dp, innerShape)
                             .background(MaterialTheme.colorScheme.surface, innerShape)
@@ -74,20 +91,56 @@ fun IosSegmented(
                 )
             }
         }
+        }
     }
 }
 
 /**
  * iOS 导航栏：左侧 chevron 返回 + 大标题 + 可选右侧内容（如计时）。
+ *
+ * 窄屏（手机 360dp）下右侧操作和标题抢同一行，会把标题压成一列竖排字
+ * （实测「口语练习室」被挤成每行一个字）。这里在 <420dp 时把 trailing 移到
+ * 标题下方独立一行，并用 FlowRow 允许操作换行，标题永远单行省略。
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun IosNavBar(title: String, onBack: () -> Unit, trailing: @Composable () -> Unit = {}) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        TextButton(onClick = onBack) {
-            Text("‹", fontSize = 30.sp, lineHeight = 30.sp)
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val compact = maxWidth < 420.dp
+        if (compact) {
+            Column(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    TextButton(onClick = onBack) {
+                        Text("‹", fontSize = 30.sp, lineHeight = 30.sp)
+                    }
+                    Text(
+                        title,
+                        style = MaterialTheme.typography.titleLarge,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) { trailing() }
+            }
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = onBack) {
+                    Text("‹", fontSize = 30.sp, lineHeight = 30.sp)
+                }
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                trailing()
+            }
         }
-        Text(title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-        trailing()
     }
 }
 

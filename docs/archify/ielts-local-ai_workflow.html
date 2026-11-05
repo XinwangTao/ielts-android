@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>本地 AI 学习助手 · ielts-local-ai_workflow</title>
+<style>
+  :root{
+    --paper:#FAF6EC; --ink:#2B2621; --dim:#6A6255; --line:#D8CFBE;
+    --red:#B3432B; --blue:#2F4F6F; --gold:#8A6A2F; --green:#3F6B4A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 24px 64px;background:var(--paper);color:var(--ink);
+       font:16px/1.65 "Iowan Old Style","Songti SC","Noto Serif CJK SC",serif}
+  header{max-width:1060px;margin:0 auto 28px;border-bottom:3px double var(--ink);padding-bottom:16px}
+  h1{font-size:30px;margin:0 0 6px;letter-spacing:.02em}
+  .sub{color:var(--dim);font-size:14px;letter-spacing:.14em}
+  .meta{margin-top:12px;font-size:13px;color:var(--dim)}
+  .meta b{color:var(--red);font-weight:600}
+  main{max-width:1060px;margin:0 auto}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--dim);margin:18px 0 26px}
+  .legend i{display:inline-block;width:10px;height:10px;margin-right:6px;border-radius:2px;vertical-align:1px}
+  h2{font-size:18px;margin:34px 0 14px;letter-spacing:.06em}
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .node{border:1px solid var(--line);background:#fffdf7;border-radius:10px;padding:14px 15px;position:relative}
+  .node .id{font:12px/1 ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.08em}
+  .node .name{font-size:17px;font-weight:700;margin:6px 0 8px}
+  .node .detail{font-size:13px;color:var(--dim);line-height:1.55}
+  .node::after{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:10px 0 0 10px;background:var(--line)}
+  .node.ui::after{background:var(--red)}
+  .node.logic::after{background:var(--blue)}
+  .node.service::after{background:var(--gold)}
+  .node.storage::after{background:var(--green)}
+  .node.manual::after{background:#7A5C9E}
+  .node.manual{grid-column:span 2;background:#fbf6ff}
+  .edges{border-top:1px solid var(--line);margin-top:28px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim);font-weight:600;letter-spacing:.04em}
+  code{font:12.5px ui-monospace,Menlo,monospace;background:#f2ecdf;padding:1px 5px;border-radius:4px}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:10px}
+  .box{border:1px solid var(--line);border-radius:10px;padding:14px 18px;background:#fffdf7}
+  .box h3{margin:0 0 8px;font-size:15px;color:var(--red);letter-spacing:.04em}
+  ul{margin:6px 0 0;padding-left:20px;font-size:14px}
+  li{margin:4px 0}
+  .out li{color:var(--dim)}
+  footer{max-width:1060px;margin:40px auto 0;border-top:1px solid var(--line);padding-top:14px;font-size:12.5px;color:var(--dim)}
+  @media(max-width:820px){.flow{grid-template-columns:repeat(2,1fr)}.cols{grid-template-columns:1fr}.node.manual{grid-column:span 2}}
+</style>
+</head>
+<body>
+<header>
+  <h1>本地 AI 学习助手</h1>
+  <div class="sub">IELTS LOCAL AI · WRITING OUTLINE / SPEAKING SAMPLE / VOCAB CARDS</div>
+  <div class="meta">图名 <b>ielts-local-ai_workflow</b> · 级别 <b>L2</b> · 版本 v1.1-implemented · 2026-11-05<br>
+  工程 <code>F:\projects\ielts-android</code>；配套旁路 <code>ielts-local-ai_workflow.json</code></div>
+</header>
+
+<main>
+  <div class="legend">
+    <span><i style="background:var(--red)"></i>界面入口/展示</span>
+    <span><i style="background:var(--blue)"></i>判定/解析</span>
+    <span><i style="background:var(--gold)"></i>生成服务</span>
+    <span><i style="background:var(--green)"></i>数据落点</span>
+    <span><i style="background:#7A5C9E"></i>失败/人工出口</span>
+  </div>
+
+  <h2>主路径</h2>
+  <div class="flow">
+    <div class="node ui"><div class="id">entry</div><div class="name">入口</div>
+      <div class="detail">写作页「AI 提纲」；口语页/话题库「AI 范例」；结果页「生词卡」。均为用户主动点击，不自动触发。</div></div>
+    <div class="node logic"><div class="id">gate</div><div class="name">本地模型检查</div>
+      <div class="detail">检查 LocalLlmEngine 是否有可用模型（qwen3-4b-instruct / qwen35-2b）；未就绪直接给设置页引导。本批不接云端：讯飞额度已死，功能定位就是离线可用。</div></div>
+    <div class="node service"><div class="id">gen</div><div class="name">本地生成</div>
+      <div class="detail">LocalLlmEngine.generateText（串行闸门 + 心跳 + 8 分钟上限）；与评分共用同一引擎，评分进行中会排队。</div></div>
+    <div class="node logic"><div class="id">parse</div><div class="name">解析与兜底</div>
+      <div class="detail">优先解析约定 JSON；字段缺失按单项丢弃；整体坏了退化为纯文本展示，保证永远有东西可看。</div></div>
+    <div class="node ui"><div class="id">outline</div><div class="name">写作提纲卡</div>
+      <div class="detail">立场 + 3 组「论点/解释/例子」+ 5 个可复用短语；只展示，不预填正文；可复制。</div></div>
+    <div class="node ui"><div class="id">sample</div><div class="name">口语范例卡</div>
+      <div class="detail">Band 7 范例答案 + 5 个关键词 + 3 段结构提示；接现有 TTS 朗读；可收藏进素材库。</div></div>
+    <div class="node storage"><div class="id">vocab</div><div class="name">生词预览与入库</div>
+      <div class="detail">从本次作文/转写 + 逐句改法提取 5-8 条搭配；勾选后写入 cards 表（source=ai_vocab，按 front 去重），进入现有 SRS。</div></div>
+    <div class="node manual"><div class="id">fail</div><div class="name">失败出口</div>
+      <div class="detail">超时/空输出/模型未就绪：明确文案 + 重试按钮；写作与口语主流程不被阻断，结果页已有内容照常展示。</div></div>
+  </div>
+
+  <h2>边</h2>
+  <div class="edges">
+    <table>
+      <thead><tr><th>从</th><th>到</th><th>条件 / 载荷</th></tr></thead>
+      <tbody>
+        <tr><td><code>entry</code></td><td><code>gate</code></td><td>用户点击</td></tr>
+        <tr><td><code>gate</code></td><td><code>gen</code></td><td>模型就绪</td></tr>
+        <tr><td><code>gate</code></td><td><code>fail</code></td><td>模型未就绪</td></tr>
+        <tr><td><code>gen</code></td><td><code>parse</code></td><td>原始输出</td></tr>
+        <tr><td><code>parse</code></td><td><code>outline</code></td><td>提纲请求</td></tr>
+        <tr><td><code>parse</code></td><td><code>sample</code></td><td>范例请求</td></tr>
+        <tr><td><code>parse</code></td><td><code>vocab</code></td><td>生词请求</td></tr>
+        <tr><td><code>parse</code></td><td><code>fail</code></td><td>空输出</td></tr>
+        <tr><td><code>outline</code></td><td><code>fail</code></td><td>用户放弃/重试</td></tr>
+        <tr><td><code>sample</code></td><td><code>fail</code></td><td>用户放弃/重试</td></tr>
+        <tr><td><code>vocab</code></td><td><code>fail</code></td><td>全部去重后为空</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="cols">
+    <div class="box">
+      <h3>范围内</h3>
+      <ul>
+        <li>写作 Task 2 提纲（Task 1 复用同一入口，输出改为 overview + 2 段数据要点）</li>
+        <li>口语 Part 1/2/3 范例答案（从当前题目生成）</li>
+        <li>评分结果生成生词/搭配卡并进入 SRS</li>
+      </ul>
+    </div>
+    <div class="box out">
+      <h3>明确不做</h3>
+      <ul>
+        <li>不做实时语音评分（端侧 ASR + LLM 时延过高）</li>
+        <li>不做自动改写用户正文（保留用户自己的产出）</li>
+        <li>不改云端 provider 与计费策略</li>
+        <li>不做后台自动生成（必须用户主动触发，避免抢内存）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="box">
+      <h3>关键决策</h3>
+      <ul>
+        <li>生成一律走 <code>generateText</code> + 专用 system prompt，不新增 JNI / 不换模型</li>
+        <li>本批只走本地模型，不接云端：讯飞额度已死，功能定位是离线可用</li>
+        <li>所有输出先展示、再由用户决定是否落库；只有生词卡写 cards 表</li>
+        <li>文案强调「本地模型生成，仅供参考」，避免与考官评分混淆</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>待确认</h3>
+      <ul>
+        <li>口语范例是否需要一键收藏进素材库（需新增持久化）？</li>
+        <li>生词卡是否同时支持从「范文/材料」而不只是本次结果提取？</li>
+      </ul>
+    </div>
+  </div>
+</main>
+
+<footer>
+  本图与 <code>ielts-local-ai_workflow.json</code> 内容一致。确认后实现；实现范围以本图节点/边为准，超出部分重新确认。
+</footer>
+</body>
+</html>

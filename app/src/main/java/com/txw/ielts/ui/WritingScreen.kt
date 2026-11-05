@@ -15,6 +15,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -178,6 +180,7 @@ internal val TASK1_ITEMS = listOf(
 internal fun Task1Item.fullText(): String =
     if (textData != null) "$prompt\n\n$textData" else "$prompt\n\n(Chart image shown in the app. Focus your score on language, structure and coherence; data coverage should be checked against the chart by the student.)"
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WritingScreen(
     stage: String?,           // null 表示未提交；非空表示处理中的阶段文案
@@ -191,6 +194,12 @@ fun WritingScreen(
     onOpenArguments: () -> Unit = {},
     onOpenMock: () -> Unit = {},
     onOpenChartGen: () -> Unit = {},
+    // 本地 AI 提纲：只展示、不预填正文，解决「不知道写什么 / 论点不展开」。
+    outline: com.txw.ielts.llm.StudyOutline? = null,
+    outlineTopic: String? = null,
+    outlineBusy: Boolean = false,
+    outlineError: String? = null,
+    onRequestOutline: (topic: String, task: String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val draftPrefs = remember { context.getSharedPreferences("ielts_draft", android.content.Context.MODE_PRIVATE) }
@@ -405,7 +414,34 @@ fun WritingScreen(
                     }
                     Text(topic, style = MaterialTheme.typography.bodyLarge)
                 }
+                val outlineBusyHere = outlineBusy && outlineTopic == topic
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OutlinedButton(
+                        enabled = !busy && !recording && !outlineBusy,
+                        onClick = { onRequestOutline(topic, task) },
+                    ) { Text(if (outlineBusyHere) "生成提纲中…" else "AI 提纲") }
+                    if (outlineBusyHere) {
+                        Text(
+                            "本地模型生成，约 30-60 秒，请留在 App 内",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                if (outlineTopic == topic) {
+                    outlineError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                    }
+                }
             }
+        }
+
+        // 只展示、不填进输入框：文章仍然是用户自己写，提纲只解决「写什么/怎么展开」。
+        if (!outlineBusy && outline != null && outlineTopic == topic && !outline.isEmpty) {
+            OutlineCard(outline)
         }
 
         IosSegmented(
@@ -445,7 +481,10 @@ fun WritingScreen(
                             modifier = Modifier.weight(1f),
                         )
                     }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
                         Button(
                             enabled = !busy && !recording,
                             onClick = {
@@ -533,5 +572,49 @@ fun WritingScreen(
                 )
             }
         ) { Text(if (busy) "处理中…" else "提交评分") }
+    }
+}
+
+/** 写作提纲卡：立场 + 3 组论点/解释/例子 + 可复用短语；纯展示，不写进正文。 */
+@Composable
+private fun OutlineCard(outline: com.txw.ielts.llm.StudyOutline) {
+    BookCard(
+        Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("AI 提纲 · 本地模型", style = MaterialTheme.typography.labelLarge)
+            if (outline.stance.isNotBlank()) {
+                Text("立场：${outline.stance}", style = MaterialTheme.typography.titleSmall)
+            }
+            outline.arguments.forEachIndexed { i, a ->
+                Text("${i + 1}. ${a.point}", style = MaterialTheme.typography.titleSmall)
+                if (a.explain.isNotBlank()) {
+                    Text(a.explain, style = MaterialTheme.typography.bodySmall)
+                }
+                if (a.example.isNotBlank()) {
+                    Text(
+                        "例：${a.example}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            if (outline.phrases.isNotEmpty()) {
+                Text("可复用表达", style = MaterialTheme.typography.labelLarge)
+                outline.phrases.forEach {
+                    Text("· $it", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            // JSON 没解析出来时至少显示模型原文，别让用户点了按钮什么都没看到。
+            if (outline.stance.isBlank() && outline.arguments.isEmpty() && outline.raw.isNotBlank()) {
+                Text(outline.raw.take(1500), style = MaterialTheme.typography.bodySmall)
+            }
+            Text(
+                "本地模型生成，仅供参考；写完用「提交评分」检验。",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
