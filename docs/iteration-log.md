@@ -17,3 +17,4 @@
 | 2026-11-05 22:57 | 查词/跟读/AI 生词卡也改用归一化 key 跨会话判重，与批注/错题一致（大小写、首尾标点不再重复建卡） | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL |
 | 2026-11-05 22:58 | 逐句改法卡也走归一化 key 判重；移除已无调用的 `CardDao.countByFront`，所有入库入口统一用 `allFronts` + `CardText.key` | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL |
 | 2026-11-05 23:00 | 收尾验证：全量单测（含并发提交的复盘功能）+ 完整 AI 探针 | `./gradlew.bat :app:testDebugUnitTest --offline`；`python tools/ai_probe.py` | 170 tests / 0 failures；AI 18/18 PASS，EXIT=0 |
+| 2026-11-05 23:03 | 判分归一化新增 `AnswerKey`：全角数字/字母/空格折回半角后再清洗，中文输入法打出的「２５」「ＡＢＣ」不再被判错 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`AnswerKeyTest` 4/4 通过 |

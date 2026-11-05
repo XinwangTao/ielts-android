@@ -225,10 +225,7 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
 
     // ---- 判分（忽略大小写、标点与多余空格；填空题支持多个可接受答案）----
 
-    fun normalize(s: String): String = s.trim().lowercase()
-        .replace(Regex("[^a-z0-9' ]"), " ")
-        .replace(Regex("\\s+"), " ")
-        .trim()
+    fun normalize(s: String): String = AnswerKey.normalize(s)
 
     fun isCorrect(q: BankQuestion, answer: String?): Boolean {
         if (answer.isNullOrBlank()) return false
