@@ -48,11 +48,14 @@ object GeneratedParser {
     private fun questions(o: JSONObject, count: Int): List<GeneratedQuestion> {
         val arr = o.optJSONArray("questions") ?: throw IOException("模型没有返回 questions 数组")
         val out = ArrayList<GeneratedQuestion>(arr.length())
+        val seen = HashSet<String>()
         for (i in 0 until arr.length()) {
             val q = arr.optJSONObject(i) ?: continue
             val prompt = q.optString("prompt").trim()
             val answers = strings(q, "answers")
             if (prompt.isBlank() || answers.isEmpty()) continue   // 残题直接丢，不拖垮整套
+            // 模型（尤其 4B）偶尔把同一题写两遍：题干+答案归一化后只收第一次。
+            if (!seen.add(questionKey(prompt, answers))) continue
             out.add(
                 GeneratedQuestion(
                     type = q.optString("type").ifBlank { "gap" },
@@ -69,6 +72,13 @@ object GeneratedParser {
         // 模型偶发超量（提示词写了数量也可能多给），按请求数截断；count<=0 视为不限制。
         return if (count > 0) out.take(count) else out
     }
+
+    private val ws = Regex("\\s+")
+
+    /** 归一化题干与答案：忽略大小写和连续空白，用来识别模型重复生成的同一题。 */
+    private fun questionKey(prompt: String, answers: List<String>): String =
+        prompt.replace(ws, " ").lowercase() + "|" +
+            answers.joinToString("|") { it.replace(ws, " ").lowercase() }
 
     private fun strings(o: JSONObject, key: String): List<String> {
         val a: JSONArray? = o.optJSONArray(key)

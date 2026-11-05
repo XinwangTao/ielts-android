@@ -68,6 +68,29 @@ class GeneratedParserTest {
     }
 
     @Test
+    fun `重复题目只保留第一次`() {
+        val raw = """{"passage":"Body","questions":[
+            {"prompt":"What is the hive made of?","answers":["wax"]},
+            {"prompt":"  what is THE hive   made of?  ","answers":["wax"]},
+            {"prompt":"Q3","answers":["ok"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(2, r.questions.size)
+        assertEquals("What is the hive made of?", r.questions[0].prompt)
+        assertEquals("Q3", r.questions[1].prompt)
+    }
+
+    @Test
+    fun `题干相同但答案不同的题保留`() {
+        val raw = """{"passage":"Body","questions":[
+            {"prompt":"Which word fits?","answers":["hive"]},
+            {"prompt":"Which word fits?","answers":["comb"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(2, r.questions.size)
+    }
+
+    @Test
     fun `精讲兼容 cn-en 与 explain 两套键名`() {
         val a = GeneratedParser.bankExplain("""{"cn":"中文","en":"English","keys":["k1"]}""")
         assertEquals("中文", a.cn)
