@@ -16,3 +16,4 @@
 | 2026-11-05 22:57 | 断网/降级提示：新增 `ChannelPick.localReason`（断网 > 额度冷却 > 额度用完）与 `NetworkStatus`，设置页评分通道下方显示「为何自动模式走本地」 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`ChannelPickTest` 8/8 通过 |
 | 2026-11-05 22:57 | 查词/跟读/AI 生词卡也改用归一化 key 跨会话判重，与批注/错题一致（大小写、首尾标点不再重复建卡） | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL |
 | 2026-11-05 22:58 | 逐句改法卡也走归一化 key 判重；移除已无调用的 `CardDao.countByFront`，所有入库入口统一用 `allFronts` + `CardText.key` | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL |
+| 2026-11-05 23:00 | 收尾验证：全量单测（含并发提交的复盘功能）+ 完整 AI 探针 | `./gradlew.bat :app:testDebugUnitTest --offline`；`python tools/ai_probe.py` | 170 tests / 0 failures；AI 18/18 PASS，EXIT=0 |
