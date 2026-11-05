@@ -407,6 +407,7 @@ def main() -> int:
     ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--only", default="")
     ap.add_argument("--report", default="")
+    ap.add_argument("--fixtures", default="", help="把原始输出写入该目录（供 AiProbeFixtureTest 使用）")
     args = ap.parse_args()
 
     all_cases = cases()
@@ -473,6 +474,15 @@ def main() -> int:
             lines += [f"### {r['name']}", "", "```json", r["raw"][:20000], "```", ""]
         p.write_text("\n".join(lines), encoding="utf-8")
         print(f"报告已写入 {p}")
+
+    if args.fixtures:
+        fd = Path(args.fixtures)
+        if not fd.is_absolute():
+            fd = ROOT / fd
+        fd.mkdir(parents=True, exist_ok=True)
+        for r in results:
+            (fd / f"{r['name']}.txt").write_text(r["raw"], encoding="utf-8")
+        print(f"夹具已写入 {fd}")
 
     return 0 if failed == 0 else 1
 
