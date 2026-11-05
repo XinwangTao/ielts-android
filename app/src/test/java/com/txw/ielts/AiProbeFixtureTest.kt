@@ -85,6 +85,22 @@ class AiProbeFixtureTest {
     }
 
     @Test
+    fun `口语 Part 1 范例字数守约`() {
+        val s = StudyAi.parseSample(fixture("speaking_sample_part1"))
+        val wc = s.answer.split(Regex("\\s+")).count { it.isNotBlank() }
+        assertTrue("Part1 words=$wc（期望 70-110）", wc in 50..140)
+        assertEquals(5, s.keywords.size)
+    }
+
+    @Test
+    fun `口语 Part 3 范例字数守约`() {
+        val s = StudyAi.parseSample(fixture("speaking_sample_part3"))
+        val wc = s.answer.split(Regex("\\s+")).count { it.isNotBlank() }
+        assertTrue("Part3 words=$wc（期望 70-110）", wc in 50..140)
+        assertEquals(5, s.keywords.size)
+    }
+
+    @Test
     fun `生词卡真实输出条数与中文释义`() {
         val v = StudyAi.parseVocab(fixture("vocab"))
         assertTrue("items=${v.items.size}", v.items.size in 5..8)

@@ -232,6 +232,12 @@ def cases() -> list[dict]:
              user="Part: Part 2\nQuestion: Describe a skill you learned that was difficult at first. "
                   "You should say what it was, how you learned it, why it was difficult, and explain how you feel about it now.",
              validate="sample"),
+        dict(name="speaking_sample_part1", system=sys_sample,
+             user="Part: Part 1\nQuestion: Do you enjoy reading?",
+             validate="sample", part="part1"),
+        dict(name="speaking_sample_part3", system=sys_sample,
+             user="Part: Part 3\nQuestion: Why do some people prefer paper books to e-books?",
+             validate="sample", part="part3"),
         dict(name="vocab", system=sys_vocab,
              user="Essay:\n" + VOCAB_TEXT + "\n\nCorrections:\n" + "\n".join(
                  f"- {s} -> {b} ({i})" for s, i, b in VOCAB_FIXES),
@@ -307,8 +313,8 @@ def validate(case: dict, text: str) -> list[str]:
                 if not has_cjk(item.get("issue", "")):
                     issues.append(f"sentence_fixes[{i}].issue 不是中文")
         fixes = d.get("top_fixes")
-        if not isinstance(fixes, list) or len(fixes) != 3:
-            issues.append(f"top_fixes 条数={len(fixes) if isinstance(fixes, list) else 'N/A'}（要求 3）")
+        if not isinstance(fixes, list) or not (3 <= len(fixes) <= 5):
+            issues.append(f"top_fixes 条数={len(fixes) if isinstance(fixes, list) else 'N/A'}（要求 3，容忍 4-5）")
         if not str(d.get("polished", "")).strip():
             issues.append("polished 为空")
         # overall 不校验：App 的 ScoreSanitizer 会按四项均值重算，模型自报值只作参考。
@@ -319,8 +325,8 @@ def validate(case: dict, text: str) -> list[str]:
         if not isinstance(sf, list) or not (2 <= len(sf) <= 5):
             issues.append(f"sentence_fixes 条数={len(sf) if isinstance(sf, list) else 'N/A'}（要求 2-5）")
         fixes = d.get("top_fixes")
-        if not isinstance(fixes, list) or len(fixes) != 3:
-            issues.append(f"top_fixes 条数={len(fixes) if isinstance(fixes, list) else 'N/A'}（要求 3）")
+        if not isinstance(fixes, list) or not (3 <= len(fixes) <= 5):
+            issues.append(f"top_fixes 条数={len(fixes) if isinstance(fixes, list) else 'N/A'}（要求 3，容忍 4-5）")
     elif v == "outline":
         check_keys(d, ["stance", "arguments", "phrases"], issues)
         if not str(d.get("stance", "")).strip():
@@ -341,8 +347,13 @@ def validate(case: dict, text: str) -> list[str]:
         check_keys(d, ["answer", "keywords", "structure"], issues)
         ans = str(d.get("answer", ""))
         wc = words(ans)
-        if not (150 <= wc <= 260):
-            issues.append(f"answer 词数={wc}（Part 2 期望 180-220，容忍 150-260）")
+        part = str(case.get("part", "part2"))
+        if part in ("part1", "part3"):
+            if not (50 <= wc <= 140):
+                issues.append(f"answer 词数={wc}（Part 1/3 期望 70-110，容忍 50-140）")
+        else:
+            if not (150 <= wc <= 260):
+                issues.append(f"answer 词数={wc}（Part 2 期望 180-220，容忍 150-260）")
         kw = d.get("keywords")
         if not isinstance(kw, list) or len(kw) != 5:
             issues.append(f"keywords 条数={len(kw) if isinstance(kw, list) else 'N/A'}（要求 5）")

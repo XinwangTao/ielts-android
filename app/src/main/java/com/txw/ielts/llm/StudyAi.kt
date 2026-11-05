@@ -202,7 +202,7 @@ object StudyAi {
         Return STRICT JSON only, with exactly this shape:
         {"answer":"sample answer","keywords":["useful phrase"],"structure":["中文结构提示"]}
         Rules:
-        - Part 2: 180-220 words; Part 1 and Part 3: 70-110 words.
+        - Part 2: 180-220 words. Part 1 and Part 3: 70-110 words; never exceed 120 and keep it to one short paragraph.
         - natural spoken English; contractions are fine; answer the question directly.
         - keywords: exactly 5 useful English collocations or phrases taken from the answer.
         - structure: exactly 3 short hints in Chinese.
