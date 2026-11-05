@@ -142,7 +142,15 @@ fun ReviewScreen(
     ) {
         IosNavBar("复盘看板", onBack = onBack)
 
-        AiReviewSection(aiReview, aiBusy, aiError, onRequestReview)
+        if (done.isNotEmpty()) {
+            AiReviewSection(aiReview, aiBusy, aiError, onRequestReview)
+        } else {
+            Text(
+                "完成一次写作 / 口语 / 听读练习后，AI 复盘会基于真实成绩给出建议。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
 
         if (isWide) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
