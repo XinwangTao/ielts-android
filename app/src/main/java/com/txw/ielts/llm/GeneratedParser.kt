@@ -56,9 +56,9 @@ object GeneratedParser {
             if (prompt.isBlank() || rawAnswers.isEmpty()) continue   // 残题直接丢，不拖垮整套
             // 模型常把 type 写成 Choice/TFNG，或 choice 不给选项、tfng 不写标准选项；
             // 归一化到 UI 认识的三种题型，避免出现无法作答的题。
-            var type = q.optString("type").ifBlank { "gap" }.trim().lowercase()
             var options = strings(q, "options")
             var answers = rawAnswers
+            var type = canonicalType(q.optString("type"), options, answers)
             when (type) {
                 "choice" -> if (options.size < 2) {
                     type = "gap"
@@ -95,6 +95,57 @@ object GeneratedParser {
     private val ws = Regex("\\s+")
 
     private val DEFAULT_TFNG = listOf("TRUE", "FALSE", "NOT GIVEN")
+
+    private val TFNG_VALUES = setOf("TRUE", "FALSE", "NOT GIVEN")
+
+    /** 题型别名：统一小写并去掉空格/下划线/斜杠/连字符后比较。 */
+    private val CHOICE_TYPES = setOf(
+        "choice", "singlechoice", "multiplechoice", "mcq", "select", "selectone", "选择题", "单选",
+    )
+    private val TFNG_TYPES = setOf(
+        "tfng", "tfn", "truefalse", "truefalseng", "truefalsenotgiven", "yesnonotgiven", "判断题", "判断",
+    )
+    private val GAP_TYPES = setOf(
+        "gap", "blank", "cloze", "completion", "sentencecompletion", "shortanswer",
+        "fill", "fillin", "fillblank", "fillintheblank", "填空题", "填空", "简答",
+    )
+    private val TYPE_NOISE = Regex("[^a-z0-9\\u4e00-\\u9fff]")
+
+    /**
+     * 把模型写的题型折到 choice/tfng/gap 三种 UI 能画的类型。
+     * 模型很爱写 `Multiple Choice`、`True/False/Not Given`、`fill-in-the-blank`，
+     * 原样透传会让题目在 UI 里退化成填空题，明明有选项却只能手输。
+     * 别名认不出时按字段推断：有选项且答案能对上选项就按选择题，答案像 T/F/NG 就按判断题。
+     */
+    private fun canonicalType(raw: String, options: List<String>, answers: List<String>): String {
+        return when (raw.lowercase().replace(TYPE_NOISE, "")) {
+            "" -> inferType(options, answers)
+            in CHOICE_TYPES -> "choice"
+            in TFNG_TYPES -> "tfng"
+            in GAP_TYPES -> "gap"
+            else -> inferType(options, answers)
+        }
+    }
+
+    private fun inferType(options: List<String>, answers: List<String>): String {
+        val tfngOptions = options.isEmpty() || options.all { it.trim().uppercase() in TFNG_VALUES }
+        if (tfngOptions && answers.any { canonicalTfng(it) in TFNG_VALUES }) return "tfng"
+        if (options.size >= 2 && answers.any { answerPointsAtOption(it, options) }) return "choice"
+        return "gap"
+    }
+
+    /** 答案是否是「选项原文 / 选项字母 / 字母 + 原文」，用来判断一组带选项的题能否当选择题画。 */
+    private fun answerPointsAtOption(answer: String, options: List<String>): Boolean {
+        val a = answer.trim()
+        if (options.any { it.trim().equals(a, ignoreCase = true) }) return true
+        CHOICE_LETTER.find(a)?.let { m ->
+            if (optionAt(m.groupValues[1], options) != null) return true
+        }
+        CHOICE_PREFIX.find(a)?.let { m ->
+            if (optionAt(m.groupValues[1], options) != null) return true
+        }
+        return false
+    }
 
     /** 只含选项字母：「B」「(b)」「C.」「D、」。 */
     private val CHOICE_LETTER = Regex("^[（(]?([A-Za-z])[)）.．:：、]?$")

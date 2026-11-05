@@ -153,6 +153,40 @@ class GeneratedParserTest {
     }
 
     @Test
+    fun `题型别名归一化到 choice tfng gap`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"Multiple Choice","prompt":"Q1","options":["alpha","beta"],"answers":["B"]},
+            {"type":"True/False/Not Given","prompt":"Q2","answers":["F"]},
+            {"type":"fill-in-the-blank","prompt":"Q3","answers":["hive"]},
+            {"type":"multiple_choice","prompt":"Q4","options":["alpha","beta"],"answers":["alpha"]},
+            {"type":"填空题","prompt":"Q5","answers":["comb"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(listOf("choice", "tfng", "gap", "choice", "gap"), r.questions.map { it.type })
+        assertEquals("beta", r.questions[0].answers[0])
+        assertEquals(listOf("TRUE", "FALSE", "NOT GIVEN"), r.questions[1].options)
+        assertEquals("FALSE", r.questions[1].answers[0])
+    }
+
+    @Test
+    fun `题型缺失或认不出时按字段推断`() {
+        val raw = """{"passage":"Body","questions":[
+            {"prompt":"Q1","options":["alpha","beta"],"answers":["B"]},
+            {"prompt":"Q2","answers":["NG"]},
+            {"type":"matching","prompt":"Q3","options":["alpha","beta"],"answers":["b. beta"]},
+            {"type":"essay","prompt":"Q4","answers":["hive"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals("choice", r.questions[0].type)
+        assertEquals("beta", r.questions[0].answers[0])
+        assertEquals("tfng", r.questions[1].type)
+        assertEquals("NOT GIVEN", r.questions[1].answers[0])
+        assertEquals("choice", r.questions[2].type)
+        assertEquals("beta", r.questions[2].answers[0])
+        assertEquals("gap", r.questions[3].type)
+    }
+
+    @Test
     fun `精讲兼容 cn-en 与 explain 两套键名`() {
         val a = GeneratedParser.bankExplain("""{"cn":"中文","en":"English","keys":["k1"]}""")
         assertEquals("中文", a.cn)
