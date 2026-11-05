@@ -69,8 +69,12 @@ object GeneratedParser {
                     answers = answers.map { canonicalChoice(it, options) }
                 }
                 "tfng" -> {
-                    if (options.size < 2) options = DEFAULT_TFNG
-                    answers = answers.map { canonicalTfng(it) }
+                    // 判断题有两套标准选项：TRUE/FALSE 与 YES/NO（都带 NOT GIVEN）。
+                    // 模型常写 YES/NO 且答案只给 Y/N；若一律补 TRUE/FALSE 三选项，
+                    // 用户点「YES」会被判错，因为答案 "Y" 与选项「YES」不是同一个字符串。
+                    val yesNo = usesYesNo(options, answers)
+                    options = tfngOptions(options, yesNo)
+                    answers = answers.map { canonicalTfng(it, yesNo) }
                 }
             }
             // 模型（尤其 4B）偶尔把同一题写两遍：题干+答案归一化后只收第一次。
@@ -96,14 +100,16 @@ object GeneratedParser {
 
     private val DEFAULT_TFNG = listOf("TRUE", "FALSE", "NOT GIVEN")
 
-    private val TFNG_VALUES = setOf("TRUE", "FALSE", "NOT GIVEN")
+    /** YES/NO/NOT GIVEN 是判断题的另一套标准选项（IELTS 里与 T/F/NG 并列）。 */
+    private val DEFAULT_YNNG = listOf("YES", "NO", "NOT GIVEN")
 
     /** 题型别名：统一小写并去掉空格/下划线/斜杠/连字符后比较。 */
     private val CHOICE_TYPES = setOf(
         "choice", "singlechoice", "multiplechoice", "mcq", "select", "selectone", "选择题", "单选",
     )
     private val TFNG_TYPES = setOf(
-        "tfng", "tfn", "truefalse", "truefalseng", "truefalsenotgiven", "yesnonotgiven", "判断题", "判断",
+        "tfng", "tfn", "truefalse", "truefalseng", "truefalsenotgiven", "yesnonotgiven",
+        "ynng", "yesno", "判断题", "判断",
     )
     private val GAP_TYPES = setOf(
         "gap", "blank", "cloze", "completion", "sentencecompletion", "shortanswer",
@@ -128,10 +134,62 @@ object GeneratedParser {
     }
 
     private fun inferType(options: List<String>, answers: List<String>): String {
-        val tfngOptions = options.isEmpty() || options.all { it.trim().uppercase() in TFNG_VALUES }
-        if (tfngOptions && answers.any { canonicalTfng(it) in TFNG_VALUES }) return "tfng"
+        val yesNo = usesYesNo(options, answers)
+        val tfngOptions = options.isEmpty() || options.all { tfngLabel(it, yesNo) != null }
+        if (tfngOptions && answers.any { tfngLabel(it, yesNo) != null }) return "tfng"
         if (options.size >= 2 && answers.any { answerPointsAtOption(it, options) }) return "choice"
         return "gap"
+    }
+
+    /**
+     * 这组选项/答案是不是 YES/NO/NOT GIVEN 那一套。
+     * 先看选项：YES/NO 与 TRUE/FALSE 各记一票，票多者胜（NOT GIVEN 两套共用，不投票）。
+     * 选项看不出时再看答案，因此「无选项 + 答案 Y」也能落回判断题而不是填空题。
+     */
+    private fun usesYesNo(options: List<String>, answers: List<String>): Boolean {
+        val yn = options.count { yesNoVote(tfngLabel(it, yesNo = true)) }
+        val tf = options.count { yesNoVote(tfngLabel(it, yesNo = false)) }
+        if (yn != tf) return yn > tf
+        return answers.any { yesNoVote(tfngLabel(it, yesNo = true)) } &&
+            answers.none { yesNoVote(tfngLabel(it, yesNo = false)) }
+    }
+
+    /** NOT GIVEN 两套共用，不参与 YES/NO 与 TRUE/FALSE 的投票。 */
+    private fun yesNoVote(label: String?): Boolean = label != null && label != "NOT GIVEN"
+
+    /**
+     * 判断题选项归一化：认得出来就补成标准三选项并统一成 UI 文案；
+     * 模型只给了 TRUE/FALSE（漏 NOT GIVEN）或顺序/大小写不标准时都能修正。
+     * 出现认不出的选项就原样保留，不擅自改写题目。
+     */
+    private fun tfngOptions(options: List<String>, yesNo: Boolean): List<String> {
+        if (options.isEmpty()) return if (yesNo) DEFAULT_YNNG else DEFAULT_TFNG
+        val labels = options.map { tfngLabel(it, yesNo) }
+        if (labels.any { it == null }) return options
+        val standard = if (yesNo) DEFAULT_YNNG else DEFAULT_TFNG
+        // 全是标准项：统一文案与顺序，并补齐缺失项（如只给 TRUE/FALSE 时补 NOT GIVEN），
+        // 否则模型漏写的那一项在 UI 里选不到，选对也判错。
+        return standard
+    }
+
+    /** 把单个判断题答案折到当前选项集的文案；认不出时原样返回（不猜）。 */
+    private fun canonicalTfng(answer: String, yesNo: Boolean): String =
+        tfngLabel(answer, yesNo) ?: answer.trim()
+
+    /** 判断题文案归一：TRUE/FALSE 与 YES/NO 两套各自认缩写；不认识的返回 null。 */
+    private fun tfngLabel(raw: String, yesNo: Boolean): String? {
+        val a = raw.trim().uppercase().replace(ws, " ")
+        return if (yesNo) when (a) {
+            "Y", "YES" -> "YES"
+            "N", "NO" -> "NO"
+            "NG", "N G", "NOTGIVEN", "NOT GIVEN" -> "NOT GIVEN"
+            else -> null
+        } else when (a) {
+            "T", "TRUE" -> "TRUE"
+            "F", "FALSE" -> "FALSE"
+            "NG", "N", "N G", "NOTGIVEN", "NOT GIVEN" -> "NOT GIVEN"
+            else -> null
+        }
     }
 
     /** 答案是否是「选项原文 / 选项字母 / 字母 + 原文」，用来判断一组带选项的题能否当选择题画。 */
@@ -177,17 +235,6 @@ object GeneratedParser {
     private fun optionAt(letter: String, options: List<String>): String? {
         val i = letter.uppercase()[0] - 'A'
         return options.getOrNull(i)?.trim()?.takeIf { it.isNotBlank() }
-    }
-
-    /** TFNG 答案的常见缩写归一化；判分本身忽略大小写与空格，这里统一成 UI 选项文本。 */
-    private fun canonicalTfng(answer: String): String {
-        val a = answer.trim().uppercase().replace(ws, " ")
-        return when (a) {
-            "T", "TRUE" -> "TRUE"
-            "F", "FALSE" -> "FALSE"
-            "NG", "N", "NOTGIVEN", "NOT GIVEN" -> "NOT GIVEN"
-            else -> answer.trim()
-        }
     }
 
     /** 归一化题干与答案：忽略大小写和连续空白，用来识别模型重复生成的同一题。 */

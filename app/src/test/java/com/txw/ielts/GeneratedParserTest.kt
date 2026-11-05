@@ -153,6 +153,49 @@ class GeneratedParserTest {
     }
 
     @Test
+    fun `YES NO NOT GIVEN 判断题不被改成 TRUE FALSE`() {
+        // 云模型爱把判断题写成 Yes/No/Not Given，答案只写 Y/N；
+        // 若补成 TRUE/FALSE 三选项，答案 "Y" 与选项「YES」对不上，用户选对也会判错。
+        val raw = """{"passage":"Body","questions":[
+            {"type":"Yes/No/Not Given","prompt":"Q1","answers":["Y"]},
+            {"type":"ynng","prompt":"Q2","options":["YES","NO","NOT GIVEN"],"answers":["N"]},
+            {"type":"判断题","prompt":"Q3","options":["Yes","No","Not Given"],"answers":["NG"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(listOf("tfng", "tfng", "tfng"), r.questions.map { it.type })
+        assertEquals(listOf("YES", "NO", "NOT GIVEN"), r.questions[0].options)
+        assertEquals("YES", r.questions[0].answers[0])
+        assertEquals("NO", r.questions[1].answers[0])
+        // 小写/混排选项统一成 UI 文案，答案与选项完全一致，选中态才能正确高亮。
+        assertEquals(listOf("YES", "NO", "NOT GIVEN"), r.questions[2].options)
+        assertEquals("NOT GIVEN", r.questions[2].answers[0])
+    }
+
+    @Test
+    fun `小写 tfng 选项与漏写的 NOT GIVEN 被补齐`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"tfng","prompt":"Q1","options":["true","false"],"answers":["T"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(listOf("TRUE", "FALSE", "NOT GIVEN"), r.questions[0].options)
+        assertEquals("TRUE", r.questions[0].answers[0])
+    }
+
+    @Test
+    fun `无题型时 YES 答案也推断为判断题而不是填空`() {
+        val raw = """{"passage":"Body","questions":[
+            {"prompt":"Q1","options":["YES","NO","NOT GIVEN"],"answers":["Y"]},
+            {"prompt":"Q2","answers":["YES"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals("tfng", r.questions[0].type)
+        assertEquals("YES", r.questions[0].answers[0])
+        assertEquals("tfng", r.questions[1].type)
+        assertEquals(listOf("YES", "NO", "NOT GIVEN"), r.questions[1].options)
+        assertEquals("YES", r.questions[1].answers[0])
+    }
+
+    @Test
     fun `题型别名归一化到 choice tfng gap`() {
         val raw = """{"passage":"Body","questions":[
             {"type":"Multiple Choice","prompt":"Q1","options":["alpha","beta"],"answers":["B"]},
