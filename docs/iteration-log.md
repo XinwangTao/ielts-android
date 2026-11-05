@@ -12,3 +12,4 @@
 | 2026-11-05 22:49 | 端到端复验：完整跑 AI 探针（含评分/提纲/范例/生词/出题/精讲/复盘 18 项） | `python tools/ai_probe.py` | 18/18 PASS，EXIT=0（本地 CC Switch 正常；含并发 WIP 的 ai_review） |
 | 2026-11-05 22:50 | AI 出题类型归一化：type 统一小写；choice 选项<2 降级填空题；tfng 缺选项补 TRUE/FALSE/NOT GIVEN 并归一化 T/F/NG 答案；并为并发 WIP 生成缺失的 ai_review 夹具 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL，19 个测试类全绿（GeneratedParserTest 10/10） |
 | 2026-11-05 22:54 | AI 批注/错题卡跨会话判重：入库前用 `CardText.key` 归一化库中全部正面，标点/空白/大小写不同的旧卡不再重复建卡（新增 `CardDao.allFronts`） | `./gradlew.bat :app:testDebugUnitTest --offline --rerun-tasks` | BUILD SUCCESSFUL（强制重跑，19 个测试类全绿） |
+| 2026-11-05 22:55 | 删除 AI 套题时清理私有目录音频：新增 `BankAudio.ownedWavName`（只认 wav 文件名，防路径穿越），`deleteAiSet` 同步删除 filesDir/bank 下的 TTS 音频 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`BankAudioTest` 3/3 通过 |

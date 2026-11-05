@@ -138,7 +138,13 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
     }
 
     fun deleteAiSet(id: String) {
-        writeAiSets(aiSets().filter { it.id != id })
+        val sets = aiSets()
+        val target = sets.firstOrNull { it.id == id }
+        writeAiSets(sets.filter { it.id != id })
+        // 套题删了，私有目录里的 TTS 音频也要清掉，否则会一直占空间。
+        BankAudio.ownedWavName(target?.audio.orEmpty())?.let { name ->
+            runCatching { File(File(context.filesDir, "bank"), name).delete() }
+        }
     }
 
     private fun writeAiSets(sets: List<BankSet>) {
