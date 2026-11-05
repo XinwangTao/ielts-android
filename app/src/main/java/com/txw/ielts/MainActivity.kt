@@ -47,6 +47,7 @@ import com.txw.ielts.data.BankSet
 import com.txw.ielts.data.BankWrong
 import com.txw.ielts.data.CardRepo
 import com.txw.ielts.data.Prefs
+import com.txw.ielts.data.ReviewQueue
 import com.txw.ielts.data.Session
 import com.txw.ielts.data.ShadowDiff
 import com.txw.ielts.data.ShadowPassage
@@ -1930,12 +1931,15 @@ private fun App(
                             onGrade = { grade ->
                                 scope.launch {
                                     repo.grade(card, grade)
-                                    if (cardIndex + 1 >= queue.size) {
-                                        queue = emptyList(); cardIndex = 0; revealed = false
+                                    // Again 不丢到明天：留在本轮隔几张再问，答对才前进。
+                                    val step = ReviewQueue.afterGrade(queue, cardIndex, grade)
+                                    queue = step.queue
+                                    cardIndex = step.index
+                                    revealed = false
+                                    if (step.done) {
+                                        queue = emptyList(); cardIndex = 0
                                         refreshCorpus()
                                         route = Route.Corpus
-                                    } else {
-                                        cardIndex += 1; revealed = false
                                     }
                                 }
                             },
