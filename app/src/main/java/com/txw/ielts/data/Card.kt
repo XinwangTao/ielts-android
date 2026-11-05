@@ -77,6 +77,10 @@ interface CardDao {
     @Query("SELECT type, COUNT(*) AS n FROM cards GROUP BY type")
     suspend fun countByType(): List<TypeCount>
 
+    /** 用户手动删除单张卡（AI 生成串项、或不想要的卡）。 */
+    @Query("DELETE FROM cards WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
     @Insert
     suspend fun insertAll(cards: List<Card>)
 

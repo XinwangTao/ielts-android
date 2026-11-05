@@ -1939,6 +1939,21 @@ private fun App(
                                     }
                                 }
                             },
+                            onDelete = {
+                                scope.launch {
+                                    repo.delete(card)
+                                    val newQueue = queue.filterNot { it.id == card.id }
+                                    queue = newQueue
+                                    revealed = false
+                                    if (newQueue.isEmpty()) {
+                                        cardIndex = 0
+                                        refreshCorpus()
+                                        route = Route.Corpus
+                                    } else if (cardIndex >= newQueue.size) {
+                                        cardIndex = newQueue.size - 1
+                                    }
+                                }
+                            },
                             onExit = { queue = emptyList(); cardIndex = 0; revealed = false; route = Route.Corpus },
                         )
                     }

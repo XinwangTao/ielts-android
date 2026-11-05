@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.LinearProgressIndicator
@@ -149,9 +150,11 @@ fun StudyScreen(
     onReveal: () -> Unit,
     onSpeak: () -> Unit,
     onGrade: (Grade) -> Unit,
+    onDelete: () -> Unit = {},
     onExit: () -> Unit,
 ) {
     var grading by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     Column(
         // 学习页必须可滚动：横屏或系统大字号时，评级按钮会掉出屏幕且无法到达。
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -166,6 +169,9 @@ fun StudyScreen(
                 modifier = Modifier.weight(1f),
             )
             Text(typeLabel(card.type), style = MaterialTheme.typography.labelMedium)
+            TextButton(onClick = { confirmDelete = true }) {
+                Text("删除", color = MaterialTheme.colorScheme.error)
+            }
         }
         LinearProgressIndicator(
             progress = { (index.toFloat() / total).coerceIn(0f, 1f) },
@@ -234,5 +240,21 @@ fun StudyScreen(
                 }
             }
         }
+    }
+
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("删除这张卡？") },
+            text = { Text("「${card.front}」将从词汇库永久删除，不影响练习记录。") },
+            confirmButton = {
+                TextButton(onClick = { confirmDelete = false; onDelete() }) {
+                    Text("删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDelete = false }) { Text("取消") }
+            },
+        )
     }
 }

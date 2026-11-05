@@ -81,6 +81,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         db.cards().updateSrs(card.id, s.ease, s.intervalDays, s.reps, s.lapses, s.dueAt, System.currentTimeMillis())
     }
 
+    /** 手动删除一张卡；返回后调用方负责把它从当前学习队列移除。 */
+    suspend fun delete(card: Card) = db.cards().deleteById(card.id)
+
     /** 把一次练习的批注转成复习卡，不调用模型；去重后写入 AI 池，超上限自动淘汰。 */
     suspend fun addFixesAsCards(fixes: List<String>, module: String): Int {
         if (fixes.isEmpty()) return 0
