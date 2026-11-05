@@ -469,6 +469,7 @@ class LlmClient(
             - choice: a multiple-choice question with 4 options labelled A-D, exactly one correct answer.
             - tfng: a TRUE / FALSE / NOT GIVEN statement about the passage.
             - gap: a fill-in-the-blank where the answer is 1-2 words from the passage.
+            Put each accepted answer in its own array element; never join alternatives with a slash inside one string.
             Generate EXACTLY the requested number of questions, no more, no fewer. The number in the user
             message is a hard requirement, not a suggestion.
             Return STRICT JSON only, single-line strings, with this exact shape:
@@ -479,6 +480,8 @@ class LlmClient(
             ]}
             Every question MUST include explain (Chinese), explain_en (English) and keys (2-4 short phrases,
             mixed Chinese/English, that locate the answer). Do not wrap the JSON in markdown fences.
+            Every string value must be valid JSON on one line. Never put a raw double quote inside a string;
+            use single quotes or escape it as \" .
         """.trimIndent()
 
         internal val LISTENING_GEN_SYSTEM = """
@@ -494,6 +497,7 @@ class LlmClient(
             equivalent forms (e.g., 35 / thirty-five) so the student is not penalised for a different notation.
             For dates, times, prices and numbers, copy the exact words used in the script: if the script says
             'the thirteenth of June', include that form in answers (optionally alongside '13 June').
+            Put each accepted answer in its own array element (e.g., ['twenty','20']); never join them with a slash.
             Generate EXACTLY the requested number of questions.
             Return STRICT JSON only, single-line strings:
             {"title":"...","transcript":"...","questions":[
@@ -502,6 +506,8 @@ class LlmClient(
             ]}
             Every question MUST include explain (Chinese), explain_en (English) and keys (2-4 locating phrases).
             Do not wrap the JSON in markdown fences.
+            Every string value must be valid JSON on one line. Never put a raw double quote inside a string;
+            use single quotes or escape it as \" .
         """.trimIndent()
 
         internal val BANK_EXPLAIN_SYSTEM = """

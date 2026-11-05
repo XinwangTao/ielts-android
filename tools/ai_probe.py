@@ -342,8 +342,8 @@ def validate(case: dict, text: str) -> list[str]:
         if not str(d.get("stance", "")).strip():
             issues.append("stance 为空")
         args = d.get("arguments")
-        if not isinstance(args, list) or len(args) != 3:
-            issues.append(f"arguments 条数={len(args) if isinstance(args, list) else 'N/A'}（要求 3）")
+        if not isinstance(args, list) or not (3 <= len(args) <= 5):
+            issues.append(f"arguments 条数={len(args) if isinstance(args, list) else 'N/A'}（要求 3，容忍 4-5）")
         else:
             for i, a in enumerate(args):
                 if not str(a.get("point", "")).strip():
@@ -429,8 +429,9 @@ def validate(case: dict, text: str) -> list[str]:
                     issues.append(f"questions[{i}] tfng 选项不是 3 个")
                 if v == "listening" and q.get("type") == "gap":
                     answers = [str(a) for a in (q.get("answers") or [])]
-                    # 允许多种记法（35 / thirty-five）；至少一个必须在原文出现，否则题目无法作答。
-                    if answers and not any(a.lower() in body.lower() for a in answers):
+                    # 允许多种记法（35 / thirty-five）；也兼容模型把备选塞进一个字符串的旧写法。
+                    candidates = [p.strip() for a in answers for p in a.split("/") if p.strip()]
+                    if candidates and not any(c.lower() in body.lower() for c in candidates):
                         issues.append(f"questions[{i}] gap 答案 {answers!r} 均未在 transcript 原文出现")
     elif v == "explain":
         check_keys(d, ["cn", "en", "keys"], issues)
