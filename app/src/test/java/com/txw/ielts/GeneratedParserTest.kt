@@ -104,6 +104,43 @@ class GeneratedParserTest {
     }
 
     @Test
+    fun `choice 答案写字母时折回选项原文`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"choice","prompt":"Q1","options":["alpha","beta","gamma","delta"],"answers":["B"]},
+            {"type":"choice","prompt":"Q2","options":["alpha","beta"],"answers":["(c)"]},
+            {"type":"choice","prompt":"Q3","options":["alpha","beta","gamma"],"answers":["D."]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals("beta", r.questions[0].answers[0])
+        // 越界字母不猜，保持原样
+        assertEquals("(c)", r.questions[1].answers[0])
+        assertEquals("D.", r.questions[2].answers[0])
+    }
+
+    @Test
+    fun `choice 答案带字母前缀时取选项原文`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"choice","prompt":"Q1","options":["alpha","beta","gamma","delta"],"answers":["b. beta"]},
+            {"type":"choice","prompt":"Q2","options":["alpha","beta","gamma"],"answers":["C) gamma"]},
+            {"type":"choice","prompt":"Q3","options":["alpha","beta"],"answers":["A. beta"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals("beta", r.questions[0].answers[0])
+        assertEquals("gamma", r.questions[1].answers[0])
+        // 序号与原文不一致时按原文定位
+        assertEquals("beta", r.questions[2].answers[0])
+    }
+
+    @Test
+    fun `choice 答案已是选项原文时保持不动`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"choice","prompt":"Q1","options":["Alpha","Beta"],"answers":["beta"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals("beta", r.questions[0].answers[0])
+    }
+
+    @Test
     fun `tfng 缺选项时补标准三选项并归一化答案`() {
         val raw = """{"passage":"Body","questions":[
             {"type":"TFNG","prompt":"Q1","answers":["T"]},

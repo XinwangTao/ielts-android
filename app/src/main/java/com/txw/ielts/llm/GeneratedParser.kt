@@ -63,6 +63,10 @@ object GeneratedParser {
                 "choice" -> if (options.size < 2) {
                     type = "gap"
                     options = emptyList()
+                } else {
+                    // 提示词要求答案写选项原文，但模型常只写 "B" / "(B)" / "B. 选项原文"。
+                    // 不折回原文的话，用户点了正确选项也判错，整套题白做。
+                    answers = answers.map { canonicalChoice(it, options) }
                 }
                 "tfng" -> {
                     if (options.size < 2) options = DEFAULT_TFNG
@@ -91,6 +95,38 @@ object GeneratedParser {
     private val ws = Regex("\\s+")
 
     private val DEFAULT_TFNG = listOf("TRUE", "FALSE", "NOT GIVEN")
+
+    /** 只含选项字母：「B」「(b)」「C.」「D、」。 */
+    private val CHOICE_LETTER = Regex("^[（(]?([A-Za-z])[)）.．:：、]?$")
+
+    /** 字母 + 选项原文：「B. The depth of soil」「(C) ...」。 */
+    private val CHOICE_PREFIX = Regex("^[（(]?([A-Za-z])[)）.．:：、]\\s*(.+)$")
+
+    /**
+     * choice 答案折回选项原文：先比原文，再认字母，最后认「字母 + 原文」。
+     * 字母越界（只有 4 个选项却给 E）原样保留，不去猜。
+     */
+    private fun canonicalChoice(answer: String, options: List<String>): String {
+        val a = answer.trim()
+        if (options.any { it.trim().equals(a, ignoreCase = true) }) return a
+        CHOICE_LETTER.find(a)?.let { m ->
+            optionAt(m.groupValues[1], options)?.let { return it }
+        }
+        CHOICE_PREFIX.find(a)?.let { m ->
+            val rest = m.groupValues[2].trim()
+            // 序号可能与原文不完全一致：先认序号对应的选项，对不上再按原文全表找。
+            val byIndex = optionAt(m.groupValues[1], options)
+            if (byIndex != null && byIndex.equals(rest, ignoreCase = true)) return byIndex
+            options.firstOrNull { it.trim().equals(rest, ignoreCase = true) }?.let { return it.trim() }
+            if (byIndex != null) return byIndex
+        }
+        return a
+    }
+
+    private fun optionAt(letter: String, options: List<String>): String? {
+        val i = letter.uppercase()[0] - 'A'
+        return options.getOrNull(i)?.trim()?.takeIf { it.isNotBlank() }
+    }
 
     /** TFNG 答案的常见缩写归一化；判分本身忽略大小写与空格，这里统一成 UI 选项文本。 */
     private fun canonicalTfng(answer: String): String {
