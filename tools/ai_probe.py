@@ -171,6 +171,9 @@ By 2015, the pattern had changed. Housing rose to 26%, overtaking food, which dr
 
 In summary, the main changes were the sharp rise in housing costs and the decline in food spending, while transport and most other categories remained relatively stable."""
 
+# 弱作文：约 80 词、简单句、零具体例证。用来验评分是否有区分度（应明显低于 ESSAY_T2）。
+ESSAY_WEAK = """Some people think students should study what they like. Others think they should study useful subjects. I agree with the second view. First, useful subjects help students find jobs. For example, computer science graduates can work in big companies. Second, useful subjects are good for the economy. If students study art, they may not find a job. So I think students should study useful subjects. In conclusion, useful subjects are better."""
+
 TRANSCRIPT_SPEAKING = """I would like to talk about learning to swim, which was really difficult for me at the beginning. I learned it when I was 22 years old, during a summer holiday at the coast. My friend Tom taught me the basics in a shallow pool before we moved to the sea. At first I was terrified of putting my face under the water, and I could not float at all. The main reason it was difficult is that I had a bad experience as a child, so I panicked easily. I practiced for about half an hour every morning for two weeks, and I watched short videos to copy the arm movements. Slowly I became confident, and by the end of the holiday I could swim 50 meters without stopping. I feel proud of it now, because it taught me that patience and small daily steps can overcome fear."""
 
 TABLE_DATA = """Food: 24% (1995) → 18% (2015)
@@ -211,6 +214,9 @@ def cases() -> list[dict]:
     return [
         dict(name="scoring_writing_task2", system=sys_w,
              user=f"Task: {topic2}\nWord count: {words(ESSAY_T2)}\n\nEssay:\n{ESSAY_T2}{weakness}",
+             validate="writing"),
+        dict(name="scoring_writing_weak", system=sys_w,
+             user=f"Task: {topic2}\nWord count: {words(ESSAY_WEAK)}\n\nEssay:\n{ESSAY_WEAK}",
              validate="writing"),
         dict(name="scoring_writing_task1", system=sys_t1,
              user=f"Chart data:\n{t1_topic}\n\nWord count: {words(REPORT_T1)}\n\nReport:\n{REPORT_T1}",
@@ -428,6 +434,18 @@ def main() -> int:
 
     total = len(results)
     failed = sum(1 for r in results if not r["ok"])
+    by_name = {r["name"]: r for r in results}
+    calibration = ""
+    if "scoring_writing_task2" in by_name and "scoring_writing_weak" in by_name:
+        try:
+            s = json_body(by_name["scoring_writing_task2"]["raw"]).get("overall")
+            w = json_body(by_name["scoring_writing_weak"]["raw"]).get("overall")
+            calibration = f"强作文 overall={s}，弱作文 overall={w}"
+            if isinstance(s, (int, float)) and isinstance(w, (int, float)) and w >= s:
+                calibration += "（警告：弱作文不低于强作文，区分度不足）"
+            print(f"[校准] {calibration}")
+        except Exception:
+            calibration = "校准比较失败（原始输出无法解析）"
     print(f"\n== {total - failed}/{total} 通过，{failed} 失败 ==")
 
     if args.report:
@@ -448,6 +466,8 @@ def main() -> int:
         ]
         for r in results:
             lines.append(f"| {r['name']} | {'✅' if r['ok'] else '❌'} | {r['elapsed']:.1f}s | {'; '.join(r['issues']).replace('|','/') or '—'} |")
+        if calibration:
+            lines += ["", f"**评分区分度**：{calibration}"]
         lines += ["", "## 原始输出", ""]
         for r in results:
             lines += [f"### {r['name']}", "", "```json", r["raw"][:20000], "```", ""]
