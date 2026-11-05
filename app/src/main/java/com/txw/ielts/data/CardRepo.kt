@@ -178,7 +178,8 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     suspend fun addLookupWord(word: String, phonetic: String, translation: String): Boolean {
         val front = CardText.front(word, CardText.SHORT_MAX).lowercase()
         if (front.isBlank()) return false
-        if (db.cards().countByFront(front) > 0) return false
+        val key = CardText.key(front)
+        if (db.cards().allFronts().any { CardText.key(it) == key }) return false
         val back = buildString {
             if (phonetic.isNotBlank()) append("/").append(phonetic).append("/\n")
             append(translation)
@@ -204,8 +205,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         val unique = words.map { CardText.front(it, CardText.SHORT_MAX).lowercase() }
             .filter { it.isNotBlank() }
             .distinctBy { CardText.key(it) }
+        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
         val cards = unique.mapNotNull { w ->
-            if (db.cards().countByFront(w) > 0) return@mapNotNull null
+            if (!seen.add(CardText.key(w))) return@mapNotNull null
             Card(
                 type = "error",
                 front = w,
@@ -225,12 +227,11 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     /** AI 生词/搭配卡：正面=搭配，背面=中文释义，例句单独存；按 front 去重后进入 AI 池。 */
     suspend fun addVocabCards(items: List<com.txw.ielts.llm.VocabItem>): Int {
         if (items.isEmpty()) return 0
-        val seen = HashSet<String>()
+        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
         val cards = items.mapNotNull { v ->
             val front = CardText.front(v.phrase, CardText.SHORT_MAX).lowercase()
             if (front.isBlank()) return@mapNotNull null
             if (!seen.add(CardText.key(front))) return@mapNotNull null
-            if (db.cards().countByFront(front) > 0) return@mapNotNull null
             Card(
                 type = "collocation",
                 front = front,
