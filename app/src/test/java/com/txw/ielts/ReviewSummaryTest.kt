@@ -50,6 +50,21 @@ class ReviewSummaryTest {
     }
 
     @Test
+    fun `复盘提示词不包含 null 改进点`() {
+        // 模型输出的 [null] 曾在复盘摘要里变成字面量 "null" 喂回给模型。
+        val sessions = listOf(
+            Session(
+                module = "writing", status = "done", startedAt = now - 1_000,
+                scoresJson = """{"overall":6.5}""",
+                fixesJson = """{"fixes":["主谓一致",null,"null"]}""",
+            ),
+        )
+        val s = ReviewSummary.build(sessions, 6.5f, emptyList(), now)
+        assertTrue(s, s.contains("主谓一致"))
+        assertFalse(s, s.contains("null"))
+    }
+
+    @Test
     fun `超过 7 天的记录不进入复盘`() {
         val old = Session(
             module = "writing", status = "done", startedAt = now - 8L * 86_400_000L,

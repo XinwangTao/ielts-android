@@ -359,13 +359,56 @@ object ScoreSanitizer {
         return sb.toString()
     }
 
-    /** 从 JSON 对象中读数组字段为 List<String>（兼容 top_fixes / fixes）；过滤空白项。 */
+    /**
+     * 读「字符串数组」字段（top_fixes / fixes 这类）。
+     *
+     * 4B 模型在这类数组里什么都写：JSON null、字面量 "null"、裸数字、布尔、空串。
+     * 原来直接 `toString()` 会把 null 洗成字面量 "null"、把 3 洗成 "3.0"：
+     * 结果页会出现一条叫 null 的改进点，「高频问题」统计也被污染，
+     * 入库时还会沉淀成正面/背面都是 null 的 AI 批注卡。
+     * 这里只收 String/Number/Boolean 标量（数字按整数文本输出），其余丢弃；
+     * 重复条目按 [CardText.key] 归一后只留第一条（模型常把同一条建议写两遍）。
+     * 某个别名 key 存在但内容全是垃圾时继续找下一个别名（如 top_fixes 空、fixes 有值）。
+     */
     fun strings(o: JSONObject, vararg keys: String): List<String> {
         for (k in keys) {
-            val arr = o.optJSONArray(k) ?: continue
-            return (0 until arr.length()).map { arr.get(it).toString().trim() }.filter { it.isNotBlank() }
+            val arr = o.optJSONArray(k)
+            val items = if (arr != null) {
+                (0 until arr.length()).mapNotNull { i -> scalarText(arr.opt(i)) }
+            } else {
+                scalarText(o.opt(k))?.let { listOf(it) } ?: emptyList()
+            }
+            val seen = HashSet<String>()
+            val out = items.filter { seen.add(CardText.key(it)) }
+            if (out.isNotEmpty()) return out
         }
         return emptyList()
+    }
+
+    /** JSON 标量转文本；对象/数组/缺失/null/空串/字面量 null 都返回 null（按无效项丢弃）。 */
+    private fun scalarText(v: Any?): String? {
+        if (v == null || v == JSONObject.NULL) return null
+        val text = when (v) {
+            is String -> v.trim()
+            is Number -> numberText(v)
+            is Boolean -> v.toString()
+            else -> return null
+        }
+        // 模型有时把 JSON null 写成字符串 "null"/"undefined"，同样不能当改进点。
+        if (text.isBlank() || text.lowercase() in NULL_LITERALS) return null
+        return text
+    }
+
+    private val NULL_LITERALS = setOf("null", "undefined")
+
+    /** JSON 无整数类型之分：3 可能是 Integer/Long，3.0 是 Double。整数值按整数文本输出。 */
+    private fun numberText(n: Number): String {
+        val d = n.toDouble()
+        return if (d.isFinite() && d == kotlin.math.floor(d) && kotlin.math.abs(d) < 1e15) {
+            d.toLong().toString()
+        } else {
+            n.toString()
+        }
     }
 
     fun num(o: JSONObject, vararg keys: String): Double {
@@ -458,9 +501,9 @@ object ScoreSanitizer {
         val out = ArrayList<SentenceFix>(arr.length())
         for (i in 0 until arr.length()) {
             val x = runCatching { arr.getJSONObject(i) }.getOrNull() ?: continue
-            val sentence = x.optString("sentence").trim()
-            val issue = x.optString("issue").trim()
-            val better = x.optString("better").trim()
+            val sentence = field(x, "sentence")
+            val issue = field(x, "issue")
+            val better = field(x, "better")
             if (sentence.isBlank() || better.isBlank()) continue
             // 只改大小写/空白/句末标点不算改写，卡片学不到任何东西。
             if (CardText.key(sentence) == CardText.key(better)) continue
@@ -468,6 +511,16 @@ object ScoreSanitizer {
             out.add(SentenceFix(sentence = sentence, issue = issue, better = better))
         }
         return out
+    }
+
+    /**
+     * 读逐句改法里的文本字段。
+     * Android 的 `optString` 对 JSON null 会返回字面量 "null"（本地模型也常直接写 "null"），
+     * 不清掉的话卡片背面会出现「（null）」，原句/改写是 null 的条目还会变成空操作卡。
+     */
+    private fun field(o: JSONObject, key: String): String {
+        val text = o.optString(key).trim()
+        return if (text.lowercase() in NULL_LITERALS) "" else text
     }
 
     @Suppress("unused")

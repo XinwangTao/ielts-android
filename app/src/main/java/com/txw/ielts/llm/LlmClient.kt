@@ -312,13 +312,8 @@ class LlmClient(
         return 0.0
     }
 
-    private fun strings(o: JSONObject, vararg keys: String): List<String> {
-        for (k in keys) {
-            val arr = o.optJSONArray(k) ?: continue
-            return (0 until arr.length()).map { arr.get(it).toString() }
-        }
-        return emptyList()
-    }
+    /** top_fixes/fixes 的清洗与本地评分共用一套，避免云端路径出现 "null"/"3.0" 这类脏条目。 */
+    private fun strings(o: JSONObject, vararg keys: String): List<String> = ScoreSanitizer.strings(o, *keys)
 
     /** 截取第一个完整 JSON 对象，并把字符串值里的裸控制字符替换成空格。 */
     private fun extractJson(content: String): String {

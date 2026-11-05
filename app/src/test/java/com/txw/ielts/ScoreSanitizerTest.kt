@@ -271,12 +271,73 @@ class ScoreSanitizerTest {
     }
 
     @Test
-    fun `口语 P 用别名 PR 也能识别`() {
-        val raw = """{"GRA":7,"LR":7,"FC":7,"PR":7.5,"overall":7,"top_fixes":["a"]}"""
+    fun `top_fixes 里的 null_数字与空串会被清洗`() {
+        // 4B 模型在数组里混写 JSON null、字面量 "null"、裸数字/布尔、空串与嵌套结构。
+        // 直接 toString() 会让结果页出现叫 null 的改进点、数字变成 "3.0"。
+        val raw = """
+            {"TR":7,"CC":7,"LR":7,"GRA":7,"overall":7,
+             "top_fixes":["  补例证  ",null,"null",3,true,"",{"x":1},["y"]],
+             "polished":"x"}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toWritingEval(raw, wordCount = 300, essay = "For example, 60% of them did.")
+        assertEquals(listOf("补例证", "3", "true"), eval.fixes)
+    }
+
+    @Test
+    fun `top_fixes 全是垃圾时不算改进点_不封顶 overall`() {
+        // 模型输出 [null] 时旧逻辑会得到 fixes=["null"]，hasFixes=true 把 overall 从 8.0 压到 7.5，
+        // 相当于凭一条不存在的问题给学生扣分。
+        val raw = """
+            {"TR":8,"CC":8,"LR":8,"GRA":8,"overall":8,
+             "top_fixes":[null,"null","   "],"polished":""}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toWritingEval(raw, wordCount = 300, essay = "For example, 60% of them did.")
+        assertTrue(eval.fixes.isEmpty())
+        assertEquals(8.0, eval.overall, 0.0)
+    }
+
+    @Test
+    fun `top_fixes 为空时回退到 fixes 别名`() {
+        // 有的模型会同时写 top_fixes 与 fixes；前者是空数组时旧逻辑直接返回空，丢掉后者。
+        val raw = """
+            {"TR":7,"CC":7,"LR":7,"GRA":7,"overall":7,
+             "top_fixes":[],"fixes":["先补例证"],"polished":"x"}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toWritingEval(raw, wordCount = 300, essay = "For example, 60% of them did.")
+        assertEquals(listOf("先补例证"), eval.fixes)
+    }
+
+    @Test
+    fun `重复的 top_fixes 只保留一条`() {
+        // 同一建议换个句末标点写两遍，会让「高频问题」重复计数，也会在结果页重复展示。
+        val raw = """
+            {"FC":7,"LR":7,"GRA":7,"P":7,"overall":7,
+             "top_fixes":["补例证","补例证。"," 补例证 ",null],"improved":"x"}
+        """.trimIndent()
         val eval = ScoreSanitizer.toSpeakingEval(raw, wordCount = 120)
-        assertEquals(7.5, eval.pronunciation, 0.0)
-        // 明确给了 P，就不该再插一条「估算」说明
-        assertTrue(!eval.estimatedP)
-        assertTrue(eval.fixes.none { it.contains("估算") })
+        assertEquals(listOf("补例证"), eval.fixes)
+    }
+
+    @Test
+    fun `逐句改法里的 null 文本字段被丢弃`() {
+        // Android 的 optString 会把 JSON null 变成字面量 "null"，本地模型也会直接写 "null"：
+        // 原句为 null 的条目会变成空操作卡，issue 为 null 时卡片背面出现「（null）」。
+        val raw = """
+            {"TR":7,"CC":7,"LR":7,"GRA":7,"overall":7,
+             "top_fixes":["补例证"],
+             "polished":"x",
+             "sentence_fixes":[
+               {"sentence":"null","issue":"时态","better":"I went."},
+               {"sentence":"I go.","issue":"null","better":"I went."},
+               {"sentence":"It is fine.","issue":"undefined","better":"It is really fine."}
+             ]}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toWritingEval(raw, wordCount = 300, essay = "For example, 60% of them did.")
+        assertEquals(2, eval.sentenceFixes.size)
+        assertEquals("I go.", eval.sentenceFixes[0].sentence)
+        assertEquals("", eval.sentenceFixes[0].issue)
+        assertEquals("It is fine.", eval.sentenceFixes[1].sentence)
+        assertEquals("", eval.sentenceFixes[1].issue)
+        assertEquals("It is really fine.", eval.sentenceFixes[1].better)
     }
 }

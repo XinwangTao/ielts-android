@@ -38,10 +38,9 @@ object ReviewSummary {
                     if (band > 0) "Band " + String.format(Locale.US, "%.1f", band) else "未出分"
                 }
             }
+            // 复盘提示词同样不能出现字面量 "null"/"3.0"：与评分结果共用清洗逻辑。
             val fixes = runCatching {
-                JSONObject(s.fixesJson).optJSONArray("fixes")?.let { a ->
-                    (0 until a.length()).map { a.get(it).toString() }.filter { it.isNotBlank() }.take(2)
-                } ?: emptyList()
+                ScoreSanitizer.strings(JSONObject(s.fixesJson), "fixes").take(2)
             }.getOrDefault(emptyList())
             "- ${s.module}: $score; fixes: ${fixes.joinToString("; ").ifBlank { "无" }}"
         }.ifEmpty { listOf("- 最近 7 天没有完成的练习") }
