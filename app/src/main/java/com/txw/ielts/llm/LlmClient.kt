@@ -23,6 +23,8 @@ data class SpeakingEval(
     val fluency: Double, val lexical: Double, val grammar: Double, val pronunciation: Double,
     val overall: Double, val fixes: List<String>, val improved: String, val rawJson: String,
     val sentenceFixes: List<SentenceFix> = emptyList(),
+    /** P 模型没给、由 FC/LR/GRA 均值兜底：单独标记，不能混进 fixes 污染弱点统计。 */
+    val estimatedP: Boolean = false,
 )
 
 /** AI 生成的一道阅读题，字段与 BankQuestion 对齐。 */

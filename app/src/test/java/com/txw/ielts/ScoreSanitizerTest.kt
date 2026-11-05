@@ -230,7 +230,9 @@ class ScoreSanitizerTest {
         val eval = ScoreSanitizer.toSpeakingEval(raw, wordCount = 120)
         // (7 + 7 + 6.5) / 3 = 6.833 → 7.0
         assertEquals(7.0, eval.pronunciation, 0.0)
-        assertTrue("估算说明应放在最前", eval.fixes.first().contains("估算"))
+        assertTrue(eval.estimatedP)
+        // 估算说明不能混进 fixes，否则会被「高频问题」统计成发音弱点
+        assertTrue(eval.fixes.none { it.contains("估算") })
     }
 
     @Test
@@ -239,6 +241,7 @@ class ScoreSanitizerTest {
         val eval = ScoreSanitizer.toSpeakingEval(raw, wordCount = 120)
         assertEquals(7.5, eval.pronunciation, 0.0)
         // 明确给了 P，就不该再插一条「估算」说明
+        assertTrue(!eval.estimatedP)
         assertTrue(eval.fixes.none { it.contains("估算") })
     }
 }

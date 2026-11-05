@@ -216,8 +216,14 @@ fun ResultScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Text("* 发音为估计值：只看转写文本与语速/填充词，不是声学评分",
-                    style = MaterialTheme.typography.labelSmall)
+                Text(
+                    if (metrics?.optBoolean("p_estimated", false) == true) {
+                        "* 发音为估计值：本次模型未单独给出 P，已按流利/词汇/语法均值估算"
+                    } else {
+                        "* 发音为估计值：只看转写文本与语速/填充词，不是声学评分"
+                    },
+                    style = MaterialTheme.typography.labelSmall,
+                )
             }
         }
 

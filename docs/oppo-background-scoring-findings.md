@@ -163,8 +163,10 @@ OPPO 真机（session 21）本地口语评分完成一次模型生成后，通�
 ## 10.2 修复
 
 - `ScoreSanitizer.toSpeakingEval` 增加别名 `P / PR / pron / pronunciation / pronunciation_score`；
-  仍缺时按 `(FC + LR + GRA) / 3` 估算 P，并在 `top_fixes` 最前插入
-  「发音（P）模型未单独给出，已按流利/词汇/语法均值估算，仅供参考」。
+  仍缺时按 `(FC + LR + GRA) / 3` 估算 P，并通过 `SpeakingEval.estimatedP` 单独标记；
+  `ScoreService` 把标记写进 `fixesJson.metrics.p_estimated`，结果页在发音说明处显示
+  「本次模型未单独给出 P，已按…估算」。**不写进 fixes**——fixes 会进「高频问题」统计，
+  把模型漏项算成学生「发音（估计）」弱点是错误归因。
 - 本地与云端口语提示词都加了一句：
   `All five score keys (FC, LR, GRA, P, overall) are mandatory. Never omit P.`
 - 单测：`ScoreSanitizerTest` 新增「缺 P 估算」「PR 别名」两例，16/16 通过。

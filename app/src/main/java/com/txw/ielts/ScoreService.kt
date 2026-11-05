@@ -203,7 +203,9 @@ class ScoreService : Service() {
             val fixesJson = JSONObject().apply {
                 put("fixes", JSONArray(eval.fixes))
                 // 客观指标单独存，结果页展示；也让用户知道 P 维度不是凭空评分。
-                put("metrics", JSONObject().put("wpm", wpm).put("fillers", fillers).put("words", words))
+                put("metrics", JSONObject()
+                    .put("wpm", wpm).put("fillers", fillers).put("words", words)
+                    .put("p_estimated", eval.estimatedP))
                 if (eval.sentenceFixes.isNotEmpty()) {
                     put("sentence_fixes", JSONArray().apply {
                         eval.sentenceFixes.forEach { sf ->
