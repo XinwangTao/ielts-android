@@ -90,9 +90,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         val seen = HashSet<String>()
         val cards = fixes.mapNotNull { raw ->
             val text = raw.trim()
-            if (text.isBlank()) return@mapNotNull null
-            val head = if (text.length > 70) text.take(70).trimEnd() + "…" else text
-            if (!seen.add(head.lowercase())) return@mapNotNull null
+            val head = CardText.front(raw, CardText.FIX_MAX)
+            if (head.isBlank()) return@mapNotNull null
+            if (!seen.add(CardText.key(head))) return@mapNotNull null
             if (db.cards().countByFront(head) > 0) return@mapNotNull null
             Card(
                 type = "error",
@@ -115,7 +115,7 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         if (items.isEmpty()) return 0
         val cards = items.mapNotNull { (sentence, issue, better) ->
             if (sentence.isBlank() || better.isBlank()) return@mapNotNull null
-            val front = "改错：${sentence.trim()}"
+            val front = "改错：" + CardText.front(sentence, 160)
             if (db.cards().countByFront(front) > 0) return@mapNotNull null
             Card(
                 type = "cloze",
@@ -140,9 +140,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     suspend fun addBankWrong(rows: List<BankWrong>, module: String): Int {        if (rows.isEmpty()) return 0
         val seen = HashSet<String>()
         val cards = rows.mapNotNull { row ->
-            val head = if (row.prompt.length > 80) row.prompt.take(80).trimEnd() + "…" else row.prompt.trim()
+            val head = CardText.front(row.prompt, CardText.BANK_MAX)
             if (head.isBlank()) return@mapNotNull null
-            if (!seen.add(head.lowercase())) return@mapNotNull null
+            if (!seen.add(CardText.key(head))) return@mapNotNull null
             if (db.cards().countByFront(head) > 0) return@mapNotNull null
             Card(
                 type = "error",
@@ -165,7 +165,7 @@ class CardRepo(private val context: Context, private val db: AppDb) {
 
     /** 阅读查词加入生词本：正面=单词，背面=音标+释义；重复添加返回 false。 */
     suspend fun addLookupWord(word: String, phonetic: String, translation: String): Boolean {
-        val front = word.trim().lowercase()
+        val front = CardText.front(word, CardText.SHORT_MAX).lowercase()
         if (front.isBlank()) return false
         if (db.cards().countByFront(front) > 0) return false
         val back = buildString {
@@ -189,7 +189,10 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     }
 
     /** 跟读漏读词入库：词做正面，说明做背面；去重后与 AI 池共用上限。 */
-    suspend fun addShadowWords(words: List<String>): Int {        val unique = words.map { it.trim().lowercase() }.filter { it.isNotBlank() }.distinct()
+    suspend fun addShadowWords(words: List<String>): Int {
+        val unique = words.map { CardText.front(it, CardText.SHORT_MAX).lowercase() }
+            .filter { it.isNotBlank() }
+            .distinctBy { CardText.key(it) }
         val cards = unique.mapNotNull { w ->
             if (db.cards().countByFront(w) > 0) return@mapNotNull null
             Card(
@@ -213,9 +216,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         if (items.isEmpty()) return 0
         val seen = HashSet<String>()
         val cards = items.mapNotNull { v ->
-            val front = v.phrase.trim().lowercase()
+            val front = CardText.front(v.phrase, CardText.SHORT_MAX).lowercase()
             if (front.isBlank()) return@mapNotNull null
-            if (!seen.add(front)) return@mapNotNull null
+            if (!seen.add(CardText.key(front))) return@mapNotNull null
             if (db.cards().countByFront(front) > 0) return@mapNotNull null
             Card(
                 type = "collocation",

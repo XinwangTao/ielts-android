@@ -67,7 +67,8 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE source NOT IN ('seed','error','fix')")
     suspend fun countGenerated(): Int
 
-    @Query("SELECT COUNT(*) FROM cards WHERE front = :front")
+    /** 去重判断；大小写不敏感，避免 "However" 与 "however" 各建一张。 */
+    @Query("SELECT COUNT(*) FROM cards WHERE front = :front COLLATE NOCASE")
     suspend fun countByFront(front: String): Int
 
     /** 淘汰：先删从未复习的，再删复习次数最少的；内置卡、练习批注与逐句改法卡永不删除。 */
