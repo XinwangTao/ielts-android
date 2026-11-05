@@ -238,10 +238,16 @@ def cases() -> list[dict]:
              validate="vocab"),
         dict(name="reading_generation", system=sys_read,
              user="Difficulty: 7.0\nQuestion types: choice, tfng, gap\nQuestion count: 6",
-             validate="reading"),
+             validate="reading", count=6),
+        dict(name="reading_generation_8", system=sys_read,
+             user="Difficulty: 7.0\nQuestion types: choice, tfng, gap\nQuestion count: 8",
+             validate="reading", count=8),
         dict(name="listening_generation", system=sys_listen,
              user="Difficulty: 6.5\nQuestion types: choice, gap\nQuestion count: 6",
-             validate="listening"),
+             validate="listening", count=6),
+        dict(name="listening_generation_8", system=sys_listen,
+             user="Difficulty: 6.5\nQuestion types: choice, gap\nQuestion count: 8",
+             validate="listening", count=8),
         dict(name="bank_explain", system=sys_explain,
              user=("Question: The writer says the museum was originally built to store private collections.\n"
                    "Correct answer: NOT GIVEN\nYour answer: TRUE\n"
@@ -368,8 +374,9 @@ def validate(case: dict, text: str) -> list[str]:
         if not (lo <= wc <= hi):
             issues.append(f"{'passage' if v == 'reading' else 'transcript'} 词数={wc}（期望 {lo}-{hi}）")
         qs = d.get("questions")
-        if not isinstance(qs, list) or len(qs) != 6:
-            issues.append(f"questions 条数={len(qs) if isinstance(qs, list) else 'N/A'}（要求 6）")
+        expected_count = case.get("count", 6)
+        if not isinstance(qs, list) or len(qs) != expected_count:
+            issues.append(f"questions 条数={len(qs) if isinstance(qs, list) else 'N/A'}（要求 {expected_count}）")
         else:
             for i, q in enumerate(qs):
                 for k in ("type", "prompt", "answers", "explain", "explain_en", "keys"):

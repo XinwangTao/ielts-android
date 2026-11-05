@@ -108,6 +108,20 @@ class AiProbeFixtureTest {
     }
 
     @Test
+    fun `AI 阅读题 8 题真实输出可解析`() {
+        val r = GeneratedParser.reading(fixture("reading_generation_8"), count = 8)
+        assertTrue(r.passage.isNotBlank())
+        assertEquals(8, r.questions.size)
+    }
+
+    @Test
+    fun `AI 听力题 8 题真实输出可解析`() {
+        val l = GeneratedParser.listening(fixture("listening_generation_8"), count = 8)
+        assertTrue(l.transcript.isNotBlank())
+        assertEquals(8, l.questions.size)
+    }
+
+    @Test
     fun `错题精讲真实输出可解析`() {
         val b = GeneratedParser.bankExplain(fixture("bank_explain"))
         assertTrue(b.cn.isNotBlank())
