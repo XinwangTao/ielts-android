@@ -91,6 +91,31 @@ class GeneratedParserTest {
     }
 
     @Test
+    fun `choice 选项不足时降级为填空题`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"Choice","prompt":"Q1","options":["only"],"answers":["only"]},
+            {"type":"choice","prompt":"Q2","options":["A","B"],"answers":["A"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals("gap", r.questions[0].type)
+        assertEquals(emptyList<String>(), r.questions[0].options)
+        assertEquals("choice", r.questions[1].type)
+        assertEquals(listOf("A", "B"), r.questions[1].options)
+    }
+
+    @Test
+    fun `tfng 缺选项时补标准三选项并归一化答案`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"TFNG","prompt":"Q1","answers":["T"]},
+            {"type":"tfng","prompt":"Q2","answers":["ng"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(listOf("TRUE", "FALSE", "NOT GIVEN"), r.questions[0].options)
+        assertEquals("TRUE", r.questions[0].answers[0])
+        assertEquals("NOT GIVEN", r.questions[1].answers[0])
+    }
+
+    @Test
     fun `精讲兼容 cn-en 与 explain 两套键名`() {
         val a = GeneratedParser.bankExplain("""{"cn":"中文","en":"English","keys":["k1"]}""")
         assertEquals("中文", a.cn)

@@ -52,15 +52,30 @@ object GeneratedParser {
         for (i in 0 until arr.length()) {
             val q = arr.optJSONObject(i) ?: continue
             val prompt = q.optString("prompt").trim()
-            val answers = strings(q, "answers")
-            if (prompt.isBlank() || answers.isEmpty()) continue   // 残题直接丢，不拖垮整套
+            val rawAnswers = strings(q, "answers")
+            if (prompt.isBlank() || rawAnswers.isEmpty()) continue   // 残题直接丢，不拖垮整套
+            // 模型常把 type 写成 Choice/TFNG，或 choice 不给选项、tfng 不写标准选项；
+            // 归一化到 UI 认识的三种题型，避免出现无法作答的题。
+            var type = q.optString("type").ifBlank { "gap" }.trim().lowercase()
+            var options = strings(q, "options")
+            var answers = rawAnswers
+            when (type) {
+                "choice" -> if (options.size < 2) {
+                    type = "gap"
+                    options = emptyList()
+                }
+                "tfng" -> {
+                    if (options.size < 2) options = DEFAULT_TFNG
+                    answers = answers.map { canonicalTfng(it) }
+                }
+            }
             // 模型（尤其 4B）偶尔把同一题写两遍：题干+答案归一化后只收第一次。
             if (!seen.add(questionKey(prompt, answers))) continue
             out.add(
                 GeneratedQuestion(
-                    type = q.optString("type").ifBlank { "gap" },
+                    type = type,
                     prompt = prompt,
-                    options = strings(q, "options"),
+                    options = options,
                     answers = answers,
                     explain = q.optString("explain").trim(),
                     explainEn = q.optString("explain_en").trim(),
@@ -74,6 +89,19 @@ object GeneratedParser {
     }
 
     private val ws = Regex("\\s+")
+
+    private val DEFAULT_TFNG = listOf("TRUE", "FALSE", "NOT GIVEN")
+
+    /** TFNG 答案的常见缩写归一化；判分本身忽略大小写与空格，这里统一成 UI 选项文本。 */
+    private fun canonicalTfng(answer: String): String {
+        val a = answer.trim().uppercase().replace(ws, " ")
+        return when (a) {
+            "T", "TRUE" -> "TRUE"
+            "F", "FALSE" -> "FALSE"
+            "NG", "N", "NOTGIVEN", "NOT GIVEN" -> "NOT GIVEN"
+            else -> answer.trim()
+        }
+    }
 
     /** 归一化题干与答案：忽略大小写和连续空白，用来识别模型重复生成的同一题。 */
     private fun questionKey(prompt: String, answers: List<String>): String =
