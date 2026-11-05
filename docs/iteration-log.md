@@ -8,3 +8,4 @@
 | 2026-11-05 22:44 | AI 出题解析去重：`GeneratedParser.questions` 按归一化题干+答案去重（大小写/空白无关），只保留第一次；题干相同答案不同仍保留 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`GeneratedParserTest` 8/8 通过 |
 | 2026-11-05 22:45 | AI 反馈卡上限：新增 `FeedbackCap`（300 张），练习批注/逐句改法入库后只淘汰已复习过的卡（少复习、早创建先走），未复习的反馈一张不删 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`FeedbackCapTest` 4/4 通过 |
 | 2026-11-05 22:46 | 每日队列名额：新增 `QueuePolicy.freshSlots`，新卡只补到期卡剩余空位并受每日额度约束，修复到期卡多时队列超过 limit=60 的问题 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`QueuePolicyTest` 4/4 通过 |
+| 2026-11-05 22:46 | SM-2 调度回归：新增 10 条单测锁定 Again/Good/Hard/Easy 的间隔、ease 上下限（1.3~2.8）与 180 天封顶 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；`Sm2Test` 10/10 通过 |
