@@ -448,6 +448,7 @@ class LlmClient(
             only if the transcript is clean with at most one minor slip. Most real candidates score 5.5-6.0; Band 7 is
             strong; Band 8 is near-native and rare. Do not inflate.
             Output JSON with sentence_fixes FIRST: {"sentence_fixes":[{"sentence":"exact original sentence","issue":"grammar/vocabulary problem in Chinese","better":"corrected natural version"}],"GRA":x,"LR":x,"FC":x,"P":x,"overall":x,"top_fixes":["..."],"improved":"..."}
+            All five score keys (FC, LR, GRA, P, overall) are mandatory. Never omit P, even when the transcript is short.
             sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
             top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
             improved = a band-7 spoken-style version of the same answer (natural, not written prose).

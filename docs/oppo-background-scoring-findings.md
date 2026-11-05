@@ -148,3 +148,30 @@
 - 真被打断也不会再"永远评分中"：最多 3 分钟会变成「评分被中断，重新评分」，点一下即可。
 - 想后台也能跑，需要系统级白名单（设置 → 电池 → 应用耗电管理 → 本应用 → 允许后台运行），
   本机实测未必生效，不建议当作可靠路径。
+
+---
+
+# 十、2026-11-05：口语评分「缺少 P」整次作废（已修）
+
+## 10.1 现象
+
+OPPO 真机（session 21）本地口语评分完成一次模型生成后，通知显示
+`本地评分失败 / 评分缺少 P：{...}`，会话停回 `pending_local`。模型返回了完整 JSON，
+但漏了 `P`（发音）字段；`ScoreSanitizer.toSpeakingEval` 对该字段做硬校验，缺项直接抛错，
+导致整次评分作废、用户白等一下午。
+
+## 10.2 修复
+
+- `ScoreSanitizer.toSpeakingEval` 增加别名 `P / PR / pron / pronunciation / pronunciation_score`；
+  仍缺时按 `(FC + LR + GRA) / 3` 估算 P，并在 `top_fixes` 最前插入
+  「发音（P）模型未单独给出，已按流利/词汇/语法均值估算，仅供参考」。
+- 本地与云端口语提示词都加了一句：
+  `All five score keys (FC, LR, GRA, P, overall) are mandatory. Never omit P.`
+- 单测：`ScoreSanitizerTest` 新增「缺 P 估算」「PR 别名」两例，16/16 通过。
+
+## 10.3 真机回归
+
+装新 APK 后 force-stop 重启，启动清理把 session 21 重新排队并完成：
+`Band 7.0 / FC 7.0 / LR 7.0 / GRA 6.5 / P 7.5`，通知与结果页正常。
+说明提示词约束 + 缺项兜底生效；P 本次由模型给出，不是估算值。
+

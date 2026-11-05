@@ -421,17 +421,25 @@ object ScoreSanitizer {
             ?: throw java.io.IOException("评分缺少 LR：${rawJson.take(160)}")
         val gra = numOrNull(o, "GRA", "grammatical_range_accuracy")
             ?: throw java.io.IOException("评分缺少 GRA：${rawJson.take(160)}")
-        val p = numOrNull(o, "P", "pron")
-            ?: throw java.io.IOException("评分缺少 P：${rawJson.take(160)}")
+        // P 是转写文本最不可观测的一项，4B 模型偶尔会整项漏掉（真机实测 id=21 因此整次评分失败）。
+        // 先认别名；仍缺就按 FC/LR/GRA 均值估算，并在 fixes 里明确标注「估算」，
+        // 不让一次缺字段把整段口语评分作废。
+        val pRaw = numOrNull(o, "P", "PR", "pron", "pronunciation", "pronunciation_score")
+        val estimatedP = pRaw == null
+        val p = pRaw ?: band((fc + lr + gra) / 3.0)
         val s = sanitizeSpeaking(
             fluency = fc, lexical = lr, grammar = gra, pronunciation = p,
             overall = num(o, "overall", "band"),
             wordCount = wordCount,
         )
+        val fixes = strings(o, "top_fixes", "fixes").toMutableList()
+        if (estimatedP) {
+            fixes.add(0, "发音（P）模型未单独给出，已按流利/词汇/语法均值估算，仅供参考")
+        }
         return SpeakingEval(
             fluency = s.fluency, lexical = s.lexical, grammar = s.grammar,
             pronunciation = s.pronunciation, overall = s.overall,
-            fixes = strings(o, "top_fixes", "fixes"),
+            fixes = fixes,
             improved = cleanPolished(o.optString("improved", o.optString("model_answer", ""))),
             rawJson = rawJson,
             sentenceFixes = parseSentenceFixes(o),

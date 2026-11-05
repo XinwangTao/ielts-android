@@ -63,6 +63,9 @@ object LocalLlmEngine {
     var state: String = "idle"
         private set
 
+    /** 引擎是否正被加载/推理占用：新任务先问一句，避免用户干等十几分钟。 */
+    val isBusy: Boolean get() = engineBusy.get()
+
     /** 背景评分被系统冻住时，不能无限等锁：超过这个时间就报错让用户重试。 */
     private suspend fun acquireEngine(what: String) {
         val deadline = System.currentTimeMillis() + ENGINE_WAIT_MS
@@ -387,6 +390,7 @@ object LocalLlmEngine {
         LR: B4 limited, frequent errors; B5 limited; B6 adequate; B7 flexible, idiomatic; B8 wide, precise.
         GRA: B4 basic with frequent errors; B5 basic with errors; B6 mix, some errors; B7 flexible, mostly error-free; B8 wide range, almost error-free.
         P: ESTIMATE from transcript evidence (self-corrections, mangled ASR words) AND the objective metrics (words/min, filler count); state it is an estimate.
+        All five score keys (FC, LR, GRA, P, overall) are mandatory. Never omit P, even when the transcript is short.
         Use the metrics as evidence: very slow pace or many fillers support a lower FC; near-native pace with few fillers supports a higher FC.
         Hard rules (apply mechanically):
         - 0.5 steps; overall = average rounded; under 20 words or off-topic caps overall at 4.0.

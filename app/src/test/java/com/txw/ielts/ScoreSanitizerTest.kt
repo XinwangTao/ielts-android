@@ -219,4 +219,26 @@ class ScoreSanitizerTest {
         // 列了 1 条错误 → GRA ≤ 7.5（真机 bug：这里曾是 8.0）
         assertEquals(7.5, eval.gra, 0.0)
     }
+
+    @Test
+    fun `口语缺 P 时按三项均值估算而不是整次评分失败`() {
+        // 真机 id=21：模型返回完整口语 JSON 但漏了 P，旧代码直接抛错，整次评分作废。
+        val raw = """
+            {"sentence_fixes":[],"GRA":6.5,"LR":7,"FC":7,"overall":7,
+             "top_fixes":["a","b","c"],"improved":"x"}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toSpeakingEval(raw, wordCount = 120)
+        // (7 + 7 + 6.5) / 3 = 6.833 → 7.0
+        assertEquals(7.0, eval.pronunciation, 0.0)
+        assertTrue("估算说明应放在最前", eval.fixes.first().contains("估算"))
+    }
+
+    @Test
+    fun `口语 P 用别名 PR 也能识别`() {
+        val raw = """{"GRA":7,"LR":7,"FC":7,"PR":7.5,"overall":7,"top_fixes":["a"]}"""
+        val eval = ScoreSanitizer.toSpeakingEval(raw, wordCount = 120)
+        assertEquals(7.5, eval.pronunciation, 0.0)
+        // 明确给了 P，就不该再插一条「估算」说明
+        assertTrue(eval.fixes.none { it.contains("估算") })
+    }
 }
