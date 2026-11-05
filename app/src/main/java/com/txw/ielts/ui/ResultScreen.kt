@@ -106,7 +106,11 @@ fun ResultScreen(
                     val x = a.getJSONObject(i)
                     Triple(x.optString("sentence"), x.optString("issue"), x.optString("better"))
                 }.getOrNull()
-            }.filter { it.first.isNotBlank() && it.third.isNotBlank() }
+            }.filter {
+                // 旧会话里可能存着「原句 → 原句」的无效改法（只差大小写/标点），展示层也挡掉。
+                it.first.isNotBlank() && it.third.isNotBlank() &&
+                    com.txw.ielts.data.CardText.key(it.first) != com.txw.ielts.data.CardText.key(it.third)
+            }
         } ?: emptyList()
     }.getOrDefault(emptyList())
 

@@ -1,5 +1,6 @@
 package com.txw.ielts.llm
 
+import com.txw.ielts.data.CardText
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -443,18 +444,30 @@ object ScoreSanitizer {
         )
     }
 
+    /**
+     * 逐句改法解析：空原句/空改写，以及「改写 = 原句」的无效条目都不保留。
+     *
+     * 提示词要求「即使写得好也要挑 2 条最弱的句子」，4B 模型于是常拿同一句话交差：
+     * 只改大小写或句末标点，甚至原样返回。这类条目会让结果页出现「原句 → 原句」，
+     * 还会沉淀成正面与背面完全相同的改错卡，白占 300 张反馈卡上限。
+     * 同一原句被写两遍时也只收第一条。
+     */
     fun parseSentenceFixes(o: JSONObject): List<SentenceFix> {
         val arr = o.optJSONArray("sentence_fixes") ?: return emptyList()
-        return (0 until arr.length()).mapNotNull {
-            runCatching {
-                val x = arr.getJSONObject(it)
-                SentenceFix(
-                    sentence = x.optString("sentence"),
-                    issue = x.optString("issue"),
-                    better = x.optString("better"),
-                )
-            }.getOrNull()
+        val seen = HashSet<String>()
+        val out = ArrayList<SentenceFix>(arr.length())
+        for (i in 0 until arr.length()) {
+            val x = runCatching { arr.getJSONObject(i) }.getOrNull() ?: continue
+            val sentence = x.optString("sentence").trim()
+            val issue = x.optString("issue").trim()
+            val better = x.optString("better").trim()
+            if (sentence.isBlank() || better.isBlank()) continue
+            // 只改大小写/空白/句末标点不算改写，卡片学不到任何东西。
+            if (CardText.key(sentence) == CardText.key(better)) continue
+            if (!seen.add(CardText.key(sentence))) continue
+            out.add(SentenceFix(sentence = sentence, issue = issue, better = better))
         }
+        return out
     }
 
     @Suppress("unused")

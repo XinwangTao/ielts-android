@@ -144,6 +144,41 @@ class ScoreSanitizerTest {
     }
 
     @Test
+    fun `逐句改法过滤空条_未改动与重复条目`() {
+        // 4B 被提示词逼着列 2–5 条时，常拿同一句话交差：只改大小写/句末标点，甚至原样返回。
+        // 这些条目会变成「原句 → 原句」的展示，并沉淀成正面=背面的改错卡。
+        val raw = """
+            {"TR":7,"CC":7,"LR":7,"GRA":7,"overall":7,
+             "sentence_fixes":[
+               {"sentence":"I go to school yesterday.","issue":"时态","better":"I went to school yesterday."},
+               {"sentence":"This is fine.","issue":"无需修改","better":"this is fine"},
+               {"sentence":"Another sentence.","issue":"无需修改","better":"Another sentence!"},
+               {"sentence":"   ","issue":"空原句","better":"Real better."},
+               {"sentence":"No rewrite.","issue":"空改写","better":"   "},
+               {"sentence":"I go to school yesterday.","issue":"重复","better":"Yesterday I went to school."}
+             ]}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toWritingEval(raw, wordCount = 300, essay = "For example, 60% of them did.")
+        assertEquals(1, eval.sentenceFixes.size)
+        assertEquals("I go to school yesterday.", eval.sentenceFixes[0].sentence)
+        assertEquals("时态", eval.sentenceFixes[0].issue)
+        assertEquals("I went to school yesterday.", eval.sentenceFixes[0].better)
+    }
+
+    @Test
+    fun `全是未改动条目时不算列过错误`() {
+        // 没有真实改写 = 模型没找到错误，GRA 不应按「列了错误」封顶。
+        val raw = """
+            {"TR":8,"CC":8,"LR":8,"GRA":8,"overall":8,
+             "top_fixes":["表达更具体"],
+             "sentence_fixes":[{"sentence":"Same.","issue":"无需修改","better":"same"}]}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toWritingEval(raw, wordCount = 300, essay = "For example, 60% of them did.")
+        assertTrue(eval.sentenceFixes.isEmpty())
+        assertEquals(8.0, eval.gra, 0.0)
+    }
+
+    @Test
     fun `overall 是四项均值而不是模型自报值`() {
         val s = ScoreSanitizer.sanitizeWriting(
             6.0, 6.5, 7.0, 7.0, 5.0, wordCount = 300,

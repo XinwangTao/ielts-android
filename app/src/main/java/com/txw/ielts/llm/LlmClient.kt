@@ -175,22 +175,8 @@ class LlmClient(
             fixes = strings(o, "top_fixes", "fixes"),
             improved = o.optString("improved", o.optString("model_answer", "")),
             rawJson = json,
-            sentenceFixes = parseSentenceFixes(o),
+            sentenceFixes = ScoreSanitizer.parseSentenceFixes(o),
         )
-    }
-
-    private fun parseSentenceFixes(o: JSONObject): List<SentenceFix> {
-        val arr = o.optJSONArray("sentence_fixes") ?: return emptyList()
-        return (0 until arr.length()).mapNotNull {
-            runCatching {
-                val x = arr.getJSONObject(it)
-                SentenceFix(
-                    sentence = x.optString("sentence"),
-                    issue = x.optString("issue"),
-                    better = x.optString("better"),
-                )
-            }.getOrNull()
-        }
     }
 
     /** 把学员历史弱点注入 prompt：让模型重点检查老毛病是否复发（个性化反馈闭环）。 */

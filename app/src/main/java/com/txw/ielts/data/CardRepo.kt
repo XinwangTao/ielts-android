@@ -118,6 +118,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
         val cards = items.mapNotNull { (sentence, issue, better) ->
             if (sentence.isBlank() || better.isBlank()) return@mapNotNull null
+            // 「改写」和原句只差大小写/空白/句末标点时，卡片正面与背面相同，练了也学不到东西；
+            // 旧会话里已存盘的这类条目也要在入库时挡掉。
+            if (CardText.key(sentence) == CardText.key(better)) return@mapNotNull null
             val front = "改错：" + CardText.front(sentence, 160)
             if (!seen.add(CardText.key(front))) return@mapNotNull null
             Card(
