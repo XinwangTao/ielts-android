@@ -358,6 +358,7 @@ private fun App(
     var aiReview by remember { mutableStateOf<com.txw.ielts.llm.AiReview?>(null) }
     var aiReviewBusy by remember { mutableStateOf(false) }
     var aiReviewError by remember { mutableStateOf<String?>(null) }
+    var recoveryNotice by remember { mutableStateOf<String?>(null) }
 
     // 本地评分或本地 AI 生成在跑时钉住屏幕：熄屏会让 ColorOS 冻结进程，
     // 端侧推理（评分 / 提纲 / 范例 / 生词卡 / 复盘）必然中断（docs/oppo-background-scoring-findings.md §九）。
@@ -365,6 +366,11 @@ private fun App(
         sessionsOrNull?.any { it.status == "pending_local" } == true ||
             writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy,
     )
+
+    // 恢复完成后撤掉首页提示：不再有 pending_local 就说明评分已出结果或已转可重试。
+    LaunchedEffect(sessions) {
+        if (recoveryNotice != null && sessions.none { it.status == "pending_local" }) recoveryNotice = null
+    }
 
     // 三个入口共用本地引擎闸门；生成期间界面显示「约 30-60 秒」，失败只影响当前卡片。
     fun localModelMissing(): Boolean =
@@ -494,6 +500,7 @@ private fun App(
             System.currentTimeMillis() - started > 10 * 60_000L
         }
         // 超过 10 分钟仍 pending_local：有文本的自动重新排队（最多 2 条），没有文本的退回可重试。
+        var requeued = false
         stale.take(2).forEach { s ->
             val text = s.transcript.ifBlank { s.essayText }
             if (text.isBlank()) {
@@ -511,6 +518,10 @@ private fun App(
             )
             if (s.module == "speaking") ScoreService.start(context, s.id, "speaking", text)
             else ScoreService.start(context, s.id, "writing", text, task)
+            requeued = true
+        }
+        if (requeued) {
+            recoveryNotice = "上次评分被系统中断，正在恢复（约 1-3 分钟）。可以先去练习，完成后会通知。"
         }
         stale.drop(2).forEach {
             db.sessions().updateResult(
@@ -1634,6 +1645,7 @@ private fun App(
                     targetBand = prefs.targetBand,
                     examDate = prefs.examDate,
                     skillTargets = skillTargets,
+                    recoveryNotice = recoveryNotice,
                 )
 
                 is Route.Writing -> WritingScreen(

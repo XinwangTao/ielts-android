@@ -75,6 +75,7 @@ fun HomeScreen(
     targetBand: Float = 6.5f,
     examDate: String = "",
     skillTargets: SkillTargets? = null,
+    recoveryNotice: String? = null,
 ) {
     val streak = remember(sessions) { StreakCalc.currentStreak(sessions) }
 
@@ -109,6 +110,21 @@ fun HomeScreen(
         HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f), thickness = 1.dp)
         HorizontalDivider(color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.18f), thickness = 0.5.dp)
         Spacer(Modifier.height(18.dp))
+
+        // 启动时自动恢复上次未完成的评分：必须让用户看见，否则会以为 App 自己在后台卡住。
+        if (!recoveryNotice.isNullOrBlank()) {
+            BookCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("正在恢复评分", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        recoveryNotice,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
 
         // 目标差距：让用户每次打开都知道离目标还有多远（目标分与考试日期在设置里改）
         val target = targetBand.toDouble()
