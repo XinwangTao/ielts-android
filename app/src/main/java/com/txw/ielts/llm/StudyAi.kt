@@ -213,10 +213,10 @@ object StudyAi {
     private val VOCAB_SYSTEM = """
         You are an IELTS vocabulary tutor. From the student's essay and the sentence corrections, extract 5-8 useful collocations or phrases worth learning.
         Return STRICT JSON only, with exactly this shape:
-        {"items":[{"phrase":"2-4 word collocation","meaning":"中文释义","example":"one natural English sentence"}]}
+        {"items":[{"phrase":"2-5 word collocation","meaning":"中文释义","example":"one natural English sentence"}]}
         Rules:
         - return 5 to 8 items; never fewer than 5.
-        - each phrase must be 2-4 words at band 6.5-7.5 level, and either appears in the text or is a natural upgrade of it.
+        - each phrase must be 2-5 words at band 6.5-7.5 level, and either appears in the text or is a natural upgrade of it.
         - the meaning MUST explain that exact phrase. Do not borrow the meaning of a neighbouring phrase; if you cannot explain a phrase, skip it and choose another.
         - meaning in Chinese; example in English, different from the student's original sentence.
         - no duplicates; never use a double quote inside a string value.

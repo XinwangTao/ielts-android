@@ -490,7 +490,9 @@ class LlmClient(
             Band 7.0-7.5 = faster, some distractors and corrections before the real answer;
             Band 8.0-9.0 = dense monologue, paraphrase and inference needed.
             Question types ONLY: choice (4 options A-D, one correct), tfng, gap (1-2 words heard in the script).
-            Answers MUST appear verbatim in the transcript. Generate EXACTLY the requested number of questions.
+            For gap questions, at least one accepted answer MUST appear verbatim in the transcript; you may also list
+            equivalent forms (e.g., 35 / thirty-five) so the student is not penalised for a different notation.
+            Generate EXACTLY the requested number of questions.
             Return STRICT JSON only, single-line strings:
             {"title":"...","transcript":"...","questions":[
               {"type":"gap","prompt":"...","options":[],"answers":["..."],"explain":"中文解析","explain_en":"English explanation","keys":["..."]},
