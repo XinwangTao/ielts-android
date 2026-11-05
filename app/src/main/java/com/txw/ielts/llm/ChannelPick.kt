@@ -29,6 +29,18 @@ object ChannelPick {
     private val QUOTA_MARKERS = listOf("403", "429", "11200", "quota", "额度")
 
     /**
+     * 自动模式落到本地时的原因文案；没降级（或用户显式选了通道）返回 null。
+     * 设置页用它提示「为什么现在评分会走本地」，断网时不至于让用户以为模型坏了。
+     */
+    fun localReason(mode: String, cloudDown: Boolean, hasNetwork: Boolean, remainingCalls: Int): String? = when {
+        mode != "auto" -> null
+        !hasNetwork -> "当前无网络"
+        cloudDown -> "云端额度或限流冷却中"
+        remainingCalls <= 0 -> "今日云端额度已用完"
+        else -> null
+    }
+
+    /**
      * 是否属于「额度类失败」。这类失败短期内不会自愈，
      * 命中后应把云端冷却一小时，避免每次评分都先白试一次。
      */

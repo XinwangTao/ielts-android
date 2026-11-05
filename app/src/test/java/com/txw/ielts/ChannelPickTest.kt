@@ -3,6 +3,7 @@ package com.txw.ielts
 import com.txw.ielts.llm.ChannelPick
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -34,6 +35,30 @@ class ChannelPickTest {
     @Test
     fun `auto 一切正常时先试云端`() {
         assertEquals("auto", ChannelPick.effective("auto", cloudDown = false, hasNetwork = true, remainingCalls = 1))
+    }
+
+    @Test
+    fun `自动降级原因按断网 冷却 额度优先级给出`() {
+        // 断网优先于额度冷却：用户先要知道的是「没网」。
+        assertEquals(
+            "当前无网络",
+            ChannelPick.localReason("auto", cloudDown = true, hasNetwork = false, remainingCalls = 0),
+        )
+        assertEquals(
+            "云端额度或限流冷却中",
+            ChannelPick.localReason("auto", cloudDown = true, hasNetwork = true, remainingCalls = 99),
+        )
+        assertEquals(
+            "今日云端额度已用完",
+            ChannelPick.localReason("auto", cloudDown = false, hasNetwork = true, remainingCalls = 0),
+        )
+    }
+
+    @Test
+    fun `未降级或显式选通道时没有提示`() {
+        assertNull(ChannelPick.localReason("auto", cloudDown = false, hasNetwork = true, remainingCalls = 99))
+        assertNull(ChannelPick.localReason("local", cloudDown = false, hasNetwork = false, remainingCalls = 0))
+        assertNull(ChannelPick.localReason("cloud", cloudDown = false, hasNetwork = false, remainingCalls = 0))
     }
 
     @Test

@@ -160,6 +160,19 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
         )
         val localReady = com.txw.ielts.llm.LocalLlmEngine.isReady(context, localModel) ||
             com.txw.ielts.llm.LocalLlmEngine.hasExternalCopy(context, localModel)
+        // 自动模式降级原因：断网/额度冷却时提前说明，否则用户会以为评分变慢是模型坏了。
+        com.txw.ielts.llm.ChannelPick.localReason(
+            channel,
+            cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil,
+            hasNetwork = com.txw.ielts.llm.NetworkStatus.hasNetwork(context),
+            remainingCalls = prefs.remainingCalls(),
+        )?.let { reason ->
+            Text(
+                "$reason，自动模式将使用本地模型评分。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
         Text(
             if (localReady) "当前模型：$localModel；云端额度耗尽或断网时自动离线评分（后台出分并通知）。"
             else "本地模型未部署：选「仅本地」或额度耗尽前，需先推送模型：\n" +
