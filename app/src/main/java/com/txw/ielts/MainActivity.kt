@@ -363,12 +363,21 @@ private fun App(
     )
 
     // 三个入口共用本地引擎闸门；生成期间界面显示「约 30-60 秒」，失败只影响当前卡片。
+    fun localModelMissing(): Boolean =
+        !LocalLlmEngine.isReady(context, prefs.localModel) &&
+            !LocalLlmEngine.hasExternalCopy(context, prefs.localModel)
+
     suspend fun requestWritingOutline(topic: String, task: String) {
         writingOutlineBusy = true
         writingOutlineError = null
         writingOutlineTopic = topic
         if (LocalLlmEngine.isBusy) {
             writingOutlineError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            writingOutlineBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            writingOutlineError = "本地模型未就绪：请到设置页确认模型已投递"
             writingOutlineBusy = false
             return
         }
@@ -393,6 +402,11 @@ private fun App(
             speakingSampleBusy = false
             return
         }
+        if (localModelMissing()) {
+            speakingSampleError = "本地模型未就绪：请到设置页确认模型已投递"
+            speakingSampleBusy = false
+            return
+        }
         try {
             val r = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.speakingSample(context, prefs.localModel, part, question)
@@ -411,6 +425,11 @@ private fun App(
         vocabSessionId = sessionId
         if (LocalLlmEngine.isBusy) {
             vocabError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            vocabBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            vocabError = "本地模型未就绪：请到设置页确认模型已投递"
             vocabBusy = false
             return
         }

@@ -23,6 +23,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -49,6 +50,8 @@ fun IosSegmented(
 ) {
     val innerShape = RoundedCornerShape(8.dp)
     val outerShape = RoundedCornerShape(10.dp)
+    val scroll = rememberScrollState()
+    val density = androidx.compose.ui.platform.LocalDensity.current
     BoxWithConstraints(
         modifier = modifier
             .clip(outerShape)
@@ -58,10 +61,18 @@ fun IosSegmented(
         // 每段至少 56dp：段数多到一屏放不下时改为横向滚动，而不是把最后几段裁掉。
         // 实测 360dp 手机上 AI 出题的 7 档难度、设置页的模型列表都会超过一屏。
         val scrollable = maxWidth < 56.dp * options.size
+        // 重新进入页面时把当前选中项滚到可见区域，否则 9.0 / 最后一个模型会藏在屏幕外。
+        // scroll.maxValue 作为 key：首帧布局完成后 maxValue 才非 0，届时再滚一次。
+        LaunchedEffect(scrollable, selected, scroll.maxValue, options.size) {
+            if (scrollable && selected in options.indices && scroll.maxValue > 0) {
+                val target = with(density) { (56.dp * selected).roundToPx() }
+                scroll.animateScrollTo(target.coerceAtMost(scroll.maxValue))
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (scrollable) Modifier.horizontalScroll(rememberScrollState()) else Modifier),
+                .then(if (scrollable) Modifier.horizontalScroll(scroll) else Modifier),
         ) {
             options.forEachIndexed { i, label ->
                 val isSel = i == selected
