@@ -355,12 +355,15 @@ private fun App(
     var vocabSessionId by remember { mutableStateOf<Long?>(null) }
     var vocabBusy by remember { mutableStateOf(false) }
     var vocabError by remember { mutableStateOf<String?>(null) }
+    var aiReview by remember { mutableStateOf<com.txw.ielts.llm.AiReview?>(null) }
+    var aiReviewBusy by remember { mutableStateOf(false) }
+    var aiReviewError by remember { mutableStateOf<String?>(null) }
 
     // 本地评分或本地 AI 生成在跑时钉住屏幕：熄屏会让 ColorOS 冻结进程，
-    // 端侧推理（评分 / 提纲 / 范例 / 生词卡）必然中断（docs/oppo-background-scoring-findings.md §九）。
+    // 端侧推理（评分 / 提纲 / 范例 / 生词卡 / 复盘）必然中断（docs/oppo-background-scoring-findings.md §九）。
     com.txw.ielts.ui.KeepScreenOn(
         sessionsOrNull?.any { it.status == "pending_local" } == true ||
-            writingOutlineBusy || speakingSampleBusy || vocabBusy,
+            writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy,
     )
 
     // 三个入口共用本地引擎闸门；生成期间界面显示「约 30-60 秒」，失败只影响当前卡片。
@@ -443,6 +446,58 @@ private fun App(
             vocabError = "生词提取失败：${e.message}"
         } finally {
             vocabBusy = false
+        }
+    }
+
+    /** 把最近 7 天的成绩与高频问题拼成给模型的摘要（控制长度，避免长上下文拖慢 4B）。 */
+    fun buildReviewSummary(): String {
+        val cutoff = System.currentTimeMillis() - 7 * 86_400_000L
+        val recent = sessions
+            .filter { it.status == "done" && it.startedAt >= cutoff }
+            .sortedBy { it.startedAt }
+            .takeLast(10)
+        val lines = recent.map { s ->
+            val o = runCatching { JSONObject(s.scoresJson) }.getOrNull()
+            val band = o?.optDouble("overall", 0.0) ?: 0.0
+            val fixes = runCatching {
+                JSONObject(s.fixesJson).optJSONArray("fixes")?.let { a ->
+                    (0 until a.length()).map { a.get(it).toString() }.filter { it.isNotBlank() }.take(2)
+                } ?: emptyList()
+            }.getOrDefault(emptyList())
+            "- ${s.module}: Band ${"%.1f".format(band)}; fixes: ${fixes.joinToString("; ").ifBlank { "无" }}"
+        }.ifEmpty { listOf("- 最近 7 天没有完成的练习") }
+        val weak = com.txw.ielts.ui.topErrors(sessions).take(5)
+            .joinToString(", ") { "${it.label} (${it.count})" }
+        return buildString {
+            append("Recent sessions (last 7 days):\n")
+            append(lines.joinToString("\n"))
+            append("\nTop weaknesses: ").append(weak.ifBlank { "暂无" })
+            append("\nTarget Band: ").append(prefs.targetBand)
+        }
+    }
+
+    suspend fun requestAiReview() {
+        aiReviewBusy = true
+        aiReviewError = null
+        if (LocalLlmEngine.isBusy) {
+            aiReviewError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            aiReviewBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            aiReviewError = "本地模型未就绪：请到设置页确认模型已投递"
+            aiReviewBusy = false
+            return
+        }
+        try {
+            val r = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.review(context, prefs.localModel, buildReviewSummary())
+            }
+            if (r.isEmpty) aiReviewError = "本地模型没有输出可用的复盘，请重试" else aiReview = r
+        } catch (e: Exception) {
+            aiReviewError = "复盘生成失败：${e.message}"
+        } finally {
+            aiReviewBusy = false
         }
     }
 
@@ -1967,6 +2022,10 @@ private fun App(
                     sessions = sessions,
                     onOpen = { route = Route.Result(it) },
                     onBack = { route = Route.Home },
+                    aiReview = aiReview,
+                    aiBusy = aiReviewBusy,
+                    aiError = aiReviewError,
+                    onRequestReview = { scope.launch { requestAiReview() } },
                 )
 
                 is Route.Shadow -> ShadowHomeScreen(

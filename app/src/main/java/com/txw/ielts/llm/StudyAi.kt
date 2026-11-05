@@ -46,11 +46,29 @@ data class VocabResult(
     val raw: String = "",
 )
 
+/** AI 复盘的一条行动建议。 */
+data class ReviewTask(
+    val title: String,
+    val why: String,
+    val how: String,
+)
+
+/** 最近练习的 AI 复盘：总结 + 3 个行动 + 一句鼓励。 */
+data class AiReview(
+    val summary: String,
+    val tasks: List<ReviewTask>,
+    val encouragement: String,
+    val raw: String = "",
+) {
+    val isEmpty: Boolean
+        get() = summary.isBlank() && tasks.isEmpty() && encouragement.isBlank() && raw.isBlank()
+}
+
 /**
- * 本地 AI 学习助手：写作提纲、口语范例、评分后生词卡。
+ * 本地 AI 学习助手：写作提纲、口语范例、评分后生词卡、最近练习复盘。
  * 图：docs/archify/ielts-local-ai_workflow。
  *
- * 三个功能都只调用 LocalLlmEngine.generateText（同一把引擎闸门），
+ * 四个功能都只调用 LocalLlmEngine.generateText（同一把引擎闸门），
  * 不新增云端 provider —— 当前讯飞额度已死，用户要的是离线也能用的能力。
  */
 object StudyAi {
@@ -98,6 +116,15 @@ object StudyAi {
             "Essay:\n${text.trim().take(4000)}\n\nCorrections:\n$corrections",
         )
         return parseVocab(raw)
+    }
+
+    /** 最近练习复盘：输入由调用方拼好的「最近成绩 + 高频问题」摘要。 */
+    suspend fun review(context: Context, model: String, summary: String): AiReview {
+        val raw = LocalLlmEngine.generateText(
+            context, model, REVIEW_SYSTEM,
+            "Recent practice summary:\n${summary.trim().take(4000)}",
+        )
+        return parseReview(raw)
     }
 
     // ---- 解析：JSON 优先，坏了退纯文本 ----
@@ -173,6 +200,33 @@ object StudyAi {
         return if (items.isEmpty()) VocabResult(emptyList(), raw.trim()) else VocabResult(items)
     }
 
+    fun parseReview(raw: String): AiReview {
+        val body = jsonBody(raw) ?: return AiReview("", emptyList(), "", raw.trim())
+        val parsed = runCatching {
+            val o = JSONObject(body)
+            val tasks = o.optJSONArray("tasks")?.let { a ->
+                (0 until a.length()).mapNotNull { i ->
+                    runCatching {
+                        val x = a.getJSONObject(i)
+                        ReviewTask(
+                            title = x.optString("title").trim(),
+                            why = x.optString("why").trim(),
+                            how = x.optString("how").trim(),
+                        )
+                    }.getOrNull()
+                }
+            }.orEmpty().filter { it.title.isNotBlank() }.take(5)
+            AiReview(
+                summary = o.optString("summary").trim(),
+                tasks = tasks,
+                encouragement = o.optString("encouragement").trim(),
+            )
+        }.getOrNull()
+        return if (parsed == null || parsed.isEmpty) {
+            AiReview("", emptyList(), "", raw.trim())
+        } else parsed
+    }
+
     // ---- 提示词：都要求 JSON 在最前、字符串内禁止双引号（4B 常写坏 JSON） ----
 
     private val TASK2_OUTLINE_SYSTEM = """
@@ -220,6 +274,18 @@ object StudyAi {
         - the meaning MUST explain that exact phrase. Do not borrow the meaning of a neighbouring phrase; if you cannot explain a phrase, skip it and choose another.
         - meaning in Chinese; example in English, different from the student's original sentence.
         - no duplicates; never use a double quote inside a string value.
+        - no markdown, no commentary, JSON only.
+    """.trimIndent()
+
+    private val REVIEW_SYSTEM = """
+        You are an IELTS coach. Review the student's recent practice summary and give a short, specific plan.
+        Return STRICT JSON only, with exactly this shape:
+        {"summary":"2-3 sentences in Chinese","tasks":[{"title":"short Chinese action","why":"why this matters, in Chinese","how":"concrete next step, in Chinese"}],"encouragement":"one sentence in Chinese"}
+        Rules:
+        - exactly 3 tasks, ordered by impact; prioritise the weakest skill and the most frequent error.
+        - every task must be doable today (specific app section, exercise or time), not generic advice like 'practise more'.
+        - refer to the student's actual numbers and weaknesses in the summary; do not invent data.
+        - never use a double quote inside a string value; use single quotes instead.
         - no markdown, no commentary, JSON only.
     """.trimIndent()
 }

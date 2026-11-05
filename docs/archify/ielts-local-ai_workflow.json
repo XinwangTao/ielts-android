@@ -2,7 +2,7 @@
   "name": "ielts-local-ai_workflow",
   "title": "本地 AI 学习助手（写作提纲 / 口语范例 / 生词卡）",
   "level": "L2",
-  "version": "v1.1-implemented",
+  "version": "v1.2-implemented",
   "updated": "2026-11-05",
   "context": "雅思随身练 F:\\projects\\ielts-android。云端讯飞额度已死，端侧 qwen3-4b-instruct 已就位；本批把本地模型从「评分/出题」扩展到写作前、口语前、评分后三个学习环节。",
   "nodes": [
@@ -49,6 +49,12 @@
       "detail": "从本次作文/转写 + 逐句改法提取 5-8 条搭配；勾选后写入 cards 表（source=ai_vocab，按 front 去重），进入现有 SRS。"
     },
     {
+      "id": "review",
+      "label": "AI 复盘卡",
+      "kind": "ui",
+      "detail": "复盘看板「让本地模型复盘最近 7 天」：成绩 + 高频问题 → 2-3 句总结 + 3 个当天可执行行动 + 一句鼓励；只读，不落库。"
+    },
+    {
       "id": "fail",
       "label": "失败出口",
       "kind": "manual",
@@ -63,16 +69,19 @@
     { "from": "parse", "to": "outline", "label": "提纲请求" },
     { "from": "parse", "to": "sample", "label": "范例请求" },
     { "from": "parse", "to": "vocab", "label": "生词请求" },
+    { "from": "parse", "to": "review", "label": "复盘请求" },
     { "from": "parse", "to": "fail", "label": "空输出" },
     { "from": "outline", "to": "fail", "label": "用户放弃/重试" },
     { "from": "sample", "to": "fail", "label": "用户放弃/重试" },
-    { "from": "vocab", "to": "fail", "label": "全部去重后为空" }
+    { "from": "vocab", "to": "fail", "label": "全部去重后为空" },
+    { "from": "review", "to": "fail", "label": "空输出/重试" }
   ],
   "scope": {
     "in": [
       "写作 Task 2 提纲（Task 1 复用同一入口，输出结构改为 overview + 2 段数据要点）",
       "口语 Part 1/2/3 范例答案（从当前题目生成）",
-      "评分结果生成生词/搭配卡并进入 SRS"
+      "评分结果生成生词/搭配卡并进入 SRS",
+      "最近 7 天 AI 复盘（成绩 + 高频问题 → 3 个当天行动）"
     ],
     "out": [
       "不做实时语音评分（端侧 ASR + LLM 时延过高）",

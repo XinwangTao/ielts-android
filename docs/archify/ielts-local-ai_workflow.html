@@ -52,7 +52,7 @@
 <header>
   <h1>本地 AI 学习助手</h1>
   <div class="sub">IELTS LOCAL AI · WRITING OUTLINE / SPEAKING SAMPLE / VOCAB CARDS</div>
-  <div class="meta">图名 <b>ielts-local-ai_workflow</b> · 级别 <b>L2</b> · 版本 v1.1-implemented · 2026-11-05<br>
+  <div class="meta">图名 <b>ielts-local-ai_workflow</b> · 级别 <b>L2</b> · 版本 v1.2-implemented · 2026-11-05<br>
   工程 <code>F:\projects\ielts-android</code>；配套旁路 <code>ielts-local-ai_workflow.json</code></div>
 </header>
 
@@ -81,6 +81,8 @@
       <div class="detail">Band 7 范例答案 + 5 个关键词 + 3 段结构提示；接现有 TTS 朗读；可收藏进素材库。</div></div>
     <div class="node storage"><div class="id">vocab</div><div class="name">生词预览与入库</div>
       <div class="detail">从本次作文/转写 + 逐句改法提取 5-8 条搭配；勾选后写入 cards 表（source=ai_vocab，按 front 去重），进入现有 SRS。</div></div>
+    <div class="node ui"><div class="id">review</div><div class="name">AI 复盘卡</div>
+      <div class="detail">复盘看板「让本地模型复盘最近 7 天」：成绩 + 高频问题 → 2-3 句总结 + 3 个当天可执行行动 + 一句鼓励；只读，不落库。</div></div>
     <div class="node manual"><div class="id">fail</div><div class="name">失败出口</div>
       <div class="detail">超时/空输出/模型未就绪：明确文案 + 重试按钮；写作与口语主流程不被阻断，结果页已有内容照常展示。</div></div>
   </div>
@@ -97,10 +99,12 @@
         <tr><td><code>parse</code></td><td><code>outline</code></td><td>提纲请求</td></tr>
         <tr><td><code>parse</code></td><td><code>sample</code></td><td>范例请求</td></tr>
         <tr><td><code>parse</code></td><td><code>vocab</code></td><td>生词请求</td></tr>
+        <tr><td><code>parse</code></td><td><code>review</code></td><td>复盘请求</td></tr>
         <tr><td><code>parse</code></td><td><code>fail</code></td><td>空输出</td></tr>
         <tr><td><code>outline</code></td><td><code>fail</code></td><td>用户放弃/重试</td></tr>
         <tr><td><code>sample</code></td><td><code>fail</code></td><td>用户放弃/重试</td></tr>
         <tr><td><code>vocab</code></td><td><code>fail</code></td><td>全部去重后为空</td></tr>
+        <tr><td><code>review</code></td><td><code>fail</code></td><td>空输出/重试</td></tr>
       </tbody>
     </table>
   </div>
@@ -112,6 +116,7 @@
         <li>写作 Task 2 提纲（Task 1 复用同一入口，输出改为 overview + 2 段数据要点）</li>
         <li>口语 Part 1/2/3 范例答案（从当前题目生成）</li>
         <li>评分结果生成生词/搭配卡并进入 SRS</li>
+        <li>最近 7 天 AI 复盘（成绩 + 高频问题 → 3 个当天行动）</li>
       </ul>
     </div>
     <div class="box out">

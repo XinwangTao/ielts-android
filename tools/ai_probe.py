@@ -191,6 +191,13 @@ VOCAB_FIXES = [
     ("Her job is useful and she is happy.", "并列句过于简单", "Her work is both socially useful and personally fulfilling."),
 ]
 
+REVIEW_SUMMARY = """Recent sessions (last 7 days):
+- 2026-11-03 writing Task 2: Band 6.0 (TR 5.0 / CC 6.0 / LR 6.5 / GRA 6.0); fixes: 主谓一致; 字数与展开
+- 2026-11-04 speaking Part 2: Band 7.0 (FC 7.0 / LR 7.0 / GRA 6.5 / P 7.5); fixes: 衔接与分段
+- 2026-11-04 writing Task 2: Band 6.0 (TR 4.0 / CC 6.0 / LR 7.0 / GRA 7.0); fixes: 字数与展开
+Bands: writing 6.0, speaking 7.0; target 6.5.
+Top weaknesses: 衔接与分段 (17), 字数与展开 (14), 主谓一致 (9)."""
+
 
 def cases() -> list[dict]:
     sys_w = from_kotlin("LocalLlmEngine.kt", "WRITING_SYSTEM")
@@ -242,6 +249,9 @@ def cases() -> list[dict]:
              user="Essay:\n" + VOCAB_TEXT + "\n\nCorrections:\n" + "\n".join(
                  f"- {s} -> {b} ({i})" for s, i, b in VOCAB_FIXES),
              validate="vocab"),
+        dict(name="ai_review", system=from_kotlin("StudyAi.kt", "REVIEW_SYSTEM"),
+             user="Recent practice summary:\n" + REVIEW_SUMMARY,
+             validate="review"),
         dict(name="reading_generation", system=sys_read,
              user="Difficulty: 7.0\nQuestion types: choice, tfng, gap\nQuestion count: 6",
              validate="reading", count=6),
@@ -376,6 +386,22 @@ def validate(case: dict, text: str) -> list[str]:
                     issues.append(f"items[{i}].example 为空")
                 if not (2 <= words(str(it.get("phrase", ""))) <= 6):
                     issues.append(f"items[{i}].phrase 词数不是 2-6")
+    elif v == "review":
+        check_keys(d, ["summary", "tasks", "encouragement"], issues)
+        if not has_cjk(str(d.get("summary", ""))):
+            issues.append("summary 不是中文")
+        tasks = d.get("tasks")
+        if not isinstance(tasks, list) or len(tasks) != 3:
+            issues.append(f"tasks 条数={len(tasks) if isinstance(tasks, list) else 'N/A'}（要求 3）")
+        else:
+            for i, t in enumerate(tasks):
+                for k in ("title", "why", "how"):
+                    if not str(t.get(k, "")).strip():
+                        issues.append(f"tasks[{i}].{k} 为空")
+                if not has_cjk(str(t.get("title", ""))):
+                    issues.append(f"tasks[{i}].title 不是中文")
+        if not has_cjk(str(d.get("encouragement", ""))):
+            issues.append("encouragement 不是中文")
     elif v in ("reading", "listening"):
         check_keys(d, ["title", "questions"], issues)
         check_keys(d, ["passage"] if v == "reading" else ["transcript"], issues)

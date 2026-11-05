@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -55,7 +56,15 @@ internal val WEAKNESS_RULES = listOf(
 )
 
 @Composable
-fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> Unit) {
+fun ReviewScreen(
+    sessions: List<Session>,
+    onOpen: (Long) -> Unit,
+    onBack: () -> Unit,
+    aiReview: com.txw.ielts.llm.AiReview? = null,
+    aiBusy: Boolean = false,
+    aiError: String? = null,
+    onRequestReview: () -> Unit = {},
+) {
     val done = sessions.filter { it.status == "done" && it.scoresJson.isNotBlank() }
     val bands = done.mapNotNull { s ->
         val b = runCatching { JSONObject(s.scoresJson).optDouble("overall", 0.0) }.getOrDefault(0.0)
@@ -132,6 +141,8 @@ fun ReviewScreen(sessions: List<Session>, onOpen: (Long) -> Unit, onBack: () -> 
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         IosNavBar("复盘看板", onBack = onBack)
+
+        AiReviewSection(aiReview, aiBusy, aiError, onRequestReview)
 
         if (isWide) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -292,4 +303,56 @@ internal fun topErrors(sessions: List<Session>): List<ErrorBucket> {
     return WEAKNESS_RULES.map { (label, kws) ->
         ErrorBucket(label, kws.sumOf { kw -> Regex(Regex.escape(kw)).findAll(text).count() })
     }.filter { it.count > 0 }.sortedByDescending { it.count }
+}
+
+/** AI 复盘卡：最近 7 天总结 + 3 个当天可执行的行动 + 一句鼓励。 */
+@Composable
+private fun AiReviewSection(
+    review: com.txw.ielts.llm.AiReview?,
+    busy: Boolean,
+    error: String?,
+    onRequest: () -> Unit,
+) {
+    BookCard(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("AI 复盘 · 本地模型", style = MaterialTheme.typography.labelLarge)
+            if (review != null) {
+                if (review.summary.isNotBlank()) {
+                    Text(review.summary, style = MaterialTheme.typography.bodyMedium)
+                }
+                review.tasks.forEachIndexed { i, t ->
+                    Text("${i + 1}. ${t.title}", style = MaterialTheme.typography.titleSmall)
+                    if (t.why.isNotBlank()) {
+                        Text("为什么：${t.why}", style = MaterialTheme.typography.bodySmall)
+                    }
+                    if (t.how.isNotBlank()) {
+                        Text("怎么做：${t.how}", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+                if (review.encouragement.isNotBlank()) {
+                    Text(
+                        review.encouragement,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
+                if (review.summary.isBlank() && review.tasks.isEmpty() && review.raw.isNotBlank()) {
+                    Text(review.raw.take(1200), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            OutlinedButton(enabled = !busy, onClick = onRequest) {
+                Text(
+                    when {
+                        busy -> "复盘生成中…"
+                        review == null -> "让本地模型复盘最近 7 天"
+                        else -> "重新复盘"
+                    }
+                )
+            }
+            if (busy) LocalAiBusy("本地模型复盘最近练习中（请留在 App 内）")
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
 }

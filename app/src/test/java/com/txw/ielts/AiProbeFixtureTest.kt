@@ -101,6 +101,15 @@ class AiProbeFixtureTest {
     }
 
     @Test
+    fun `AI 复盘真实输出结构完整`() {
+        val r = StudyAi.parseReview(fixture("ai_review"))
+        assertTrue(r.summary.isNotBlank())
+        assertEquals(3, r.tasks.size)
+        assertTrue(r.tasks.all { it.title.isNotBlank() && it.how.isNotBlank() })
+        assertTrue(r.encouragement.isNotBlank())
+    }
+
+    @Test
     fun `生词卡真实输出条数与中文释义`() {
         val v = StudyAi.parseVocab(fixture("vocab"))
         assertTrue("items=${v.items.size}", v.items.size in 5..8)
