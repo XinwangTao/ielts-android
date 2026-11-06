@@ -32,6 +32,7 @@ object StudyAiCache {
     }
 
     /** 写缓存并做 LRU 淘汰。返回新的存储串，调用方负责落盘。 */
+    @Synchronized
     fun put(
         store: String,
         key: String,
@@ -46,14 +47,32 @@ object StudyAiCache {
             val keys = all.keys().asSequence().sortedBy { all.optJSONObject(it)?.optLong("at", 0L) ?: 0L }
             keys.take(all.length() - MAX_ENTRIES).forEach { all.remove(it) }
         }
-        return all.toString()
+        val out = all.toString()
+        // 让记忆与新的存储串保持一致，避免紧接着的 get 读到旧解析结果。
+        cachedStore = out
+        cachedObj = all
+        return out
     }
 
     /** 删除某个语料（设置页清空数据时用得上）。 */
     fun clear(): String = "{}"
 
-    private fun parse(store: String): JSONObject =
-        runCatching { JSONObject(store.ifBlank { "{}" }) }.getOrDefault(JSONObject())
+    /**
+     * 解析结果按「存储串内容」记忆：一次 put 会换新串，之后连续多次 get 不必重复解析整串 JSON
+     * （缓存串最大可达两百多 KB）。调用方都在 IO 线程，但仍加锁，避免并发 put/get 交错。
+     */
+    private var cachedStore: String? = null
+    private var cachedObj: JSONObject? = null
+
+    @Synchronized
+    private fun parse(store: String): JSONObject {
+        val s = store.ifBlank { "{}" }
+        cachedObj?.let { if (cachedStore == s) return it }
+        val o = runCatching { JSONObject(s) }.getOrDefault(JSONObject())
+        cachedStore = s
+        cachedObj = o
+        return o
+    }
 
     private const val MAX_RAW = 8000
 }

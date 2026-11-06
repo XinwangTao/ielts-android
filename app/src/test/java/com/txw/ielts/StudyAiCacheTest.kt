@@ -69,4 +69,16 @@ class StudyAiCacheTest {
         // 同一输入同一模型仍然稳定命中。
         assertEquals(a, StudyAiCache.key("outline", "qwen3-4b-instruct", "task2", "Topic"))
     }
+
+    @Test
+    fun `解析记忆不跨存储串串用`() {
+        val k = StudyAiCache.key("outline", "qwen3-4b-instruct", "topic")
+        val a = StudyAiCache.put("{}", k, "raw-a", t0)
+        assertEquals("raw-a", StudyAiCache.get(a, k, t0))
+        // 旧存储串不应该看到新写入的条目（解析记忆必须按内容失效）。
+        assertNull(StudyAiCache.get("{}", k, t0))
+        // 写入后立刻读新串：记忆与新串保持一致。
+        val b = StudyAiCache.put(a, k, "raw-b", t0 + 1)
+        assertEquals("raw-b", StudyAiCache.get(b, k, t0 + 1))
+    }
 }
