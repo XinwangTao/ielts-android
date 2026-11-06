@@ -84,9 +84,9 @@ object Guard {
                     .putExtra("label", label),
             )
         }.onFailure {
-            // 只撤销本次引用；直接置 0 会把另一个仍在跑的任务的保活一起算丢，
-            // 它结束时 stop() 就会把服务停掉。
-            refs.updateAndGet { if (it > 0) it - 1 else 0 }
+            // 故意不回滚引用：调用方都是 start/stop 成对 try/finally，
+            // 失败后它的 finally 会 stop 一次；这里再扣一次会让计数变负，把别人的保活提前停掉。
+            android.util.Log.w("Guard", "startForegroundService failed: ${it.message}")
         }
     }
 }

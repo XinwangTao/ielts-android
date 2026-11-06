@@ -58,6 +58,13 @@ interface SessionDao {
 
     @Query("UPDATE sessions SET transcript=:t, essayText=:e, scoresJson=:s, fixesJson=:f, polished=:p, status=:st WHERE id=:id")
     suspend fun updateResult(id: Long, t: String, e: String, s: String, f: String, p: String, st: String)
+
+    /**
+     * 只在仍是 pending_local 时才回写失败：迟到的失败任务不能把另一个 job 已写好的分数/批改清空。
+     * @return 实际更新的行数（0 表示记录已不是待评分状态，应放弃覆盖）。
+     */
+    @Query("UPDATE sessions SET transcript=:t, essayText=:e, scoresJson=:s, fixesJson=:f, polished=:p, status=:st WHERE id=:id AND status='pending_local'")
+    suspend fun updateResultIfPending(id: Long, t: String, e: String, s: String, f: String, p: String, st: String): Int
 }
 
 @Database(entities = [Session::class, Card::class], version = 3, exportSchema = false)

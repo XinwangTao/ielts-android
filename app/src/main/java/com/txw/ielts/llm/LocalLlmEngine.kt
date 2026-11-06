@@ -40,6 +40,9 @@ object LocalLlmEngine {
     /** 等引擎闸门的上限：留足一轮完整生成（含双跑）的时间，超过就认为前一个任务已卡死。 */
     private const val ENGINE_WAIT_MS = 10 * 60 * 1000L
 
+    /** 等闸门的硬上限：心跳一直在推进（真的在跑）时最多等这么久。 */
+    private const val ENGINE_WAIT_HARD_MS = 30 * 60 * 1000L
+
     /** max_new_tokens：思考型模型需留足 JSON 输出空间；非思考模型用不满。 */
     private const val MAX_NEW_TOKENS = 3500
 
@@ -53,6 +56,14 @@ object LocalLlmEngine {
 
     private var session: LlmSession? = null
     private var loadedModel: String? = null
+
+    /**
+     * 引擎代次：forceReset 时递增。
+     * 被判定卡死的旧协程可能在解冻后「复活」，它恢复执行时若代次已变，就不得再碰闸门/状态/结果，
+     * 否则会把新任务正在使用的闸门打开，造成两个 native 推理并发。
+     */
+    @Volatile
+    private var epoch: Int = 0
 
     /** 最后一次有进展的时间（加载开始/加载完成/每收到一段 token）。看门狗据此判断卡死。 */
     @Volatile
@@ -72,14 +83,26 @@ object LocalLlmEngine {
      */
     val isGenerating: Boolean get() = state == "generating"
 
-    /** 背景评分被系统冻住时，不能无限等锁：超过这个时间就报错让用户重试。 */
+    /**
+     * 等引擎闸门。判据是「心跳是否还在推进」，不是固定时钟：
+     * 一次健康任务本身就是「冷加载 5 分钟 + 生成 8 分钟」，固定 10 分钟会把正常排队误判成卡死。
+     * 心跳停了超过 [ENGINE_WAIT_MS]，或总等待超过 [ENGINE_WAIT_HARD_MS] 才报错。
+     */
     private suspend fun acquireEngine(what: String) {
-        val deadline = System.currentTimeMillis() + ENGINE_WAIT_MS
+        val hardDeadline = System.currentTimeMillis() + ENGINE_WAIT_HARD_MS
+        var beatSeen = lastBeatAt
+        var stalledSince = System.currentTimeMillis()
         while (!engineBusy.compareAndSet(false, true)) {
-            if (System.currentTimeMillis() > deadline) {
-                throw IOException("本地模型等待${what}超时（上一个任务已卡死），请重新评分或重启 App")
-            }
             delay(200)
+            val now = System.currentTimeMillis()
+            val beat = lastBeatAt
+            if (beat != beatSeen) {
+                beatSeen = beat
+                stalledSince = now
+            }
+            if (now - stalledSince > ENGINE_WAIT_MS || now > hardDeadline) {
+                throw IOException("本地模型等待${what}超时（上一个任务已停止推进），请重新评分或重启 App")
+            }
         }
     }
 
@@ -94,6 +117,7 @@ object LocalLlmEngine {
      */
     fun forceReset() {
         Log.w(TAG, "forceReset: state=$state idle_ms=${System.currentTimeMillis() - lastBeatAt}")
+        epoch++
         engineBusy.set(false)
         session = null
         loadedModel = null
@@ -163,6 +187,7 @@ object LocalLlmEngine {
     private suspend fun loaded(context: Context, model: String): LlmSession {
         session?.takeIf { it.isLoaded && loadedModel == model }?.let { return it }
         acquireEngine("加载模型")
+        val myEpoch = epoch
         try {
             // 抢到闸门后再查一次：等锁期间可能已经有人加载好了。
             session?.takeIf { it.isLoaded && loadedModel == model }?.let { return it }
@@ -181,6 +206,8 @@ object LocalLlmEngine {
             }.toString()
             val s = LlmSession()
             val ok = s.load(File(dir, "config.json").absolutePath, merged)
+            // 加载期间被看门狗重置：这份 session 不能挂回去，否则会覆盖新任务的引擎。
+            if (epoch != myEpoch) throw IOException("引擎已被重置，本次加载作废")
             state = "idle"
             lastBeatAt = System.currentTimeMillis()
             if (!ok) throw IOException("本地模型 $model 加载失败（native 返回 0），请检查模型文件完整性")
@@ -188,7 +215,7 @@ object LocalLlmEngine {
             loadedModel = model
             return s
         } finally {
-            releaseEngine()
+            if (epoch == myEpoch) releaseEngine()
         }
     }
 
@@ -303,6 +330,7 @@ object LocalLlmEngine {
                 "IMPORTANT: Begin your reply with the JSON object immediately. " +
                 "Do not write any thinking, analysis, or commentary before or after the JSON."
             acquireEngine("生成")
+            val myEpoch = epoch
             try {
                 val out = StringBuilder()
                 val startedAt = System.currentTimeMillis()
@@ -320,11 +348,16 @@ object LocalLlmEngine {
                 Log.i(TAG, "local gen done ($model): ${stats["decode_len"]} tokens, ${stats["decode_time"]}us, text=${out.length} chars")
                 if (out.isBlank()) throw IOException("本地模型没有输出内容")
                 Log.d(TAG, "raw output: ${out.take(1500)}")
+                // 本次生成期间引擎被看门狗重置过：结果作废，不能再被当成有效输出。
+                if (epoch != myEpoch) throw IOException("引擎已被重置，本次生成结果作废，请重新评分")
                 return out.toString()
             } finally {
-                state = "idle"
-                lastBeatAt = System.currentTimeMillis()
-                releaseEngine()
+                // 只有仍属于这一代任务才收尾；被 forceReset 淘汰的旧协程不能动闸门与状态。
+                if (epoch == myEpoch) {
+                    state = "idle"
+                    lastBeatAt = System.currentTimeMillis()
+                    releaseEngine()
+                }
             }
         } finally {
             com.txw.ielts.Guard.stop(context)

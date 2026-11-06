@@ -120,12 +120,25 @@ class RoutingTest {
     fun `两次都坏时抛出第二次的异常`() = runBlocking {
         var calls = 0
         try {
-            retryOnceOnFormat<String> { calls++; throw IOException("第 $calls 次坏") }
+            retryOnceOnFormat<String> { calls++; throw IOException("第 $calls 次坏 JSON") }
             fail("应该抛出异常")
         } catch (e: IOException) {
             assertEquals(2, calls)
             assertTrue(e.message!!.contains("第 2 次"))
         }
+    }
+
+    @Test
+    fun `网络超时不重试，直接回退本地`() = runBlocking {
+        var cloudCalls = 0
+        val out = routeLlm<String>(
+            channel = "auto",
+            label = "测试",
+            cloud = { cloudCalls++; throw IOException("timeout") },
+            local = { "local" },
+        )
+        assertEquals("local", out)
+        assertEquals(1, cloudCalls)
     }
 
     @Test

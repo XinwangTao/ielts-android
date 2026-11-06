@@ -1270,6 +1270,8 @@ private fun App(
 
     /** 后台本地写作评分（不阻塞继续练习）。 */
     suspend fun startLocalWriting(session: Session, text: String, task: String) {
+        // 已出分的记录不能被迟到的重试降级成待评分。
+        if (db.sessions().byId(session.id)?.status == "done") return
         stage = null
         error = null
         clearScoreFailure(session.id)
@@ -1292,6 +1294,7 @@ private fun App(
 
     /** 后台本地口语评分（不阻塞继续练习）。 */
     suspend fun startLocalSpeaking(session: Session, text: String) {
+        if (db.sessions().byId(session.id)?.status == "done") return
         stage = null
         error = null
         clearScoreFailure(session.id)
@@ -1307,6 +1310,7 @@ private fun App(
                 s = session.scoresJson, f = session.fixesJson, p = session.polished, st = "pending_eval",
             )
             error = "系统不允许后台启动评分服务，请停在结果页点「重新评分」"
+            recordScoreFailure(session.id, error)
         }
     }
 

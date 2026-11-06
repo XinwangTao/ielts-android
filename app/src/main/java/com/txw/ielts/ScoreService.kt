@@ -40,6 +40,9 @@ class ScoreService : Service() {
     /** 并发 job 计数：只有最后一个 job 结束时才撤前台通知 / stopSelf，避免先完成的 job 把还在跑的那个踢出前台。 */
     private val runningJobs = java.util.concurrent.atomic.AtomicInteger(0)
 
+    /** 同一会话只允许一个评分 job：重复点击「重新评分」不会再起第二个任务。 */
+    private val runningIds: MutableSet<Long> = java.util.Collections.synchronizedSet(HashSet())
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
@@ -62,35 +65,65 @@ class ScoreService : Service() {
         if (sessionId <= 0) { stopSelf(); return START_NOT_STICKY }
 
         startForeground(NOTIF_ID, buildNotification(if (module == "speaking") "本地口语评分中…" else "本地写作评分中…"))
+        launchScoring(sessionId, module, text, task)
+        return START_STICKY
+    }
+
+    /**
+     * 启动一个评分 job（正常启动与 START_STICKY 恢复共用）。
+     *
+     * 同一 session 单飞：迟到的重复请求直接忽略——否则后失败的 job 会把先成功的结果覆盖掉。
+     */
+    private fun launchScoring(sessionId: Long, module: String, text: String, task: String) {
+        if (!runningIds.add(sessionId)) {
+            Log.w("ScoreService", "已有同一会话的评分在跑，忽略重复启动 id=$sessionId")
+            if (runningJobs.get() == 0) stopSelf()
+            return
+        }
         runningJobs.incrementAndGet()
+        val jobDone = java.util.concurrent.atomic.AtomicBoolean(false)
         // CPU 推理 1-8 分钟：亮屏熄灭/Doze 可能冻结进程，持一个带超时的 partial wake lock。
         val wake = (getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
             .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "ielts:local-score")
-            .apply { setReferenceCounted(false); acquire(12 * 60_000L) }
+            .apply { setReferenceCounted(false); acquire(20 * 60_000L) }
         scope.launch {
-            val watchdog = launch { watchdogLoop(sessionId, text) }
+            val watchdog = launch { watchdogLoop(sessionId, text, jobDone) }
             try {
                 runScore(sessionId, module, text, task)
             } catch (e: Exception) {
-                Log.e("ScoreService", "score fail: ${e.message}")
-                // 通知被划掉后用户只剩结果页：把原因按会话存盘，重开结果页仍能说清为什么没出分。
-                recordFailure(sessionId, e.message)
-                AppDb.get(this@ScoreService).sessions().updateResult(
-                    sessionId, text, "", "", "", "", "pending_eval",
-                )
-                Notify.scoreFailed(this@ScoreService, e.message ?: "未知错误", sessionId)
+                handleFailure(sessionId, text, e.message)
             } finally {
                 watchdog.cancel()
                 runCatching { if (wake.isHeld) wake.release() }
-                if (runningJobs.decrementAndGet() == 0) {
-                    // 可选：评分结束后释放 2.7GB 模型内存，避免与语音助手等竞争（下次评分重新加载）。
-                    if (Prefs(this@ScoreService).releaseAfterScore) runCatching { LocalLlmEngine.release() }
-                    stopForeground(STOP_FOREGROUND_REMOVE)
-                    stopSelf()
-                }
+                finishJob(sessionId, jobDone)
             }
         }
-        return START_STICKY
+    }
+
+    /** job 收尾（正常结束/异常/看门狗判死共用）：CAS 保证只结算一次，最后一个 job 才停服务。 */
+    private fun finishJob(sessionId: Long, jobDone: java.util.concurrent.atomic.AtomicBoolean) {
+        if (!jobDone.compareAndSet(false, true)) return
+        runningIds.remove(sessionId)
+        if (runningJobs.decrementAndGet() == 0) {
+            // 可选：评分结束后释放 2.7GB 模型内存，避免与语音助手等竞争（下次评分重新加载）。
+            if (Prefs(this).releaseAfterScore) runCatching { LocalLlmEngine.release() }
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+        }
+    }
+
+    /**
+     * 失败收尾：只在记录仍是 pending_local 时回写——迟到的失败不能清掉另一个 job 已出的分。
+     */
+    private suspend fun handleFailure(sessionId: Long, text: String, message: String?) {
+        Log.e("ScoreService", "score fail: ${message}")
+        recordFailure(sessionId, message)
+        runCatching {
+            AppDb.get(this).sessions().updateResultIfPending(
+                sessionId, text, "", "", "", "", "pending_eval",
+            )
+        }
+        Notify.scoreFailed(this, message ?: "未知错误", sessionId)
     }
 
     /**
@@ -99,7 +132,11 @@ class ScoreService : Service() {
      * 里永不返回 —— runScore 的 try/catch 根本没机会执行，session 就永远停在 pending_local，
      * 结果页也只能无限数「已等待 N 分」。这里用心跳判死，把结果退成可重试，并把卡死的引擎强拆。
      */
-    private suspend fun CoroutineScope.watchdogLoop(sessionId: Long, text: String) {
+    private suspend fun CoroutineScope.watchdogLoop(
+        sessionId: Long,
+        text: String,
+        jobDone: java.util.concurrent.atomic.AtomicBoolean,
+    ) {
         val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
         var lastBeatSeen = 0L
         // 熄屏期间累计的「系统暂停」时长：只从当前这段心跳间隔里扣，不能跨心跳累加。
@@ -138,10 +175,8 @@ class ScoreService : Service() {
             Notify.scoreFailed(
                 this@ScoreService, reason, sessionId,
             )
-            // 卡死的协程永远不会走到 finally，这里替它收尾。
-            runningJobs.set(maxOf(0, runningJobs.get() - 1))
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
+            // 卡死的协程永远不会走到 finally，这里替它收尾；其它仍在跑的 job 不受影响。
+            finishJob(sessionId, jobDone)
             return
         }
     }
@@ -160,28 +195,16 @@ class ScoreService : Service() {
             }
             val text = s?.transcript?.ifBlank { s.essayText } ?: ""
             if (s == null || text.isBlank()) {
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-                return@launch
-            }
-            runningJobs.incrementAndGet()
-            val wake = (getSystemService(Context.POWER_SERVICE) as android.os.PowerManager)
-                .newWakeLock(android.os.PowerManager.PARTIAL_WAKE_LOCK, "ielts:local-score")
-                .apply { setReferenceCounted(false); acquire(12 * 60_000L) }
-            try {
-                // 题型优先取入库字段（v3），旧数据回退到启发式猜题
-                val task = if (s.module == "speaking") "" else s.task.ifBlank { guessTaskForService(s.topic) }
-                runScore(s.id, s.module, text, task)
-            } catch (e: Exception) {
-                Log.e("ScoreService", "resume fail: ${e.message}")
-                recordFailure(s.id, e.message)
-            } finally {
-                runCatching { if (wake.isHeld) wake.release() }
-                if (runningJobs.decrementAndGet() == 0) {
+                if (runningJobs.get() == 0) {
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
+                return@launch
             }
+            // 题型优先取入库字段（v3），旧数据回退到启发式猜题
+            val task = if (s.module == "speaking") "" else s.task.ifBlank { guessTaskForService(s.topic) }
+            // 复用统一入口：带看门狗、同一会话单飞、失败只回写 pending_local。
+            launchScoring(s.id, s.module, text, task)
         }
     }
 

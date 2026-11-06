@@ -32,7 +32,7 @@ suspend fun <T> routeLlm(
         // 模型这次把 JSON 写坏（缺冒号、引号没转义）时，重发一次内容不同、大概率能过；
         // HTTP 层失败（额度/鉴权/限流/服务端错）重发只会多等一个往返，直接回退本地。
         // 实测 GLM 出 8 题阅读约有 1/3 概率语法坏，重试一次能显著降低「整套题白等」。
-        if (e !is LlmClient.HttpError) {
+        if (isFormatFailure(e)) {
             try {
                 return cloud()
             } catch (e2: CancellationException) {
@@ -62,11 +62,24 @@ suspend fun <T> retryOnceOnFormat(block: suspend () -> T): T {
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        if (e is LlmClient.HttpError) throw e
+        if (!isFormatFailure(e)) throw e
         try {
             block()
         } catch (e2: CancellationException) {
             throw e2
         }
     }
+}
+
+/**
+ * 是否属于「模型把输出写坏」的失败（值得重发一次）。
+ *
+ * 只按消息特征判断：HTTP 层（额度/鉴权/限流/服务端）与网络超时都不该重试——
+ * 前者重试没有意义，后者重试只会让弱网用户多等一轮超时再回退本地。
+ */
+internal fun isFormatFailure(e: Throwable): Boolean {
+    if (e is LlmClient.HttpError) return false
+    val m = e.message ?: return false
+    return listOf("JSON", "json", "解析", "格式", "缺少", "不完整", "模型没有", "没有返回")
+        .any { m.contains(it) }
 }
