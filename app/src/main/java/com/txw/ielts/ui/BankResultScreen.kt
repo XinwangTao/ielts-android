@@ -62,8 +62,10 @@ fun BankResultScreen(
     explainingIds: Set<Int> = emptySet(),
     onAiExplain: (BankResultItem) -> Unit = {},
     // 变式题：同考点换新内容，防止重做原题变成「记住答案」。
-    variants: Map<Int, com.txw.ielts.llm.BankVariant> = emptyMap(),
-    variantBusyIds: Set<Int> = emptySet(),
+    variants: Map<String, com.txw.ielts.llm.BankVariant> = emptyMap(),
+    variantBusyIds: Set<String> = emptySet(),
+    // 变式题按「结果页作用域 + 题号」存：不同套题的 1 号题不能共用一个变式。
+    variantScope: String = "",
     onRequestVariant: (BankResultItem) -> Unit = {},
     onAddWrong: () -> Unit,
     onRetry: () -> Unit,
@@ -71,7 +73,7 @@ fun BankResultScreen(
 ) {
     val wrong = items.count { !it.ok }
     // 变式题答案默认收起：先自测再对答案，直接摊开就失去练习意义。
-    var revealedVariants by remember { mutableStateOf(emptySet<Int>()) }
+    var revealedVariants by remember { mutableStateOf(emptySet<String>()) }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -179,13 +181,14 @@ fun BankResultScreen(
                             }
                         }
                         // 变式题：同一考点换新内容。先只看题面，答案放在「查看答案」后面，留出自测空间。
-                        val v = variants[item.id]
+                        val vk = "$variantScope#${item.id}"
+                        val v = variants[vk]
                         if (v == null) {
                             OutlinedButton(
                                 onClick = { onRequestVariant(item) },
-                                enabled = item.id !in variantBusyIds,
+                                enabled = vk !in variantBusyIds,
                             ) {
-                                Text(if (item.id in variantBusyIds) "变式题生成中…" else "再来一道同考点新题")
+                                Text(if (vk in variantBusyIds) "变式题生成中…" else "再来一道同考点新题")
                             }
                         } else if (!v.isEmpty) {
                             Text("变式练习", style = MaterialTheme.typography.labelLarge)
@@ -197,7 +200,7 @@ fun BankResultScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            if (item.id in revealedVariants) {
+                            if (vk in revealedVariants) {
                                 Text("答案：${v.answer}", style = MaterialTheme.typography.bodySmall)
                                 if (v.explain.isNotBlank()) {
                                     Text(
@@ -207,7 +210,7 @@ fun BankResultScreen(
                                     )
                                 }
                             } else {
-                                TextButton(onClick = { revealedVariants = revealedVariants + item.id }) {
+                                TextButton(onClick = { revealedVariants = revealedVariants + vk }) {
                                     Text("查看答案")
                                 }
                             }

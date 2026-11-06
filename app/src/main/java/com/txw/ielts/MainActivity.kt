@@ -901,8 +901,9 @@ private fun App(
     var aiGenReady by remember { mutableStateOf<String?>(null) }   // 后台生成完成待查看的套题 id
     var aiExplains by remember { mutableStateOf<Map<Int, BankExplain>>(emptyMap()) }
     var explainingIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
-    var bankVariants by remember { mutableStateOf<Map<Int, com.txw.ielts.llm.BankVariant>>(emptyMap()) }
-    var variantBusyIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    // 键是「结果页作用域#题号」：不同套题/不同会话的同号题不能共用变式。
+    var bankVariants by remember { mutableStateOf<Map<String, com.txw.ielts.llm.BankVariant>>(emptyMap()) }
+    var variantBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
 
     fun openSet(setId: String, limitMin: Int = 0) {
         bankAnswers = bankRepo.savedAnswers(setId)
@@ -1806,9 +1807,10 @@ private fun App(
     }
 
     /** 错题变式题：同考点换新内容，避免重做原题变成背答案。 */
-    suspend fun runVariant(item: BankResultItem) {
-        if (item.id in variantBusyIds) return
-        variantBusyIds = variantBusyIds + item.id
+    suspend fun runVariant(item: BankResultItem, resultScope: String) {
+        val vk = "$resultScope#${item.id}"
+        if (vk in variantBusyIds) return
+        variantBusyIds = variantBusyIds + vk
         error = null
         try {
             val v = withContext(Dispatchers.IO) {
@@ -1820,13 +1822,13 @@ private fun App(
             if (v.isEmpty) {
                 error = "变式题生成失败，请重试"
             } else {
-                bankVariants = bankVariants + (item.id to v)
+                bankVariants = bankVariants + (vk to v)
             }
         } catch (e: Exception) {
             Log.e(TAG, "variant fail: ${e.message}")
             error = "变式题生成失败：${e.message}"
         } finally {
-            variantBusyIds = variantBusyIds - item.id
+            variantBusyIds = variantBusyIds - vk
         }
     }
 
@@ -2357,7 +2359,8 @@ private fun App(
                             items = items,
                             transcript = "",
                             variants = bankVariants, variantBusyIds = variantBusyIds,
-                            onRequestVariant = { item -> scope.launch { runVariant(item) } },
+                            variantScope = "s${session.id}",
+                            onRequestVariant = { item -> scope.launch { runVariant(item, "s${session.id}") } },
                             onAddWrong = {
                                 scope.launch {
                                     repo.addBankWrong(
@@ -2762,7 +2765,8 @@ private fun App(
                                                 aiExplains = aiExplains, explainingIds = explainingIds,
                                                 onAiExplain = { item -> scope.launch { runAiExplain(item) } },
                                                 variants = bankVariants, variantBusyIds = variantBusyIds,
-                                                onRequestVariant = { item -> scope.launch { runVariant(item) } },
+                                                variantScope = data.setId,
+                                                onRequestVariant = { item -> scope.launch { runVariant(item, data.setId) } },
                                                 onAddWrong = {
                                                     scope.launch {
                                                         val rows = data.items.filter { !it.ok }
