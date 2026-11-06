@@ -87,7 +87,14 @@ object Backup {
             // 文件名带条目数：分享出去或翻备份列表时，一眼能认出是哪一份。
             val stamp = SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())
             val name = "ielts_backup_${stamp}_w${sessions.size}_c${cards.size}.json"
-            val out = File(dir, name).apply { writeText(o.toString()) }
+            // 同一分钟内重复导出会撞名：自动加序号，避免静默覆盖上一份备份。
+            var out = File(dir, name)
+            var seq = 2
+            while (out.exists()) {
+                out = File(dir, "${name.removeSuffix(".json")}_$seq.json")
+                seq++
+            }
+            out.writeText(o.toString())
             Result(out, sessions.size, cards.size)
         }.getOrNull()
     }
