@@ -84,4 +84,17 @@ class ReviewSummaryTest {
         val s = ReviewSummary.build(listOf(pending), 6.5f, emptyList(), now)
         assertTrue(s, s.contains("最近 7 天没有完成的练习"))
     }
+
+    @Test
+    fun `考试日期会进入复盘输入`() {
+        val s = ReviewSummary.build(
+            sessions = emptyList(),
+            targetBand = 6.5f,
+            weaknesses = emptyList(),
+            now = now,
+            examDate = "2030-12-18",
+        )
+        assertTrue(s, s.contains("Exam: 2030-12-18"))
+        assertTrue(s, s.contains("days left"))
+    }
 }

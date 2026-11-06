@@ -19,6 +19,7 @@ object ReviewSummary {
         targetBand: Float,
         weaknesses: List<Pair<String, Int>>,
         now: Long = System.currentTimeMillis(),
+        examDate: String = "",
     ): String {
         val recent = sessions
             .filter { it.status == "done" && it.startedAt >= now - WEEK_MS }
@@ -45,11 +46,16 @@ object ReviewSummary {
             "- ${s.module}: $score; fixes: ${fixes.joinToString("; ").ifBlank { "无" }}"
         }.ifEmpty { listOf("- 最近 7 天没有完成的练习") }
         val weak = weaknesses.take(5).joinToString(", ") { "${it.first} (${it.second})" }
+        // 考期决定计划强度：临考 14 天内的任务应该更聚焦，模型需要知道还剩多少天。
+        val daysLeft = if (examDate.isBlank()) null else com.txw.ielts.data.ExamTarget.daysUntil(examDate, now)
         return buildString {
             append("Recent sessions (last 7 days):\n")
             append(lines.joinToString("\n"))
             append("\nTop weaknesses: ").append(weak.ifBlank { "暂无" })
             append("\nTarget Band: ").append(targetBand)
+            if (daysLeft != null && daysLeft >= 0) {
+                append("\nExam: ").append(examDate).append(" (").append(daysLeft).append(" days left)")
+            }
         }
     }
 }
