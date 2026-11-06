@@ -1863,6 +1863,22 @@ private fun App(
                     val r = com.txw.ielts.llm.StudyAi.vocab(context, model, essay, emptyList())
                     Log.i(TAG, "E2E: RESULT ai vocab items=${r.items.size} raw=${r.raw.isNotBlank()}")
                 }
+                "review" -> {
+                    // 用真实历史生成复盘摘要，和首页「AI 复盘」走同一条输入链路。
+                    val summary = buildReviewSummary()
+                    val r = com.txw.ielts.llm.StudyAi.review(context, model, summary)
+                    Log.i(TAG, "E2E: RESULT ai review tasks=${r.tasks.size} " +
+                        "summary=${r.summary.isNotBlank()} encourage=${r.encouragement.isNotBlank()}")
+                }
+                "followup" -> {
+                    val q = com.txw.ielts.llm.StudyAi.followUp(
+                        context, model,
+                        "Do you think schools should teach practical skills?",
+                        "Yes, I think schools focus too much on exams. Students should learn cooking, " +
+                            "personal finance and basic repair because these skills are useful in daily life.",
+                    )
+                    Log.i(TAG, "E2E: RESULT ai followup chars=${q.length} q=$q")
+                }
                 "score_writing" -> {
                     val topic = "Some people believe university students should study whatever they like. " +
                         "Others think they should only study subjects that will be useful. " +
