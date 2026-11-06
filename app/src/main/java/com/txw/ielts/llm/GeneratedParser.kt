@@ -1,5 +1,6 @@
 package com.txw.ielts.llm
 
+import com.txw.ielts.data.AnswerKey
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -13,6 +14,9 @@ import kotlin.math.floor
  * 4B 本地模型会漏字段、把 options 写成字符串数组以外的形状、偶尔少给一两道题。
  * 所以这里只强制「最小必需项」：题干和答案缺一不可，其余字段用空值兜底；
  * 缺题干/答案的题丢掉，而不是让整套题解析失败——用户宁可拿到 4 道题，也不想看到一句报错。
+ *
+ * 选择题/判断题还多一条硬约束：至少一个答案必须能落到某个选项上。
+ * 否则 UI 里点哪个选项都判错（判分是拿答案和选项原文比），题做了也白做，直接丢题更诚实。
  */
 object GeneratedParser {
 
@@ -79,6 +83,9 @@ object GeneratedParser {
                     answers = answers.map { canonicalTfng(it, yesNo) }
                 }
             }
+            // 选项题答案对不上任何选项时，用户点哪个都会判错：整题丢掉。
+            // 判分与这里共用 AnswerKey.normalize，所以大小写/句末标点不同仍算对得上。
+            if (type != "gap" && !answersMatchOptions(answers, options)) continue
             // 模型（尤其 4B）偶尔把同一题写两遍：题干+答案归一化后只收第一次。
             if (!seen.add(questionKey(prompt, answers))) continue
             out.add(
@@ -93,7 +100,7 @@ object GeneratedParser {
                 )
             )
         }
-        if (out.isEmpty()) throw IOException("模型返回的题目都缺少题干或答案")
+        if (out.isEmpty()) throw IOException("模型返回的题目都缺少题干/答案，或选项与答案对不上")
         // 模型偶发超量（提示词写了数量也可能多给），按请求数截断；count<=0 视为不限制。
         return if (count > 0) out.take(count) else out
     }
@@ -214,8 +221,21 @@ object GeneratedParser {
     private val CHOICE_PREFIX = Regex("^[（(]?([A-Za-z])[)）.．:：、]\\s*(.+)$")
 
     /**
+     * 至少一个答案能落到某个选项上。
+     *
+     * 用与判分相同的 [AnswerKey.normalize]，因此模型把答案写成 "Beta!"、
+     * 而选项是 "beta" 时仍然保留——用户点 beta 会被判对。
+     * 若答案只是越界的选项字母（如 2 个选项却写 "C"），无法折回原文，整题丢弃。
+     */
+    private fun answersMatchOptions(answers: List<String>, options: List<String>): Boolean {
+        if (options.isEmpty()) return false
+        val normalizedOptions = options.map { AnswerKey.normalize(it) }
+        return answers.any { a -> AnswerKey.normalize(a) in normalizedOptions }
+    }
+
+    /**
      * choice 答案折回选项原文：先比原文，再认字母，最后认「字母 + 原文」。
-     * 字母越界（只有 4 个选项却给 E）原样保留，不去猜。
+     * 字母越界（只有 4 个选项却给 E）原样保留，交给 [answersMatchOptions] 丢题。
      */
     private fun canonicalChoice(answer: String, options: List<String>): String {
         val a = answer.trim()

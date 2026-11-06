@@ -104,17 +104,29 @@ class GeneratedParserTest {
     }
 
     @Test
-    fun `choice 答案写字母时折回选项原文`() {
+    fun `choice 答案越界时整题丢弃 而不是留下怎么点都判错的题`() {
         val raw = """{"passage":"Body","questions":[
             {"type":"choice","prompt":"Q1","options":["alpha","beta","gamma","delta"],"answers":["B"]},
             {"type":"choice","prompt":"Q2","options":["alpha","beta"],"answers":["(c)"]},
             {"type":"choice","prompt":"Q3","options":["alpha","beta","gamma"],"answers":["D."]}
         ]}"""
         val r = GeneratedParser.reading(raw, 5)
+        // Q2/Q3 的答案折不回任何选项：UI 只有一个正确答案字符串，
+        // 用户点遍所有选项也会判错，留下就是白做。只保留能作答的 Q1。
+        assertEquals(1, r.questions.size)
+        assertEquals("Q1", r.questions[0].prompt)
         assertEquals("beta", r.questions[0].answers[0])
-        // 越界字母不猜，保持原样
-        assertEquals("(c)", r.questions[1].answers[0])
-        assertEquals("D.", r.questions[2].answers[0])
+    }
+
+    @Test
+    fun `choice 答案与选项只差大小写或句末标点时保留`() {
+        // 判分用 AnswerKey.normalize，大小写/标点不同仍能判对，不能误删。
+        val raw = """{"passage":"Body","questions":[
+            {"type":"choice","prompt":"Q1","options":["alpha","beta"],"answers":["Beta!"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(1, r.questions.size)
+        assertEquals("Beta!", r.questions[0].answers[0])
     }
 
     @Test
@@ -261,6 +273,55 @@ class GeneratedParserTest {
         assertEquals("1980", r.questions[1].answers[0])
         // 数组里的 null 跳过，其余照收
         assertEquals("hive", r.questions[2].answers[0])
+    }
+
+    @Test
+    fun `tfng 答案认不出时丢弃 避免留下无对应选项的题`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"tfng","prompt":"Q1","answers":["MAYBE"]},
+            {"type":"tfng","prompt":"Q2","answers":["T"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(1, r.questions.size)
+        assertEquals("Q2", r.questions[0].prompt)
+        assertEquals("TRUE", r.questions[0].answers[0])
+    }
+
+    @Test
+    fun `选项题的答案全部对不上选项时报错 而不是给一套废题`() {
+        val raw = """{"passage":"Body","questions":[
+            {"type":"choice","prompt":"Q1","options":["alpha","beta"],"answers":["E"]},
+            {"type":"tfng","prompt":"Q2","answers":["NOT SURE"]}
+        ]}"""
+        try {
+            GeneratedParser.reading(raw, 5)
+            fail("全部题都不可作答时应报错")
+        } catch (e: Exception) {
+            assertTrue(e.message!!.contains("对不上"))
+        }
+    }
+
+    @Test
+    fun `填空题答案不受选项校验影响`() {
+        // gap 题本来就没有选项，答案可以是任意词；校验只针对 choice/tfng。
+        val raw = """{"passage":"Body","questions":[
+            {"type":"gap","prompt":"Q1","answers":["hive"]},
+            {"type":"choice","prompt":"Q2","options":["alpha","beta"],"answers":["E"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(1, r.questions.size)
+        assertEquals("hive", r.questions[0].answers[0])
+    }
+
+    @Test
+    fun `问答题型的选项题保留可作答部分`() {
+        // 多选题给了多个可接受答案：只要有一个能落到选项上，用户就仍能作答。
+        val raw = """{"passage":"Body","questions":[
+            {"type":"choice","prompt":"Q1","options":["alpha","beta","gamma"],"answers":["E","beta"]}
+        ]}"""
+        val r = GeneratedParser.reading(raw, 5)
+        assertEquals(1, r.questions.size)
+        assertEquals(listOf("E", "beta"), r.questions[0].answers)
     }
 
     @Test
