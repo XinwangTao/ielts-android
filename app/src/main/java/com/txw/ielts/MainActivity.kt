@@ -467,6 +467,8 @@ private fun App(
             !LocalLlmEngine.hasExternalCopy(context, prefs.localModel)
 
     suspend fun requestWritingOutline(topic: String, task: String) {
+        // 缓存读在 IO 上，期间按钮仍可能被再点一次：重复请求直接忽略。
+        if (writingOutlineBusy) return
         // 同一题目 + 同一 Task 的提纲不会变：命中缓存直接展示，省掉一次 30-60 秒端侧推理。
         // 但如果界面上已经有这道题的提纲，这次点击就是「想换一份」，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key("outline", prefs.localModel, task, topic)
@@ -504,20 +506,24 @@ private fun App(
             val r = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.outline(context, prefs.localModel, topic, task)
             }
-            if (r.isEmpty) {
-                writingOutlineError = "本地模型没有输出可用的提纲，请重试"
-            } else {
-                writingOutline = r
-                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+            // 生成期间用户可能改了题目：只有仍是这道题才写入，避免旧结果覆盖新请求。
+            if (writingOutlineTopic == topic) {
+                if (r.isEmpty) {
+                    writingOutlineError = "本地模型没有输出可用的提纲，请重试"
+                } else {
+                    writingOutline = r
+                    withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                }
             }
         } catch (e: Exception) {
-            writingOutlineError = "提纲生成失败：${e.message}"
+            if (writingOutlineTopic == topic) writingOutlineError = "提纲生成失败：${e.message}"
         } finally {
-            writingOutlineBusy = false
+            if (writingOutlineTopic == topic) writingOutlineBusy = false
         }
     }
 
     suspend fun requestSpeakingSample(part: String, question: String) {
+        if (speakingSampleBusy) return
         // 同一道题的范例可以复用：切走再回来不必重跑 30-60 秒端侧推理。
         // 界面上已有这题的范例时，这次点击是想换一份，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key("sample", prefs.localModel, part, question)
@@ -553,20 +559,24 @@ private fun App(
             val r = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.speakingSample(context, prefs.localModel, part, question)
             }
-            if (r.isEmpty) {
-                speakingSampleError = "本地模型没有输出可用的范例，请重试"
-            } else {
-                speakingSample = r
-                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+            // 只有仍是这道题才写入：生成期间用户可能换了题目。
+            if (speakingSampleQuestion == question) {
+                if (r.isEmpty) {
+                    speakingSampleError = "本地模型没有输出可用的范例，请重试"
+                } else {
+                    speakingSample = r
+                    withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                }
             }
         } catch (e: Exception) {
-            speakingSampleError = "范例生成失败：${e.message}"
+            if (speakingSampleQuestion == question) speakingSampleError = "范例生成失败：${e.message}"
         } finally {
-            speakingSampleBusy = false
+            if (speakingSampleQuestion == question) speakingSampleBusy = false
         }
     }
 
     suspend fun requestVocab(sessionId: Long, text: String, fixes: List<Triple<String, String, String>>) {
+        if (vocabBusy) return
         // 同一篇作文/同一段转写的生词卡不会变：重开结果页直接展示，省一次 30-60 秒推理。
         // 界面上已有本次会话的生词卡时，这次点击是想换一批，跳过缓存重新提取。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
@@ -604,14 +614,17 @@ private fun App(
             val r = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.vocab(context, prefs.localModel, text, fixes)
             }
-            vocabResult = r
-            if (r.items.isNotEmpty()) {
-                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+            // 只有仍是同一场会话才写入：生成期间用户可能切到别场并重新提取。
+            if (vocabSessionId == sessionId) {
+                vocabResult = r
+                if (r.items.isNotEmpty()) {
+                    withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                }
             }
         } catch (e: Exception) {
-            vocabError = "生词提取失败：${e.message}"
+            if (vocabSessionId == sessionId) vocabError = "生词提取失败：${e.message}"
         } finally {
-            vocabBusy = false
+            if (vocabSessionId == sessionId) vocabBusy = false
         }
     }
 
@@ -635,11 +648,14 @@ private fun App(
             val q = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.followUp(context, prefs.localModel, question, answer)
             }
-            if (q.isBlank()) followUpError = "模型没有返回可用问题，请重试" else followUpQuestion = q
+            // 只有仍是同一场会话才写入：A 场生成中切到 B 场再点，A 的结果不能出现在 B 页。
+            if (followUpSessionId == sessionId) {
+                if (q.isBlank()) followUpError = "模型没有返回可用问题，请重试" else followUpQuestion = q
+            }
         } catch (e: Exception) {
-            followUpError = "追问生成失败：${e.message}"
+            if (followUpSessionId == sessionId) followUpError = "追问生成失败：${e.message}"
         } finally {
-            followUpBusy = false
+            if (followUpSessionId == sessionId) followUpBusy = false
         }
     }
 
@@ -662,19 +678,22 @@ private fun App(
             val topic = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.writingTopic(context, prefs.localModel, session.topic, task)
             }
-            if (topic.isBlank()) {
-                newTopicError = "模型没有返回可用题目，请重试"
-            } else {
-                practiceFocus = null
-                writingPresetChart = null
-                writingPresetTopic = topic
-                // 生成期间用户可能已经离开这个结果页：只有仍在看它时才自动跳过去，别把人拽走。
-                if (route == Route.Result(session.id)) route = Route.Writing
+            // 只有仍是这次请求才写入：生成期间用户可能在另一场点了换题。
+            if (newTopicSessionId == session.id) {
+                if (topic.isBlank()) {
+                    newTopicError = "模型没有返回可用题目，请重试"
+                } else {
+                    practiceFocus = null
+                    writingPresetChart = null
+                    writingPresetTopic = topic
+                    // 生成期间用户可能已经离开这个结果页：只有仍在看它时才自动跳过去，别把人拽走。
+                    if (route == Route.Result(session.id)) route = Route.Writing
+                }
             }
         } catch (e: Exception) {
-            newTopicError = "出新题失败：${e.message}"
+            if (newTopicSessionId == session.id) newTopicError = "出新题失败：${e.message}"
         } finally {
-            newTopicBusy = false
+            if (newTopicSessionId == session.id) newTopicBusy = false
         }
     }
 
@@ -3008,6 +3027,10 @@ private fun App(
                                         readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
                                         aiExplains = aiExplains, explainingIds = explainingIds,
                                         onAiExplain = { item -> scope.launch { runAiExplain(item) } },
+                                        variants = bankVariants, variantBusyIds = variantBusyIds,
+                                        variantErrors = variantErrors,
+                                        variantScope = data.setId,
+                                        onRequestVariant = { item -> scope.launch { runVariant(item, data.setId) } },
                                         onAddWrong = {
                                             scope.launch {
                                                 val rows = data.items.filter { !it.ok }

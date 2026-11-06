@@ -230,9 +230,10 @@ fun BankResultScreen(
                             ) {
                                 Text(if (vk in variantBusyIds) "换题中…" else "换一道同考点新题")
                             }
-                            variantErrors[vk]?.let {
-                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
-                            }
+                        }
+                        // 首次生成失败时 v 仍为 null：错误必须渲染在 if/else 之外，否则用户只看到「点了没反应」。
+                        variantErrors[vk]?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
