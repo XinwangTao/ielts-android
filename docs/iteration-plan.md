@@ -13,8 +13,9 @@
        现在按钮变「录音不可用」，行内提示「录音文件已不存在（可能被清理）」。对应清理误删场景的兜底反馈。
 2. [x] **备份导出数值健壮性**（2026-11-06）：范文 `band` 为 NaN/Inf 时 `JSONObject.put` 会抛异常，
        整次导出失败并误报「存储不可写」。现在非有限值归零，其余照常导出。
-3. [~] **备份导入/恢复**：图已出（`docs/archify/ielts-backup-restore_workflow.{html,json}`），
-       按 Archify 协议**待确认**后才可实现；确认点：冲突策略、设置是否覆盖、单事务还是分批。
+3. [~] **备份导入/恢复**：图已出（`docs/archify/ielts-backup-restore_workflow.{html,json}`）；
+       **不写库的部分已完成**：`BackupRestore.parse / keepNew`（版本校验、坏条目跳过、按四元组去重预演，5 例单测）。
+       真正写库仍**待确认**；确认点：冲突策略、设置是否覆盖、单事务还是分批。
 4. [x] **依赖与 targetSdk 评估 + Stage A**（2026-11-06）：lifecycle 已升 2.8.7 并通过构建；结论在 `docs/android-upgrade-notes.md`——
        可先做 lifecycle patch；compileSdk 35 无 AGP 阻碍；**16KB 页对齐静态验证通过**（8 个 .so 全 16384）；
        targetSdk 35 仍待真机回归（edge-to-edge、FGS、安装加载）。
