@@ -66,8 +66,9 @@ fun BankResultScreen(
     variantBusyIds: Set<String> = emptySet(),
     variantErrors: Map<String, String?> = emptyMap(),
     // 变式题按「结果页作用域 + 题号」存：不同套题的 1 号题不能共用一个变式。
-    variantScope: String = "",
-    onRequestVariant: (BankResultItem) -> Unit = {},
+    // 这两项不给默认值：手机上漏接线时按钮会变成「点了没反应」，让编译器直接拦住。
+    variantScope: String,
+    onRequestVariant: (BankResultItem) -> Unit,
     onAddWrong: () -> Unit,
     onRetry: () -> Unit,
     onBack: () -> Unit,

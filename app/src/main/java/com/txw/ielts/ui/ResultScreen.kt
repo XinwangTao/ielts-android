@@ -65,7 +65,8 @@ fun ResultScreen(
     // 写作：换一个同类型新题（本地模型生成题干后直接进写作页）。
     newTopicBusy: Boolean = false,
     newTopicError: String? = null,
-    onRequestNewTopic: () -> Unit = {},
+    // 必填：漏接线时按钮会变成「点了没反应」，让编译器拦住。
+    onRequestNewTopic: () -> Unit,
     onBack: () -> Unit,
     // 本地 AI 生词卡：从本次正文 + 逐句改法里提搭配，勾选后进 SRS。
     vocabResult: com.txw.ielts.llm.VocabResult? = null,
@@ -78,7 +79,8 @@ fun ResultScreen(
     followUpQuestion: String? = null,
     followUpBusy: Boolean = false,
     followUpError: String? = null,
-    onRequestFollowUp: () -> Unit = {},
+    // 同上：必填。
+    onRequestFollowUp: () -> Unit,
     onPracticeFollowUp: (String) -> Unit = {},
     // AI 批注逐条「忽略 / 恢复」：只影响本会话的背诵与生词输入，按会话存盘由调用方负责。
     mutedFixes: Set<String> = emptySet(),
