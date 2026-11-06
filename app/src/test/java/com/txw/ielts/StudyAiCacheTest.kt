@@ -60,4 +60,13 @@ class StudyAiCacheTest {
         assertEquals("raw5", StudyAiCache.get(store, "k5", t0 + 100))
         assertEquals("raw34", StudyAiCache.get(store, "k34", t0 + 100))
     }
+
+    @Test
+    fun `模型不同则缓存键不同`() {
+        val a = StudyAiCache.key("outline", "qwen3-4b-instruct", "task2", "Topic")
+        val b = StudyAiCache.key("outline", "qwen35-2b", "task2", "Topic")
+        assertTrue(a != b)
+        // 同一输入同一模型仍然稳定命中。
+        assertEquals(a, StudyAiCache.key("outline", "qwen3-4b-instruct", "task2", "Topic"))
+    }
 }
