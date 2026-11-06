@@ -423,6 +423,8 @@ private fun App(
     // 写作：换一个同类型新题（结果页按钮）。
     var newTopicBusy by remember { mutableStateOf(false) }
     var newTopicError by remember { mutableStateOf<String?>(null) }
+    // 出题归属：生成中用户可能已经离开这个结果页，忙/错提示和跳转都要按会话判断。
+    var newTopicSessionId by remember { mutableStateOf<Long?>(null) }
     // 冷启动先恢复上次 AI 复盘：不只省一次 30-60 秒端侧推理，也避免为同样的输入再花云端额度。
     val cachedAiReview = remember { com.txw.ielts.llm.AiReviewCache.fromJson(prefs.aiReviewCache) }
     var aiReviewCache by remember { mutableStateOf(cachedAiReview) }
@@ -630,6 +632,7 @@ private fun App(
     suspend fun requestNewWritingTopic(session: Session, task: String) {
         newTopicBusy = true
         newTopicError = null
+        newTopicSessionId = session.id
         if (LocalLlmEngine.isGenerating) {
             newTopicError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
             newTopicBusy = false
@@ -650,7 +653,8 @@ private fun App(
                 practiceFocus = null
                 writingPresetChart = null
                 writingPresetTopic = topic
-                route = Route.Writing
+                // 生成期间用户可能已经离开这个结果页：只有仍在看它时才自动跳过去，别把人拽走。
+                if (route == Route.Result(session.id)) route = Route.Writing
             }
         } catch (e: Exception) {
             newTopicError = "出新题失败：${e.message}"
@@ -2608,8 +2612,8 @@ private fun App(
                                 )
                                 route = if (isSpeaking) Route.Speaking else Route.Writing
                             },
-                            newTopicBusy = newTopicBusy,
-                            newTopicError = newTopicError,
+                            newTopicBusy = newTopicBusy && newTopicSessionId == session.id,
+                            newTopicError = newTopicError.takeIf { newTopicSessionId == session.id },
                             onRequestNewTopic = {
                                 scope.launch { requestNewWritingTopic(session, session.resolvedTask()) }
                             },
@@ -2621,8 +2625,8 @@ private fun App(
                                 scope.launch { requestVocab(session.id, text, fixes) }
                             },
                             followUpQuestion = followUpQuestion.takeIf { followUpSessionId == session.id },
-                            followUpBusy = followUpBusy,
-                            followUpError = followUpError,
+                            followUpBusy = followUpBusy && followUpSessionId == session.id,
+                            followUpError = followUpError.takeIf { followUpSessionId == session.id },
                             onRequestFollowUp = {
                                 scope.launch {
                                     requestFollowUp(
