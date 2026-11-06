@@ -52,6 +52,12 @@ fun CorpusHomeScreen(
     typeCounts: List<Pair<String, Int>>,
     wrongCount: Int,
     reviewedToday: Int = 0,
+    /**
+     * 还没复习过的练习反馈卡（批注/逐句改法）张数。
+     * 这些卡在 [com.txw.ielts.data.CardRepo.buildQueue] 里会先占新卡名额，
+     * 页面上说清楚，用户才不会觉得「刚写完写作，怎么复习里全是背单词」。
+     */
+    feedbackPending: Int = 0,
     wrongTrend: WrongTrend? = null,
     /** 上一轮复习的小结；评完最后一张卡回到这里时给个交代，点「知道了」后消失。 */
     roundSummary: RoundSummary? = null,
@@ -100,6 +106,16 @@ fun CorpusHomeScreen(
                     fontFamily = FontFamily.Serif,
                 )
                 Text("新卡每日上限 $dailyLimit 张，到期复习优先", style = MaterialTheme.typography.bodySmall)
+                if (feedbackPending > 0) {
+                    // 说清「先复习自己的批注」，顺带说明每轮有上限，不会因为攒了 40 条就卡在改错里出不来。
+                    val cap = com.txw.ielts.data.QueuePolicy.FEEDBACK_FIRST_MAX
+                    Text(
+                        if (feedbackPending > cap) "还没复习的批注/改错 $feedbackPending 张，本轮先安排 $cap 张"
+                        else "还没复习的批注/改错 $feedbackPending 张，本轮会排在最前面",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
                 if (reviewedToday > 0) {
                     Text(
                         "今日已学 $reviewedToday 张",

@@ -40,7 +40,13 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         val now = System.currentTimeMillis()
         val due = db.cards().due(now, limit)
         val dailyLeft = (dailyNew - countStudiedToday()).coerceAtLeast(0)
-        val fresh = db.cards().fresh(QueuePolicy.freshSlots(limit, due.size, dailyLeft))
+        val slots = QueuePolicy.freshSlots(limit, due.size, dailyLeft)
+        // 新卡名额先给「还没复习过的练习反馈卡」，剩下的再随机补内置/生成的词卡。
+        // 反馈卡入库时 reps=0，和内置词卡一样算新卡：不单独排前面的话，
+        // 刚做完写作收到的几条批注会被 168 张内置词卡按 RANDOM() 挤掉，永远轮不到。
+        val feedback = db.cards().freshFeedback(QueuePolicy.FEEDBACK_FIRST_MAX)
+        val split = QueuePolicy.freshSplit(slots, feedback.size)
+        val fresh = feedback.take(split.feedback) + db.cards().fresh(split.random)
         return due + fresh
     }
 
@@ -67,11 +73,15 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     /** 今日已学的新卡数。 */
     private suspend fun countStudiedToday(): Int = db.cards().countFirstLearnedSince(startOfToday())
 
-    /** 今天还能学几张新卡（受每日上限约束）。 */
-    suspend fun todayNewAvailable(dailyNew: Int): Int {
-        val left = (dailyNew - countStudiedToday()).coerceAtLeast(0)
-        return minOf(db.cards().countNew(), left)
-    }
+    /** 今天还能学几张新卡（受每日上限约束）。与 [buildQueue] 同口径：反馈卡每轮最多先占 10 张。 */
+    suspend fun todayNewAvailable(dailyNew: Int): Int = QueuePolicy.newCardAvailable(
+        dailyLeft = (dailyNew - countStudiedToday()).coerceAtLeast(0),
+        feedbackPending = db.cards().countFreshFeedback(),
+        otherNew = db.cards().countFreshOthers(),
+    )
+
+    /** 还没复习过的练习反馈卡张数：队列会先安排这些（见 [buildQueue]）。 */
+    suspend fun feedbackPending(): Int = db.cards().countFreshFeedback()
 
     private fun startOfToday(): Long = java.util.Calendar.getInstance().apply {
         set(java.util.Calendar.HOUR_OF_DAY, 0)

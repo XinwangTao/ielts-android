@@ -37,6 +37,7 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE dueAt > 0 AND dueAt <= :now")
     suspend fun countDue(now: Long): Int
 
+    /** 新卡总数：含练习反馈卡（它们同样按新卡复习，只是在队列里优先安排）。 */
     @Query("SELECT COUNT(*) FROM cards WHERE reps = 0 AND dueAt = 0 AND source NOT IN ('bank','shadow')")
     suspend fun countNew(): Int
 
@@ -53,8 +54,24 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE dueAt > 0 AND dueAt <= :now AND source NOT IN ('bank','shadow') ORDER BY dueAt LIMIT :limit")
     suspend fun due(now: Long, limit: Int): List<Card>
 
-    @Query("SELECT * FROM cards WHERE reps = 0 AND dueAt = 0 AND source NOT IN ('bank','shadow') ORDER BY RANDOM() LIMIT :limit")
+    /**
+     * 普通新卡（随机）。练习反馈卡（error/fix）单独取，见 [freshFeedback]：
+     * 它们混在 RANDOM() 里就抢不到每日那十几个新卡名额。
+     */
+    @Query("SELECT * FROM cards WHERE reps = 0 AND dueAt = 0 AND source NOT IN ('bank','shadow','error','fix') ORDER BY RANDOM() LIMIT :limit")
     suspend fun fresh(limit: Int): List<Card>
+
+    /** 未复习的练习反馈卡（批注/逐句改法），最近一次练习的排前面。 */
+    @Query("SELECT * FROM cards WHERE reps = 0 AND dueAt = 0 AND source IN ('error','fix') ORDER BY createdAt DESC LIMIT :limit")
+    suspend fun freshFeedback(limit: Int): List<Card>
+
+    /** 还没复习过的练习反馈卡张数：语料页用它说明「本次有新收到的纠错待复现」。 */
+    @Query("SELECT COUNT(*) FROM cards WHERE reps = 0 AND dueAt = 0 AND source IN ('error','fix')")
+    suspend fun countFreshFeedback(): Int
+
+    /** 普通新卡张数（不含错题与练习反馈卡），与 [fresh] 同口径。 */
+    @Query("SELECT COUNT(*) FROM cards WHERE reps = 0 AND dueAt = 0 AND source NOT IN ('bank','shadow','error','fix')")
+    suspend fun countFreshOthers(): Int
 
     /** 错题专项：只听未学过（dueAt=0）或已到期的错题；学过且未到期的不再重复出现。 */
     @Query("SELECT * FROM cards WHERE source IN ('bank','shadow') AND (dueAt = 0 OR dueAt <= :now) ORDER BY dueAt ASC, createdAt DESC LIMIT :limit")

@@ -757,6 +757,8 @@ private fun App(
     var wrongCount by remember { mutableIntStateOf(0) }
     var wrongCards by remember { mutableStateOf<List<Card>>(emptyList()) }
     var reviewedToday by remember { mutableIntStateOf(0) }
+    // 未复习的练习反馈卡（批注/逐句改法）：队列里会优先安排，语料页负责说清这件事。
+    var feedbackPending by remember { mutableIntStateOf(0) }
 
     // —— 今日任务：基于数据的推荐（错题/到期卡/未练模块），碎片时间不用自己想练什么 ——
     val dayMs = 86_400_000L
@@ -947,6 +949,7 @@ private fun App(
         wrongCount = repo.wrongCount()
         wrongCards = repo.wrongBook()
         reviewedToday = repo.reviewedToday()
+        feedbackPending = repo.feedbackPending()
     }
 
     LaunchedEffect(Unit) {
@@ -2529,6 +2532,7 @@ private fun App(
                     typeCounts = typeCounts,
                     wrongCount = wrongCount,
                     reviewedToday = reviewedToday,
+                    feedbackPending = feedbackPending,
                     wrongTrend = wrongTrend,
                     roundSummary = lastRoundSummary,
                     onDismissRound = { lastRoundSummary = null },
