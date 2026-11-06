@@ -197,6 +197,35 @@ object StudyAi {
         return cleanFollowUp(LocalLlmEngine.generateText(context, model, FOLLOW_UP_SYSTEM, prompt))
     }
 
+    /**
+     * 同类型写作新题：写完一篇后换一个考同样能力的题目再写，避免反复重写同一题。
+     * 只返回一句题目，不落库；真机入口在结果页「换一个同类型题目」。
+     */
+    suspend fun writingTopic(
+        context: Context,
+        model: String,
+        topic: String,
+        task: String,
+    ): String {
+        val kind = if (task == "task1") "Academic Task 1 (chart/report)" else "Task 2 (discussion essay)"
+        val user = "Task type: $kind\nOriginal prompt: ${topic.trim()}"
+        val raw = LocalLlmEngine.generateText(
+            context, model, WRITING_TOPIC_SYSTEM, PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
+        )
+        return cleanPrompt(raw)
+    }
+
+    /** 题目只留第一段纯文本：模型偶尔带 Prompt:/Question: 前缀、引号或「Here is the prompt:」引导语。 */
+    fun cleanPrompt(raw: String): String {
+        val lines = raw.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
+        if (lines.isEmpty()) return ""
+        // 第一行只是「Here is the new prompt:」这类引导语时取下一行。
+        var s = if (lines.first().endsWith(":") && lines.size > 1) lines[1] else lines.first()
+        s = s
+            .removePrefix("Prompt:").removePrefix("prompt:").removePrefix("Question:").removePrefix("Q:").trim()
+        return s.trim('"', '\'', '“', '”', '‘', '’', '*', '`').trim()
+    }
+
     /** 模型偶尔带上 "Question:" 前缀、引号、解释或 JSON 包装：只留第一句问题。 */
     fun cleanFollowUp(raw: String): String {
         // 本地 4B 实测会按训练习惯返回 {"question":"..."}（提示词要求纯文本也不听）：先拆 JSON。
@@ -427,6 +456,16 @@ object StudyAi {
         - reference a detail the candidate actually said, so it feels like a real examiner listening.
         - one sentence, at most 25 words, ending with a question mark.
         - return plain text only, never JSON, never key-value wrapping.
+    """.trimIndent()
+
+    private val WRITING_TOPIC_SYSTEM = """
+        You are an IELTS Writing task writer. Given an original prompt, write ONE new prompt that tests
+        the same task type and skill but on a different topic.
+        Rules:
+        - Task 2: a discussion/opinion essay prompt in the same style (e.g. Some people believe ... Others think ... Discuss both views and give your own opinion), 25-45 words.
+        - Task 1: one sentence describing a chart/table/map/process to summarise; do not invent specific figures.
+        - same difficulty as the original; do not reuse its wording or topic.
+        - return plain text only: one paragraph, no quotes, no numbering, no JSON, no commentary.
     """.trimIndent()
 
     private val VARIANT_SYSTEM = """

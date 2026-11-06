@@ -236,4 +236,17 @@ class StudyAiTest {
         assertEquals(listOf("Alpha", "Beta"), v.options)
         assertEquals("Beta", v.answer)
     }
+
+    @Test
+    fun `同类型新题去掉前缀与引号`() {
+        assertEquals(
+            "Some people believe that remote work harms team spirit. To what extent do you agree?",
+            StudyAi.cleanPrompt("Prompt: \"Some people believe that remote work harms team spirit. To what extent do you agree?\""),
+        )
+        assertEquals(
+            "The chart below shows the number of visitors to three museums.",
+            StudyAi.cleanPrompt("Here is the new prompt:\nThe chart below shows the number of visitors to three museums."),
+        )
+        assertEquals("", StudyAi.cleanPrompt("   "))
+    }
 }

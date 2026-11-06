@@ -62,6 +62,10 @@ fun ResultScreen(
     // 入库账目：新增几张、几张重复、几张内容不可用。null 表示还没点过或还在写库。
     corpusAdd: com.txw.ielts.data.IngestResult? = null,
     onPracticeAgain: () -> Unit,
+    // 写作：换一个同类型新题（本地模型生成题干后直接进写作页）。
+    newTopicBusy: Boolean = false,
+    newTopicError: String? = null,
+    onRequestNewTopic: () -> Unit = {},
     onBack: () -> Unit,
     // 本地 AI 生词卡：从本次正文 + 逐句改法里提搭配，勾选后进 SRS。
     vocabResult: com.txw.ielts.llm.VocabResult? = null,
@@ -437,6 +441,16 @@ fun ResultScreen(
             // 评分没有 fixes 时也给一个重练入口，别让「反馈 → 重练」的闭环断在这里。
             Button(onClick = onPracticeAgain, modifier = Modifier.fillMaxWidth()) {
                 Text(if (speaking) "再练一次同一题" else "重写同一题目")
+            }
+        }
+        // 写作：换一个考同样能力的新题，避免反复重写同一道题（口语对应「回答这题」）。
+        if (!speaking && session.status == "done") {
+            TextButton(enabled = !newTopicBusy, onClick = onRequestNewTopic) {
+                Text(if (newTopicBusy) "出新题中…" else "换一个同类型题目")
+            }
+            if (newTopicBusy) LocalAiBusy("本地模型出新题中（请留在 App 内）")
+            newTopicError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
 

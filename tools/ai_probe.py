@@ -212,6 +212,7 @@ def cases() -> list[dict]:
     sys_listen = from_kotlin("LlmClient.kt", "LISTENING_GEN_SYSTEM")
     sys_explain = from_kotlin("LlmClient.kt", "BANK_EXPLAIN_SYSTEM")
     sys_variant = from_kotlin("StudyAi.kt", "VARIANT_SYSTEM")
+    sys_writing_topic = from_kotlin("StudyAi.kt", "WRITING_TOPIC_SYSTEM")
 
     weakness = ("\n\nThis student's recurring weaknesses recorded from past attempts: 字数与展开; 主谓一致. "
                 "Check specifically whether these problems appear in this attempt. If they do, list them FIRST in top_fixes "
@@ -289,6 +290,13 @@ def cases() -> list[dict]:
                    "Correct answer: 9 am\nStudent's answer: 10 am\n"
                    "Explanation: 录音里明确说 opens at nine in the morning。"),
              validate="variant"),
+        dict(name="writing_new_topic",
+             system=sys_writing_topic,
+             user=("Task type: Task 2 (discussion essay)\n"
+                   "Original prompt: Some people believe university students should study whatever they like. "
+                   "Others think they should only study subjects that will be useful. "
+                   "Discuss both views and give your own opinion."),
+             validate="topic"),
         dict(name="chart_prompt_polish",
              system="You are an IELTS Writing Task 1 examiner. Rewrite the given Task 1 prompt in natural exam-authentic English. Keep every number, category and unit exactly as given; do not add or remove data. Output only the prompt sentence(s), no explanation.",
              user="Chart type: table\nTitle: household spending by category in 1995 and 2015\nUnit: %\nData:\n" + TABLE_DATA,
@@ -320,6 +328,20 @@ def validate(case: dict, text: str) -> list[str]:
     if not text.strip():
         return ["模型没有输出"]
     v = case["validate"]
+    if v == "topic":
+        t = text.strip()
+        words = t.split()
+        if re.search(r"[{}]", t):
+            issues.append("新题里出现 JSON/花括号")
+        if len(words) < 15:
+            issues.append(f"题目过短（{len(words)} 词）")
+        if len(words) > 80:
+            issues.append(f"题目过长（{len(words)} 词）")
+        if "university students should study" in t.lower():
+            issues.append("新题复用了原题内容")
+        if not re.search(r"[.?！？]$", t):
+            issues.append("题目没有以句号/问号结尾")
+        return issues
     if v == "followup":
         q = text.strip().strip('"').strip()
         if len(q) > 240:

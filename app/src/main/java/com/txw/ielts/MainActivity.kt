@@ -420,6 +420,9 @@ private fun App(
     var followUpSessionId by remember { mutableStateOf<Long?>(null) }
     var followUpBusy by remember { mutableStateOf(false) }
     var followUpError by remember { mutableStateOf<String?>(null) }
+    // 写作：换一个同类型新题（结果页按钮）。
+    var newTopicBusy by remember { mutableStateOf(false) }
+    var newTopicError by remember { mutableStateOf<String?>(null) }
     // 冷启动先恢复上次 AI 复盘：不只省一次 30-60 秒端侧推理，也避免为同样的输入再花云端额度。
     val cachedAiReview = remember { com.txw.ielts.llm.AiReviewCache.fromJson(prefs.aiReviewCache) }
     var aiReviewCache by remember { mutableStateOf(cachedAiReview) }
@@ -620,6 +623,39 @@ private fun App(
             followUpError = "追问生成失败：${e.message}"
         } finally {
             followUpBusy = false
+        }
+    }
+
+    /** 写作换题：让本地模型出一道同类型新题，生成完直接进写作页预填。 */
+    suspend fun requestNewWritingTopic(session: Session, task: String) {
+        newTopicBusy = true
+        newTopicError = null
+        if (LocalLlmEngine.isGenerating) {
+            newTopicError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            newTopicBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            newTopicError = "本地模型未就绪：请到设置页确认模型已投递"
+            newTopicBusy = false
+            return
+        }
+        try {
+            val topic = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.writingTopic(context, prefs.localModel, session.topic, task)
+            }
+            if (topic.isBlank()) {
+                newTopicError = "模型没有返回可用题目，请重试"
+            } else {
+                practiceFocus = null
+                writingPresetChart = null
+                writingPresetTopic = topic
+                route = Route.Writing
+            }
+        } catch (e: Exception) {
+            newTopicError = "出新题失败：${e.message}"
+        } finally {
+            newTopicBusy = false
         }
     }
 
@@ -2554,6 +2590,11 @@ private fun App(
                                     part = if (isSpeaking) session.topic.substringBefore(" · ").trim() else "Part 2",
                                 )
                                 route = if (isSpeaking) Route.Speaking else Route.Writing
+                            },
+                            newTopicBusy = newTopicBusy,
+                            newTopicError = newTopicError,
+                            onRequestNewTopic = {
+                                scope.launch { requestNewWritingTopic(session, session.resolvedTask()) }
                             },
                             vocabResult = vocabResult,
                             vocabSessionId = vocabSessionId,
