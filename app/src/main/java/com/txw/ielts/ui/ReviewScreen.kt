@@ -63,6 +63,7 @@ fun ReviewScreen(
     onOpen: (Long) -> Unit,
     onBack: () -> Unit,
     aiReview: com.txw.ielts.llm.AiReview? = null,
+    aiReviewHint: com.txw.ielts.llm.ReviewCacheHint? = null,
     aiBusy: Boolean = false,
     aiError: String? = null,
     onRequestReview: () -> Unit = {},
@@ -145,7 +146,7 @@ fun ReviewScreen(
         IosNavBar("复盘看板", onBack = onBack)
 
         if (done.isNotEmpty()) {
-            AiReviewSection(aiReview, aiBusy, aiError, onRequestReview)
+            AiReviewSection(aiReview, aiReviewHint, aiBusy, aiError, onRequestReview)
         } else {
             Text(
                 "完成一次写作 / 口语 / 听读练习后，AI 复盘会基于真实成绩给出建议。",
@@ -319,6 +320,7 @@ internal fun topErrors(sessions: List<Session>): List<ErrorBucket> {
 @Composable
 private fun AiReviewSection(
     review: com.txw.ielts.llm.AiReview?,
+    hint: com.txw.ielts.llm.ReviewCacheHint?,
     busy: Boolean,
     error: String?,
     onRequest: () -> Unit,
@@ -327,6 +329,15 @@ private fun AiReviewSection(
     BookCard(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("AI 复盘 · 本地模型", style = MaterialTheme.typography.labelLarge)
+            // 缓存来自上次生成：说明多久以前、数据是否还对得上，决定要不要再花一次推理。
+            if (review != null && hint != null) {
+                Text(
+                    "${hint.ageLabel} · ${hint.note}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (hint.reusable) MaterialTheme.colorScheme.onSurfaceVariant
+                    else MaterialTheme.colorScheme.primary,
+                )
+            }
             if (review != null) {
                 if (review.summary.isNotBlank()) {
                     Text(review.summary, style = MaterialTheme.typography.bodyMedium)

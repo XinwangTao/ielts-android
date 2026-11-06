@@ -357,7 +357,10 @@ private fun App(
     var vocabSessionId by remember { mutableStateOf<Long?>(null) }
     var vocabBusy by remember { mutableStateOf(false) }
     var vocabError by remember { mutableStateOf<String?>(null) }
-    var aiReview by remember { mutableStateOf<com.txw.ielts.llm.AiReview?>(null) }
+    // 冷启动先恢复上次 AI 复盘：不只省一次 30-60 秒端侧推理，也避免为同样的输入再花云端额度。
+    val cachedAiReview = remember { com.txw.ielts.llm.AiReviewCache.fromJson(prefs.aiReviewCache) }
+    var aiReviewCache by remember { mutableStateOf(cachedAiReview) }
+    var aiReview by remember { mutableStateOf(cachedAiReview?.review) }
     var aiReviewBusy by remember { mutableStateOf(false) }
     var aiReviewError by remember { mutableStateOf<String?>(null) }
     var recoveryNotice by remember { mutableStateOf<String?>(null) }
@@ -479,15 +482,38 @@ private fun App(
             return
         }
         try {
+            val summary = buildReviewSummary()
             val r = withContext(Dispatchers.IO) {
-                com.txw.ielts.llm.StudyAi.review(context, prefs.localModel, buildReviewSummary())
+                com.txw.ielts.llm.StudyAi.review(context, prefs.localModel, summary)
             }
-            if (r.isEmpty) aiReviewError = "本地模型没有输出可用的复盘，请重试" else aiReview = r
+            if (r.isEmpty) {
+                aiReviewError = "本地模型没有输出可用的复盘，请重试"
+            } else {
+                // 落盘时记下输入指纹与练习条数：下次启动能判断这份复盘是否还对得上当前数据。
+                val cache = com.txw.ielts.llm.AiReviewCache(
+                    review = r,
+                    createdAt = System.currentTimeMillis(),
+                    fingerprint = com.txw.ielts.llm.AiReviewCache.fingerprint(summary),
+                    sessionsCount = sessions.size,
+                )
+                aiReview = r
+                aiReviewCache = cache
+                prefs.aiReviewCache = cache.toJson()
+            }
         } catch (e: Exception) {
             aiReviewError = "复盘生成失败：${e.message}"
         } finally {
             aiReviewBusy = false
         }
+    }
+
+    // 复盘卡的新鲜度提示：数据没变/新增了几条/已过期，都写清楚，别让用户盲目重跑模型。
+    val aiReviewHint = remember(aiReviewCache, sessions, prefs.targetBand, prefs.examDate) {
+        aiReviewCache?.hint(
+            currentFingerprint = com.txw.ielts.llm.AiReviewCache.fingerprint(buildReviewSummary()),
+            currentSessionsCount = sessions.size,
+            now = System.currentTimeMillis(),
+        )
     }
 
     // 启动时清理「卡死的本地评分」：进程被系统杀死后 pending_local 会永远停在评分中，超过 10 分钟重置为可重试。
@@ -2026,6 +2052,7 @@ private fun App(
                     onOpen = { route = Route.Result(it) },
                     onBack = { route = Route.Home },
                     aiReview = aiReview,
+                    aiReviewHint = aiReviewHint,
                     aiBusy = aiReviewBusy,
                     aiError = aiReviewError,
                     onRequestReview = { scope.launch { requestAiReview() } },

@@ -131,6 +131,11 @@ class Prefs(context: Context) {
         get() = sp.getLong(KEY_CLOUD_DOWN, 0L)
         set(v) = sp.edit().putLong(KEY_CLOUD_DOWN, v).apply()
 
+    /** 最近一次 AI 复盘快照（JSON）：冷启动直接展示，避免每次重跑 30-60 秒本地推理。 */
+    var aiReviewCache: String
+        get() = sp.getString(KEY_AI_REVIEW_CACHE, "") ?: ""
+        set(v) = sp.edit().putString(KEY_AI_REVIEW_CACHE, v).apply()
+
     var callsToday: Int
         get() {
             rolloverIfNeeded()
@@ -175,6 +180,7 @@ class Prefs(context: Context) {
         private const val KEY_LOCAL_SCORE_STARTED = "local_score_started"
         private const val KEY_LOCAL_SCORE_FINISHED = "local_score_finished"
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
+        private const val KEY_AI_REVIEW_CACHE = "ai_review_cache"
         private const val KEY_TARGET_BAND = "target_band"
         private const val KEY_EXAM_DATE = "exam_date"
         private const val KEY_TARGET_L = "target_band_listening"
