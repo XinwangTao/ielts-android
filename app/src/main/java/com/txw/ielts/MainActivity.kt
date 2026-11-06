@@ -2000,6 +2000,18 @@ private fun App(
                     )
                     Log.i(TAG, "E2E: RESULT ai followup chars=${q.length} q=$q")
                 }
+                "variant" -> {
+                    val v = com.txw.ielts.llm.StudyAi.variant(
+                        context, model,
+                        "The writer says the museum was originally built to store private collections.",
+                        "NOT GIVEN",
+                        "TRUE",
+                        "原文只提到 19 世纪建造，没有说明最初用途。",
+                    )
+                    val answerOk = v.options.isEmpty() || v.options.any { it.equals(v.answer, ignoreCase = true) }
+                    Log.i(TAG, "E2E: RESULT ai variant empty=${v.isEmpty} options=${v.options.size} " +
+                        "answerOk=$answerOk q=${v.question.take(60)}")
+                }
                 "score_writing" -> {
                     val topic = "Some people believe university students should study whatever they like. " +
                         "Others think they should only study subjects that will be useful. " +

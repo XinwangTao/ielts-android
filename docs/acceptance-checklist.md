@@ -16,7 +16,7 @@
 | 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5 |
 | AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*` | ✅ 探针 18/18 |
 | 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 18/18 |
-| 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` | ✅ 探针通过；真机 UI 待验 |
+| 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` / `e2e_local_ai.sh <设备> variant` | ✅ 探针通过；真机待验 |
 | 图表题干润色 | 出图题「AI 润色题干」 | PC 探针 `chart_prompt_polish` | ✅ 探针 18/18 |
 
 一键跑全部 PC 探针（不装机）：
@@ -83,6 +83,7 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
 - [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
 - [ ] 设置页「提前加载模型」开关关闭后，进练习页不再触发加载
 - [ ] 错题「再来一道同考点新题」：生成、选项排版、答案默认收起、查看答案
+      （可先用 `bash tools/e2e_local_ai.sh <设备> variant` 验生成与答案对齐，无需点按钮）
 - [ ] 变式题换套题后不串题（A 套 1 号题的变式不会出现在 B 套 1 号题）
 - [ ] lint 清理后的通知渠道与前台服务启动回归（评分完成通知仍正常）
 - [ ] 清空数据后 AI 派生缓存确实清空（复盘页不再显示旧建议）
