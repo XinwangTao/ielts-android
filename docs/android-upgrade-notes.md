@@ -43,6 +43,20 @@
 4. **广播/隐式 Intent**：target 35 起部分隐式广播限制收紧；目前只在设置页拉起系统页，风险低。
 5. **通知**：渠道已建；权限流程已按 33+ 处理，预计无变化。
 
+### Edge-to-edge 迁移评估（离线，2026-11-06）
+
+- **现状**：`Theme.kt` 在 `SideEffect` 里设置 `window.statusBarColor` / `navigationBarColor`（API 35 弃用）；
+  全仓库 grep 无 `WindowInsets` / `systemBarsPadding` / `Scaffold` / `enableEdgeToEdge`。
+- **影响**：targetSdk 升到 35 后系统强制 edge-to-edge —— 系统栏透明、内容绘制到栏下；
+  现在没有任何 insets 补偿，页头、底部录音按钮组、结果页长列表都会被系统栏压住。
+- **迁移步骤（需真机）**：
+  1. `Theme.kt` 删除两行颜色设置；Activity 改用 `enableEdgeToEdge()`（androidx.activity 1.9.3 已含）。
+  2. 在 `MainActivity` 的根容器统一加 `Modifier.windowInsetsPadding(WindowInsets.systemBars)`（或每页 `contentPadding`）。
+  3. 逐页确认：首页顶部标题、写作业顶部计时/底部「提交」、口语录音按钮组、结果页长列表底部、设置页底部按钮。
+  4. 键盘（IME）场景：输入框用 `imePadding()`，避免被键盘遮挡。
+- **结论**：代码改动集中但回归面覆盖全部页面，**留到 Stage C 与真机一起做**；
+  已把「系统栏遮挡」加入 `docs/acceptance-checklist.md` 第八节。
+
 ### Stage D（targetSdk 36，暂不建议）
 
 - Android 16 的 predictive back 默认开启、edge-to-edge 更严格，且依赖 Stage C 的 16KB 验证结果。

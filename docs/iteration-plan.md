@@ -22,8 +22,9 @@
 
 ## 可离线队列（按顺序，下一项从这里挑）
 
-1. **剩余弃用清理**：`Theme.kt` 的 `statusBarColor` / `navigationBarColor`（API 35 弃用）评估边到边适配；
-   `Guard.kt` 的 `SCREEN_DIM_WAKE_LOCK` 属保活关键路径，**改动需真机验证，先不动**。
+1. [x] **剩余弃用评估**（2026-11-06）：系统栏颜色 → edge-to-edge 的迁移步骤与风险已写入
+   `docs/android-upgrade-notes.md`「Edge-to-edge 迁移评估」；结论是**留到 Stage C 与真机一起做**。
+   `Guard.kt` 的 `SCREEN_DIM_WAKE_LOCK` 属保活关键路径，同样等真机。
 2. **导入预览（只读）**：纯逻辑部分已完成（`BackupRestore.summary`，返回「将新增 N 条练习、M 张卡片…」，
    1 例单测）；剩余是选文件与展示的 UI，属 L1 流程的一部分，待确认后再接。
 3. **导出体验**：导出后提供「打开备份目录」入口（FileProvider 或 DocumentsUI），需评估清单改动。
