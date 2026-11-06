@@ -196,7 +196,8 @@ REVIEW_SUMMARY = """Recent sessions (last 7 days):
 - 2026-11-04 speaking Part 2: Band 7.0 (FC 7.0 / LR 7.0 / GRA 6.5 / P 7.5); fixes: 衔接与分段
 - 2026-11-04 writing Task 2: Band 6.0 (TR 4.0 / CC 6.0 / LR 7.0 / GRA 7.0); fixes: 字数与展开
 Bands: writing 6.0, speaking 7.0; target 6.5.
-Top weaknesses: 衔接与分段 (17), 字数与展开 (14), 主谓一致 (9)."""
+Top weaknesses: 衔接与分段 (17), 字数与展开 (14), 主谓一致 (9).
+Exam: 2026-12-18 (42 days left)."""
 
 
 def cases() -> list[dict]:
