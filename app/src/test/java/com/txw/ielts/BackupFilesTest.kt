@@ -26,4 +26,13 @@ class BackupFilesTest {
         assertEquals(8, BackupFiles.selectDeletionCandidates(files, 0).size)
         assertEquals(8, BackupFiles.selectDeletionCandidates(files, -1).size)
     }
+
+    @Test
+    fun `撞名时追加序号`() {
+        assertEquals("a.json", BackupFiles.uniqueName(emptySet(), "a.json"))
+        assertEquals("a_2.json", BackupFiles.uniqueName(setOf("a.json"), "a.json"))
+        assertEquals("a_3.json", BackupFiles.uniqueName(setOf("a.json", "a_2.json"), "a.json"))
+        // 没有扩展名也能处理。
+        assertEquals("backup_2", BackupFiles.uniqueName(setOf("backup"), "backup"))
+    }
 }
