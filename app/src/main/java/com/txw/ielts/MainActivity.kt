@@ -1863,7 +1863,7 @@ private fun App(
         // 同一道错题 + 同一份作答的变式可复用：重开结果页/重启后不必再跑一次模型。
         // 界面上已经有这道题的变式时，本次点击就是「换一道」，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
-            "variant", resultScope, item.prompt, item.right, item.yours,
+            "variant", resultScope, item.prompt, item.right, item.yours, item.explain,
         )
         if (bankVariants[vk] == null) com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
             val cached = com.txw.ielts.llm.StudyAi.parseVariant(raw)
