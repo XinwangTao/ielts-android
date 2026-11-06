@@ -338,7 +338,10 @@ def validate(case: dict, text: str) -> list[str]:
     try:
         d = json_body(text)
     except Exception as e:
-        return [f"JSON 解析失败：{e}；原文 {text[:160]!r}"]
+        # 只报「Expecting ':' delimiter」定位不到问题；把出错位置前后各 60 字符打出来。
+        pos = getattr(e, "pos", None)
+        ctx = f"；出错位置附近：{text[max(0, pos - 60):pos + 60]!r}" if isinstance(pos, int) and pos > 0 else ""
+        return [f"JSON 解析失败：{e}；原文 {text[:160]!r}{ctx}"]
 
     if v in ("writing", "writing_task1"):
         check_keys(d, ["sentence_fixes", "GRA", "LR", "CC", "overall", "top_fixes", "polished"], issues)

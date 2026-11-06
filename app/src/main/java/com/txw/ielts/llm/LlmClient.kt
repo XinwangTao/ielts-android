@@ -77,7 +77,8 @@ class LlmClient(
     private val onRetry: (attempt: Int, maxAttempts: Int, reason: String) -> Unit = { _, _, _ -> },
 ) {
 
-    private class HttpError(val code: Int, message: String) : IOException(message)
+    /** HTTP 层失败（额度/鉴权/限流/服务端错误）：重试同一请求没有意义，交给 routeLlm 直接回退本地。 */
+    internal class HttpError(val code: Int, message: String) : IOException(message)
 
     /**
      * 把云端错误翻译成用户能照着做的中文。原始返回体照旧附在后面便于排查。

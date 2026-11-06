@@ -46,6 +46,12 @@ android {
     buildFeatures {
         compose = true
     }
+
+    // JVM 单测里 android.util.Log 等桩方法默认抛 "not mocked"；让它们返回默认值，
+    // 才能直接测带日志的纯逻辑（如 routeLlm 的通道回退）。
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {

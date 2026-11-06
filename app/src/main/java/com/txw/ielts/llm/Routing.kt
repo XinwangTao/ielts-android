@@ -19,7 +19,8 @@ suspend fun <T> routeLlm(
     onCloudFail: (Exception) -> Unit = {},
     cloud: suspend () -> T,
     local: suspend () -> T,
-): T = when (channel) {
+): T {
+    return when (channel) {
     "local" -> local()
     "cloud" -> cloud()
     else -> try {
@@ -27,8 +28,23 @@ suspend fun <T> routeLlm(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
+        // 模型这次把 JSON 写坏（缺冒号、引号没转义）时，重发一次内容不同、大概率能过；
+        // HTTP 层失败（额度/鉴权/限流/服务端错）重发只会多等一个往返，直接回退本地。
+        // 实测 GLM 出 8 题阅读约有 1/3 概率语法坏，重试一次能显著降低「整套题白等」。
+        if (e !is LlmClient.HttpError) {
+            try {
+                return cloud()
+            } catch (e2: CancellationException) {
+                throw e2
+            } catch (e2: Exception) {
+                Log.w("LlmRouter", "$label 云端重试仍失败，回退本地模型：${e2.message}")
+                runCatching { onCloudFail(e2) }
+                return local()
+            }
+        }
         Log.w("LlmRouter", "$label 云端不可用，回退本地模型：${e.message}")
         runCatching { onCloudFail(e) }
         local()
+    }
     }
 }
