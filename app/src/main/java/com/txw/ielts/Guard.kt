@@ -58,6 +58,15 @@ object Guard {
 
     fun micActive(): Boolean = micRefs.get() > 0
 
+    /**
+     * 服务被系统单独回收（不是调用方 stop）时同步清零引用。
+     * 否则 refs 会停在 >0，下一次 start() 以为服务还在、不再启动，保活从此失效。
+     */
+    internal fun onServiceDestroyed() {
+        refs.set(0)
+        micRefs.set(0)
+    }
+
     private fun release(context: Context) {
         if (refs.decrementAndGet() > 0) return
         refs.set(0)
@@ -225,6 +234,7 @@ class GuardService : Service() {
         runCatching { track?.stop() }
         runCatching { track?.release() }
         track = null
+        Guard.onServiceDestroyed()
         super.onDestroy()
     }
 
