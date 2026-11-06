@@ -48,3 +48,24 @@ suspend fun <T> routeLlm(
     }
     }
 }
+
+/**
+ * 只重试「格式类」失败（模型这次把 JSON 写坏），HTTP 层失败原样抛给调用方去降级/报错。
+ *
+ * 云端评分不走 routeLlm（成功路径要落库），但同样会遇到模型偶发语法坏；
+ * 直接掉本地要多等几分钟，重发一次内容不同、大概率能过。
+ */
+suspend fun <T> retryOnceOnFormat(block: suspend () -> T): T {
+    return try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        if (e is LlmClient.HttpError) throw e
+        try {
+            block()
+        } catch (e2: CancellationException) {
+            throw e2
+        }
+    }
+}

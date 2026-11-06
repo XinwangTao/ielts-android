@@ -1245,8 +1245,11 @@ private fun App(
         try {
             val eval: WritingEval = withContext(Dispatchers.IO) {
                 val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
-                if (task == "task1") client.evaluateWritingTask1(session.topic, text)
-                else client.evaluateWriting(session.topic, text, myWeaknesses())
+                // 模型偶发把 JSON 写坏：格式类失败重发一次，别直接掉到本地白等几分钟。
+                com.txw.ielts.llm.retryOnceOnFormat {
+                    if (task == "task1") client.evaluateWritingTask1(session.topic, text)
+                    else client.evaluateWriting(session.topic, text, myWeaknesses())
+                }
             }
             Log.i(TAG, "writing eval ${System.currentTimeMillis() - t0}ms raw=${eval.rawJson.take(200)}")
             // 云端与本地统一后处理：0.5 步长、overall 由分项重算、按题型套字数封顶。
@@ -1334,8 +1337,11 @@ private fun App(
         com.txw.ielts.Guard.start(context)
         try {
             val eval: SpeakingEval = withContext(Dispatchers.IO) {
-                LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
-                    .evaluateSpeaking(part, session.topic, text, session.durationSec, myWeaknesses())
+                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
+                // 同上：格式类失败重发一次，避免直接掉本地。
+                com.txw.ielts.llm.retryOnceOnFormat {
+                    client.evaluateSpeaking(part, session.topic, text, session.durationSec, myWeaknesses())
+                }
             }
             Log.i(TAG, "speaking eval ${System.currentTimeMillis() - t0}ms raw=${eval.rawJson.take(200)}")
             val words = text.split(Regex("\\s+")).count { it.isNotBlank() }

@@ -1,6 +1,7 @@
 package com.txw.ielts
 
 import com.txw.ielts.llm.LlmClient
+import com.txw.ielts.llm.retryOnceOnFormat
 import com.txw.ielts.llm.routeLlm
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
@@ -90,5 +91,51 @@ class RoutingTest {
         )
         assertEquals("local", out)
         assertEquals(0, cloudCalls)
+    }
+
+    @Test
+    fun `格式类失败重试一次后成功`() = runBlocking {
+        var calls = 0
+        val out = retryOnceOnFormat<String> {
+            calls++
+            if (calls == 1) throw IOException("坏 JSON")
+            "ok"
+        }
+        assertEquals("ok", out)
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun `HTTP 失败不重试直接抛出`() = runBlocking {
+        var calls = 0
+        try {
+            retryOnceOnFormat<String> { calls++; throw LlmClient.HttpError(401, "HTTP 401") }
+            fail("应该抛出 HttpError")
+        } catch (e: LlmClient.HttpError) {
+            assertEquals(1, calls)
+        }
+    }
+
+    @Test
+    fun `两次都坏时抛出第二次的异常`() = runBlocking {
+        var calls = 0
+        try {
+            retryOnceOnFormat<String> { calls++; throw IOException("第 $calls 次坏") }
+            fail("应该抛出异常")
+        } catch (e: IOException) {
+            assertEquals(2, calls)
+            assertTrue(e.message!!.contains("第 2 次"))
+        }
+    }
+
+    @Test
+    fun `取消异常不重试`() = runBlocking {
+        var calls = 0
+        try {
+            retryOnceOnFormat<String> { calls++; throw CancellationException("取消") }
+            fail("应该抛出 CancellationException")
+        } catch (e: CancellationException) {
+            assertEquals(1, calls)
+        }
     }
 }
