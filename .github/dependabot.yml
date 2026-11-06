@@ -1,0 +1,20 @@
+version: 2
+updates:
+  # Gradle 依赖：每周一次，避免版本落后太多（compileSdk/core-ktx 等已有评估文档）。
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+    labels: ["deps", "gradle"]
+    commit-message:
+      prefix: "deps"
+
+  # Actions 版本：少而稳，避免 Node runtime 过时导致 workflow 失效。
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels: ["deps", "ci"]
+    commit-message:
+      prefix: "ci"

@@ -10,7 +10,8 @@
 ## 可离线队列
 
 1. [x] **CI 自动回归**（2026-11-07）：`.github/workflows/android-ci.yml`——push/PR 自动跑单测 + lint，
-   装 `platforms;android-35` 与 build-tools，失败上传报告。**未推送**（推送需用户确认后 CI 才会首次运行）。
+   装 `platforms;android-35` 与 build-tools，失败上传报告。配套 `.github/dependabot.yml`（Gradle 周更 / Actions 月更）。
+   **未推送**（推送需用户确认后 CI 才会首次运行）。
 
 暂无其他安全项；无设备期间不新增低价值 UI 改动。
 
