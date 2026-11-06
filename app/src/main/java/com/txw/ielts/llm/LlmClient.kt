@@ -103,10 +103,12 @@ class LlmClient(
         weaknesses: List<String> = emptyList(),
     ): WritingEval {
         val words = essay.split(Regex("\\s+")).count { it.isNotBlank() }
+        // 超长粘贴不能整段发出去：留开头与结尾（结论段），中部省略。
+        val body = PromptBudget.clipText(essay, PromptBudget.SCORE_INPUT_TOKENS)
         val content = chat(
             WRITING_SYSTEM,
             buildString {
-                append("Task: $topic\nWord count: $words\n\nEssay:\n$essay")
+                append("Task: $topic\nWord count: $words\n\nEssay:\n$body")
                 append(weaknessHint(weaknesses))
             },
         )
@@ -130,7 +132,9 @@ class LlmClient(
         val words = essay.split(Regex("\\s+")).count { it.isNotBlank() }
         val content = chat(
             TASK1_SYSTEM,
-            "Chart data:\n$chart\n\nWord count: $words\n\nReport:\n$essay",
+            "Chart data:\n${PromptBudget.clipText(chart, PromptBudget.SCORE_INPUT_TOKENS)}" +
+                "\n\nWord count: $words\n\nReport:\n" +
+                PromptBudget.clipText(essay, PromptBudget.SCORE_INPUT_TOKENS),
         )
         val json = extractJson(content)
         val o = JSONObject(json)
@@ -156,6 +160,8 @@ class LlmClient(
     ): SpeakingEval {
         val words = transcript.split(Regex("\\s+")).count { it.isNotBlank() }
         val wpm = if (seconds > 0) (words * 60.0 / seconds).toInt() else 0
+        // ASR 复读时转写可能几万字，整段发出去只会超长/超时：同样留两头。
+        val transcriptBody = PromptBudget.clipText(transcript, PromptBudget.SCORE_INPUT_TOKENS)
         val content = chat(
             SPEAKING_SYSTEM,
             buildString {

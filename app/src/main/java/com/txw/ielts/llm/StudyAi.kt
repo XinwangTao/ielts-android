@@ -44,6 +44,8 @@ data class VocabItem(
 data class VocabResult(
     val items: List<VocabItem>,
     val raw: String = "",
+    /** 输入超过 token 预算时被省略的字符数（0 表示原文完整送进去了），结果卡据此提示。 */
+    val trimmedChars: Int = 0,
 )
 
 /** AI 复盘的一条行动建议。 */
@@ -111,19 +113,30 @@ object StudyAi {
         val corrections = sentenceFixes.joinToString("\n") { (sentence, issue, better) ->
             "- $sentence -> $better" + if (issue.isNotBlank()) " ($issue)" else ""
         }
-        val raw = LocalLlmEngine.generateText(
-            context, model, VOCAB_SYSTEM,
-            "Essay:\n${text.trim().take(4000)}\n\nCorrections:\n$corrections",
+        // 原文和逐句改法都可能有几万个字符：按预算装配，先砍原文（且留两头），改法后砍。
+        val prompt = PromptBudget.fit(
+            listOf(
+                PromptBudget.Part("essay", "Essay:\n${text.trim()}", priority = 1),
+                PromptBudget.Part(
+                    "corrections",
+                    "Corrections:\n" + corrections.ifBlank { "(no sentence corrections)" },
+                    priority = 3,
+                ),
+            ),
+            PromptBudget.STUDY_INPUT_TOKENS,
         )
-        return parseVocab(raw)
+        val raw = LocalLlmEngine.generateText(context, model, VOCAB_SYSTEM, prompt.text)
+        return parseVocab(raw).copy(trimmedChars = prompt.removedChars)
     }
 
     /** 最近练习复盘：输入由调用方拼好的「最近成绩 + 高频问题」摘要。 */
     suspend fun review(context: Context, model: String, summary: String): AiReview {
-        val raw = LocalLlmEngine.generateText(
-            context, model, REVIEW_SYSTEM,
-            "Recent practice summary:\n${summary.trim().take(4000)}",
+        // 摘要末尾是目标分与距考期天数，正是模型排计划强度的依据：留两头，别只留前 4000 字。
+        val fitted = PromptBudget.clipText(
+            "Recent practice summary:\n${summary.trim()}",
+            PromptBudget.STUDY_INPUT_TOKENS,
         )
+        val raw = LocalLlmEngine.generateText(context, model, REVIEW_SYSTEM, fitted)
         return parseReview(raw)
     }
 

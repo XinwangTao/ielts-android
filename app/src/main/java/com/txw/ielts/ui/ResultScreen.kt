@@ -431,6 +431,14 @@ fun ResultScreen(
                         }
                     }
                     val result = vocabResult?.takeIf { vocabSessionId == session.id }
+                    // 输入超预算时直说省了多少：生词偏少时用户能分清是「原文被裁」还是「模型不行」。
+                    if (result != null && result.trimmedChars > 0) {
+                        Text(
+                            "原文较长，已省略中间 ${result.trimmedChars} 字（保留开头与结尾）",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     if (result != null) {
                         if (result.items.isEmpty()) {
                             Text("模型没有返回可用的生词。原文：", style = MaterialTheme.typography.bodySmall)

@@ -210,11 +210,14 @@ object LocalLlmEngine {
     ): WritingEval = withContext(Dispatchers.IO) {
         val words = essay.split(Regex("\\s+")).count { it.isNotBlank() }
         val system = if (task == "task1") TASK1_SYSTEM else WRITING_SYSTEM
+        // 端侧 4B 上下文更小：超长输入先按预算裁（留开头与结尾），否则生成会变慢甚至截断输出。
+        val topicBody = PromptBudget.clipText(topic, PromptBudget.SCORE_INPUT_TOKENS)
+        val essayBody = PromptBudget.clipText(essay, PromptBudget.SCORE_INPUT_TOKENS)
         val user = buildString {
             if (task == "task1") {
-                append("Chart data:\n$topic\n\nWord count: $words\n\nReport:\n$essay")
+                append("Chart data:\n$topicBody\n\nWord count: $words\n\nReport:\n$essayBody")
             } else {
-                append("Task: $topic\nWord count: $words\n\nEssay:\n$essay")
+                append("Task: $topicBody\nWord count: $words\n\nEssay:\n$essayBody")
             }
             append(weaknessHint(weaknesses))
         }
@@ -236,10 +239,11 @@ object LocalLlmEngine {
         // 客观声学代理指标：转写文本里的填充词与语速。给 P/FC 评分一个文本之外的证据。
         val fillers = Regex("\\b(um+|uh+|er+m?|hmm+|ah+)\\b", RegexOption.IGNORE_CASE)
             .findAll(transcript).count()
+        val transcriptBody = PromptBudget.clipText(transcript, PromptBudget.SCORE_INPUT_TOKENS)
         val user = buildString {
             append("Part: $part\nQuestion: $question\nSpeaking time: ${seconds}s\n")
             append("Word count: $words\nWords per minute: $wpm\nFiller words (um/uh/er): $fillers\n\n")
-            append("Transcript (from offline ASR, punctuation unreliable):\n$transcript")
+            append("Transcript (from offline ASR, punctuation unreliable):\n$transcriptBody")
             append(weaknessHint(weaknesses))
         }
         val raw = generate(context, model, SPEAKING_SYSTEM, user)
