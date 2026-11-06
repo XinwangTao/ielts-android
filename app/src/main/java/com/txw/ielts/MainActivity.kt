@@ -411,6 +411,11 @@ private fun App(
     var vocabSessionId by remember { mutableStateOf<Long?>(null) }
     var vocabBusy by remember { mutableStateOf(false) }
     var vocabError by remember { mutableStateOf<String?>(null) }
+    // Part 3 追问：真实考试 Part 2 之后考官会追着问，这里让本地模型扮演考官。
+    var followUpQuestion by remember { mutableStateOf<String?>(null) }
+    var followUpSessionId by remember { mutableStateOf<Long?>(null) }
+    var followUpBusy by remember { mutableStateOf(false) }
+    var followUpError by remember { mutableStateOf<String?>(null) }
     // 冷启动先恢复上次 AI 复盘：不只省一次 30-60 秒端侧推理，也避免为同样的输入再花云端额度。
     val cachedAiReview = remember { com.txw.ielts.llm.AiReviewCache.fromJson(prefs.aiReviewCache) }
     var aiReviewCache by remember { mutableStateOf(cachedAiReview) }
@@ -423,7 +428,7 @@ private fun App(
     // 端侧推理（评分 / 提纲 / 范例 / 生词卡 / 复盘）必然中断（docs/oppo-background-scoring-findings.md §九）。
     com.txw.ielts.ui.KeepScreenOn(
         sessionsOrNull?.any { it.status == "pending_local" } == true ||
-            writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy ||
+            writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy || followUpBusy ||
             !e2eAi.isNullOrBlank(),
     )
 
@@ -512,6 +517,33 @@ private fun App(
             vocabError = "生词提取失败：${e.message}"
         } finally {
             vocabBusy = false
+        }
+    }
+
+    /** 口语 Part 3 追问：把本场题目与转写交给本地模型，扮演考官问一个更抽象的问题。 */
+    suspend fun requestFollowUp(sessionId: Long, question: String, answer: String) {
+        followUpBusy = true
+        followUpError = null
+        followUpSessionId = sessionId
+        if (LocalLlmEngine.isBusy) {
+            followUpError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            followUpBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            followUpError = "本地模型未就绪：请到设置页确认模型已投递"
+            followUpBusy = false
+            return
+        }
+        try {
+            val q = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.followUp(context, prefs.localModel, question, answer)
+            }
+            if (q.isBlank()) followUpError = "模型没有返回可用问题，请重试" else followUpQuestion = q
+        } catch (e: Exception) {
+            followUpError = "追问生成失败：${e.message}"
+        } finally {
+            followUpBusy = false
         }
     }
 
@@ -2267,6 +2299,18 @@ private fun App(
                             vocabError = vocabError,
                             onRequestVocab = { text, fixes ->
                                 scope.launch { requestVocab(session.id, text, fixes) }
+                            },
+                            followUpQuestion = followUpQuestion.takeIf { followUpSessionId == session.id },
+                            followUpBusy = followUpBusy,
+                            followUpError = followUpError,
+                            onRequestFollowUp = {
+                                scope.launch {
+                                    requestFollowUp(
+                                        session.id,
+                                        session.topic.substringAfter(" · ", session.topic),
+                                        session.transcript,
+                                    )
+                                }
                             },
                             onAddVocab = { items ->
                                 // 入库前套用用户的修改：模型释义/例句未必合身，改过就以改的为准。

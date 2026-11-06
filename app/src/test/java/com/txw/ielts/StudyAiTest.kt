@@ -138,6 +138,19 @@ class StudyAiTest {
     }
 
     @Test
+    fun `追问去掉前缀引号与解释`() {
+        assertEquals(
+            "Why do you think practical skills are undervalued?",
+            StudyAi.cleanFollowUp("Question: \"Why do you think practical skills are undervalued?\""),
+        )
+        assertEquals(
+            "How could schools balance exams and life skills?",
+            StudyAi.cleanFollowUp("Here is a follow-up question:\nHow could schools balance exams and life skills?"),
+        )
+        assertEquals("", StudyAi.cleanFollowUp("   "))
+    }
+
+    @Test
     fun `解析容忍 JSON 后面的说明文字和花括号`() {
         // 旧实现用 lastIndexOf('}')，会被尾部说明里的括号带偏；现在与评分共用括号配对提取。
         val raw = """

@@ -65,6 +65,11 @@ fun ResultScreen(
     vocabError: String? = null,
     onRequestVocab: (text: String, fixes: List<Triple<String, String, String>>) -> Unit = { _, _ -> },
     onAddVocab: (List<com.txw.ielts.llm.VocabItem>) -> Unit = {},
+    // 口语 Part 3 追问：基于本场转写，让本地模型扮演考官追问一句。
+    followUpQuestion: String? = null,
+    followUpBusy: Boolean = false,
+    followUpError: String? = null,
+    onRequestFollowUp: () -> Unit = {},
     // AI 批注逐条「忽略 / 恢复」：只影响本会话的背诵与生词输入，按会话存盘由调用方负责。
     mutedFixes: Set<String> = emptySet(),
     onToggleMute: (String) -> Unit = {},
@@ -252,6 +257,45 @@ fun ResultScreen(
                     },
                     style = MaterialTheme.typography.labelSmall,
                 )
+            }
+        }
+
+        // Part 3 追问：真实考试里 Part 2 之后考官会顺着你的回答追问，这里让本地模型扮演考官。
+        if (speaking && session.status != "pending_local") {
+            val answer = session.transcript.ifBlank { session.essayText }
+            if (answer.isNotBlank()) {
+                BookCard {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("AI 追问 · Part 3 模拟", style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            "真实考试 Part 2 之后，考官会顺着你的回答继续追问。让本地模型扮演考官，出一句更抽象的问题。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        val q = followUpQuestion
+                        if (q != null) {
+                            Text(q, style = MaterialTheme.typography.bodyLarge)
+                            TextButton(onClick = {
+                                (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                    as android.content.ClipboardManager)
+                                    .setPrimaryClip(android.content.ClipData.newPlainText("IELTS follow-up", q))
+                            }) { Text("复制问题") }
+                        }
+                        followUpError?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        }
+                        OutlinedButton(enabled = !followUpBusy, onClick = onRequestFollowUp) {
+                            Text(
+                                when {
+                                    followUpBusy -> "生成中…"
+                                    q != null -> "换一个问题"
+                                    else -> "生成追问"
+                                }
+                            )
+                        }
+                        if (followUpBusy) LocalAiBusy("本地模型扮演考官中（请留在 App 内）")
+                    }
+                }
             }
         }
 

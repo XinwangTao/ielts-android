@@ -148,8 +148,7 @@ object StudyAi {
     }
 
     /** 最近练习复盘：输入由调用方拼好的「最近成绩 + 高频问题」摘要。 */
-    suspend fun review(context: Context, model: String, summary: String): AiReview {
-        // 摘要末尾是目标分与距考期天数，正是模型排计划强度的依据：留两头，别只留前 4000 字。
+    suspend fun review(context: Context, model: String, summary: String): AiReview {        // 摘要末尾是目标分与距考期天数，正是模型排计划强度的依据：留两头，别只留前 4000 字。
         val fitted = PromptBudget.clipText(
             "Recent practice summary:\n${summary.trim()}",
             PromptBudget.STUDY_INPUT_TOKENS,
@@ -163,6 +162,37 @@ object StudyAi {
     private fun jsonBody(raw: String): String? =
         // 与评分共用一套提取：括号配对、字符串内裸换行清洗，且不会把 JSON 后面的说明文字一起吞掉。
         runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
+
+    /**
+     * Part 3 追问：基于考生刚才的回答，生成一个自然的考官追问（真实考试 Part 2 之后就是这个流程）。
+     * 只返回一句问题，不落库；提示词已在 tools/ai_probe.py 的 speaking_follow_up 用例验证。
+     */
+    suspend fun followUp(
+        context: Context,
+        model: String,
+        question: String,
+        answer: String,
+    ): String {
+        val prompt = PromptBudget.clipText(
+            "Previous question: ${question.trim()}\nCandidate's answer: ${answer.trim()}",
+            PromptBudget.STUDY_INPUT_TOKENS,
+        )
+        return cleanFollowUp(LocalLlmEngine.generateText(context, model, FOLLOW_UP_SYSTEM, prompt))
+    }
+
+    /** 模型偶尔带上 "Question:" 前缀、引号或解释：只留第一句问题。 */
+    fun cleanFollowUp(raw: String): String {
+        val line = raw.lineSequence().map { it.trim() }.firstOrNull { it.isNotBlank() } ?: return ""
+        var s = line
+            .removePrefix("Question:").removePrefix("question:").removePrefix("Q:").trim()
+            .trim('"', '\'', '“', '”', '‘', '’', '*', '`').trim()
+        // 第一行如果只是「Here is a follow-up question:」之类的引导语，取下一句带问号的行。
+        if (!s.contains("?")) {
+            val next = raw.lineSequence().map { it.trim() }.firstOrNull { it.contains("?") }
+            if (next != null) s = next.trim('"', '\'', '“', '”', '*', '`').trim()
+        }
+        return s
+    }
 
     fun parseOutline(raw: String): StudyOutline {
         val body = jsonBody(raw) ?: return StudyOutline("", emptyList(), emptyList(), raw.trim())
@@ -287,6 +317,15 @@ object StudyAi {
         - structure: exactly 3 short hints in Chinese.
         - never use a double quote inside a string value; use single quotes instead.
         - no markdown, no commentary, JSON only.
+    """.trimIndent()
+
+    private val FOLLOW_UP_SYSTEM = """
+        You are an IELTS Speaking Part 3 examiner. Ask ONE natural follow-up question based on the candidate's answer.
+        Output only the question sentence, no quotes, no explanation.
+        Rules:
+        - the question must be abstract or opinion-based, like a real Part 3 question, not a repeat of the Part 2 cue card.
+        - reference a detail the candidate actually said, so it feels like a real examiner listening.
+        - one sentence, at most 25 words, ending with a question mark.
     """.trimIndent()
 
     private val VOCAB_SYSTEM = """
