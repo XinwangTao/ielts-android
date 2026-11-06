@@ -395,6 +395,33 @@ fun SettingsScreen(
         }) {
             Text("清除本地 AI 缓存")
         }
+        // 录音只增不减：删掉没有任何评分记录引用的 .wav，安全且能回收空间。
+        TextButton(onClick = {
+            exportScope.launch {
+                clearMsg = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    runCatching {
+                        val refs = com.txw.ielts.data.AppDb.get(context).sessions().recent(500)
+                            .mapNotNull { it.audioPath }
+                            .map { java.io.File(it).name }
+                            .toSet()
+                        var freed = 0L
+                        var count = 0
+                        context.filesDir.listFiles()?.filter { it.name.endsWith(".wav") }.orEmpty().forEach { f ->
+                            if (f.name !in refs) {
+                                val len = f.length()
+                                if (f.delete()) {
+                                    freed += len
+                                    count++
+                                }
+                            }
+                        }
+                        "已清理 $count 个无主录音，释放 ${freed / 1024 / 1024} MB"
+                    }.getOrElse { "清理失败：${it.message}" }
+                }
+            }
+        }) {
+            Text("清理无主录音")
+        }
         TextButton(onClick = { confirmClear = true }) {
             Text("清空所有数据", color = MaterialTheme.colorScheme.error)
         }
