@@ -116,6 +116,21 @@ object BackupRestore {
     /** 卡片去重键：同类型 + 同正面（大小写与首尾空白不敏感）。 */
     fun cardKey(c: Card): String = "${c.type}\u0001${c.front.trim().lowercase()}"
 
+    /**
+     * 预览用一句话摘要（不写库）：确认页/今后的预览 UI 直接展示。
+     * 例：「将新增 12 条练习、30 张卡片、2 套 AI 题；跳过 3 条坏数据」。
+     */
+    fun summary(plan: Plan): String {
+        val parts = mutableListOf<String>()
+        parts += "${plan.sessions.size} 条练习"
+        parts += "${plan.cards.size} 张卡片"
+        val ai = plan.aiSets?.length() ?: 0
+        if (ai > 0) parts += "$ai 套 AI 题"
+        val skipped = plan.skippedSessions + plan.skippedCards
+        val head = "将新增 " + parts.joinToString("、")
+        return if (skipped > 0) "$head；跳过 $skipped 条坏数据" else head
+    }
+
     /** 预演：去掉与本机已有数据重复的条目（默认「新增不覆盖」）。 */
     fun keepNew(
         plan: Plan,

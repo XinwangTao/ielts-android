@@ -91,4 +91,17 @@ class BackupRestoreTest {
         assertEquals(1, kept2.sessions.size)
         assertEquals(1, kept2.cards.size)
     }
+
+    @Test
+    fun `预览摘要包含数量与跳过数`() {
+        val p = BackupRestore.parse(export)
+        val s = BackupRestore.summary(p)
+        assertTrue(s, s.contains("1 条练习"))
+        assertTrue(s, s.contains("1 张卡片"))
+        assertTrue(s, s.contains("1 套 AI 题"))
+        assertTrue(s, s.contains("跳过 4 条坏数据"))
+        // 过滤后摘要只反映将要写入的数量。
+        val kept = BackupRestore.keepNew(p, setOf(BackupRestore.sessionKey(p.sessions.single())), emptySet())
+        assertTrue(BackupRestore.summary(kept).contains("0 条练习"))
+    }
 }
