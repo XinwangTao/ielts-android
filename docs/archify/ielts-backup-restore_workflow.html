@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>备份导入 / 恢复（待确认） · ielts-backup-restore_workflow</title>
+<style>
+  :root{--paper:#FAF6EC;--ink:#2B2621;--dim:#6A6255;--line:#D8CFBE;--red:#B3432B;--blue:#2F4F6F;--gold:#8A6A2F;--green:#3F6B4A;--violet:#6B4F8A}
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 24px 64px;background:var(--paper);color:var(--ink);font:16px/1.65 "Iowan Old Style","Songti SC","Noto Serif CJK SC",serif}
+  header{max-width:1060px;margin:0 auto 28px;border-bottom:3px double var(--ink);padding-bottom:16px}
+  h1{font-size:30px;margin:0 0 6px}
+  .sub{color:var(--dim);font-size:14px;letter-spacing:.14em}
+  .meta{margin-top:12px;font-size:13px;color:var(--dim)}
+  .meta b{color:var(--red)}
+  main{max-width:1060px;margin:0 auto}
+  h2{font-size:18px;margin:34px 0 14px;letter-spacing:.06em}
+  .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .node{border:1px solid var(--line);background:#fffdf7;border-radius:10px;padding:14px 15px;position:relative}
+  .node .id{font:12px/1 ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.08em}
+  .node .name{font-size:17px;font-weight:700;margin:6px 0 8px}
+  .node .detail{font-size:13px;color:var(--dim);line-height:1.55}
+  .node::after{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:10px 0 0 10px;background:var(--line)}
+  .node.ui::after{background:var(--red)}
+  .node.logic::after{background:var(--blue)}
+  .node.service::after{background:var(--gold)}
+  .node.manual::after{background:var(--violet)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim)}
+  code{font:12.5px ui-monospace,Menlo,monospace;background:#f2ecdf;padding:1px 5px;border-radius:4px}
+  ul{margin:6px 0 0;padding-left:20px;font-size:14px}
+  .warn{background:#fbf1e8;border:1px solid #e5c7ae;border-radius:10px;padding:12px 14px;font-size:14px}
+  footer{max-width:1060px;margin:40px auto 0;border-top:1px solid var(--line);padding-top:14px;font-size:12.5px;color:var(--dim)}
+  @media(max-width:820px){.flow{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.flow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>备份导入 / 恢复</h1>
+  <div class="sub">BACKUP RESTORE · SELECT / VALIDATE / PREVIEW / MERGE</div>
+  <div class="meta">图名 <b>ielts-backup-restore_workflow</b> · 级别 <b>L1（待确认）</b> · 2026-11-06 · 配套旁路 <code>ielts-backup-restore_workflow.json</code></div>
+</header>
+<main>
+  <div class="warn">本图是 L1 流程变更的待确认稿：确认前不写实现。重点确认三件事——冲突策略（新增 vs 覆盖）、设置是否随导入覆盖、写入是单事务还是分批。</div>
+
+  <h2>主路径</h2>
+  <div class="flow">
+    <div class="node ui"><div class="id">entry</div><div class="name">选择备份文件</div><div class="detail">设置页「导入备份（JSON）」→ 系统文件选择器（SAF）。只接受 .json，大小上限 20 MB。</div></div>
+    <div class="node logic"><div class="id">validate</div><div class="name">解析与结构校验</div><div class="detail">校验 version、sessions/cards 是否为数组、单条必填字段。坏条目计入 skipped；整体不可解析则中止，不改任何数据。</div></div>
+    <div class="node ui"><div class="id">preview</div><div class="name">导入预览</div><div class="detail">展示「练习 N / 卡片 M / AI 套题 K / 设置 X 项」与冲突策略（默认新增、不覆盖已有 id）。</div></div>
+    <div class="node ui"><div class="id">confirm</div><div class="name">二次确认</div><div class="detail">说明影响与回滚：只新增不删除；建议先导出当前数据。可取消。</div></div>
+    <div class="node service"><div class="id">merge</div><div class="name">合并写入</div><div class="detail">cards 按 front+type 去重、sessions 按 module+topic+startedAt 去重，id 重新分配；AI 套题写 <code>ai_bank.json</code> 按 id 去重；设置仅勾选时覆盖。</div></div>
+    <div class="node ui"><div class="id">summary</div><div class="name">结果报告</div><div class="detail">新增 / 跳过 / 失败计数，失败原因前 3 条；语义（全无或全有 / 部分成功）在确认页写明。</div></div>
+    <div class="node manual"><div class="id">abort</div><div class="name">中止 / 报错</div><div class="detail">解析失败、版本不支持、超限、事务失败：直接给原因，不写任何数据。</div></div>
+  </div>
+
+  <h2>连线</h2>
+  <table>
+    <tr><th>从</th><th>到</th><th>条件</th></tr>
+    <tr><td>entry</td><td>validate</td><td>选中文件</td></tr>
+    <tr><td>validate</td><td>abort</td><td>结构不合法</td></tr>
+    <tr><td>validate</td><td>preview</td><td>校验通过</td></tr>
+    <tr><td>preview</td><td>confirm</td><td>用户继续</td></tr>
+    <tr><td>confirm</td><td>abort</td><td>取消</td></tr>
+    <tr><td>confirm</td><td>merge</td><td>确认导入</td></tr>
+    <tr><td>merge</td><td>summary</td><td>写入完成</td></tr>
+    <tr><td>merge</td><td>abort</td><td>事务失败</td></tr>
+  </table>
+
+  <h2>范围</h2>
+  <ul>
+    <li>做：从导出 JSON 恢复 sessions / cards / 范文 / AI 套题；预览与二次确认；可选覆盖设置。</li>
+    <li>不做：逐条冲突取舍界面、跨设备云同步、录音文件恢复（备份不含音频字节）。</li>
+  </ul>
+
+  <h2>待确认的决策</h2>
+  <ul>
+    <li>冲突一律「新增」而非覆盖（id 重新分配）。</li>
+    <li>设置默认不覆盖，需在确认页显式勾选。</li>
+    <li>单事务 vs 分批：若分批，确认页必须写明「部分成功」语义。</li>
+    <li>AI 套题的音频不随备份走，导入后按纯文字版使用。</li>
+  </ul>
+</main>
+<footer>与 <code>ielts-backup-restore_workflow.json</code> 内容一致；确认后再进入实现。</footer>
+</body>
+</html>
