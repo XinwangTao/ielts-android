@@ -28,7 +28,12 @@ import androidx.compose.ui.unit.dp
 import com.txw.ielts.data.Prefs
 
 @Composable
-fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
+fun SettingsScreen(
+    prefs: Prefs,
+    onBack: () -> Unit,
+    /** 重新打开首启引导：目标/通道/第一题的检查清单，配错时最容易靠它自查。 */
+    onReplayGuide: () -> Unit = {},
+) {
     var base by remember { mutableStateOf(prefs.baseUrl) }
     var key by remember { mutableStateOf(prefs.apiKey) }
     var model by remember { mutableStateOf(prefs.model) }
@@ -245,6 +250,8 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
                 color = MaterialTheme.colorScheme.primary,
             )
         }
+
+        TextButton(onClick = onReplayGuide) { Text("重新查看新手引导") }
 
         var exportMsg by remember { mutableStateOf<String?>(null) }
         val exportScope = rememberCoroutineScope()

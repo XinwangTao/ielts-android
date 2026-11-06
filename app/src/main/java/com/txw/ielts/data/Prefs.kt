@@ -141,6 +141,16 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_MUTED_FIXES, "{}") ?: "{}"
         set(v) = sp.edit().putString(KEY_MUTED_FIXES, v).apply()
 
+    /**
+     * 首启引导是否已看完/跳过。
+     *
+     * 只在「看完」或「跳过」时置 true：中途点了「去设置」不算看完，
+     * 下次启动还能补上——引导的价值就在于缺哪步补哪步。
+     */
+    var firstRunDone: Boolean
+        get() = sp.getBoolean(KEY_FIRST_RUN_DONE, false)
+        set(v) = sp.edit().putBoolean(KEY_FIRST_RUN_DONE, v).apply()
+
     var callsToday: Int
         get() {
             rolloverIfNeeded()
@@ -187,6 +197,7 @@ class Prefs(context: Context) {
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
         private const val KEY_AI_REVIEW_CACHE = "ai_review_cache"
         private const val KEY_MUTED_FIXES = "ai_muted_fixes"
+        private const val KEY_FIRST_RUN_DONE = "first_run_done"
         private const val KEY_TARGET_BAND = "target_band"
         private const val KEY_EXAM_DATE = "exam_date"
         private const val KEY_TARGET_L = "target_band_listening"

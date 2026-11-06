@@ -47,6 +47,8 @@ import com.txw.ielts.data.BankSet
 import com.txw.ielts.data.BankWrong
 import com.txw.ielts.data.Card
 import com.txw.ielts.data.CardRepo
+import com.txw.ielts.data.FirstRun
+import com.txw.ielts.data.LocalModelState
 import com.txw.ielts.data.Prefs
 import com.txw.ielts.data.ReviewQueue
 import com.txw.ielts.data.Session
@@ -70,6 +72,7 @@ import com.txw.ielts.ui.topErrors
 import com.txw.ielts.ui.BankResultScreen
 import com.txw.ielts.ui.BankScreen
 import com.txw.ielts.ui.ChartGenScreen
+import com.txw.ielts.ui.FirstRunScreen
 import com.txw.ielts.ui.HomeScreen
 import com.txw.ielts.ui.CorpusHomeScreen
 import com.txw.ielts.ui.IeltsTheme
@@ -107,6 +110,8 @@ private const val TAG = "E2E"
 
 sealed interface Route {
     data object Home : Route
+    /** 首启引导：只在首次启动自动进入，也可从设置页重新打开。 */
+    data object FirstRun : Route
     data object Writing : Route
     data object Speaking : Route
     data object Settings : Route
@@ -138,6 +143,7 @@ sealed interface Route {
  */
 internal fun Route.encode(): String = when (this) {
     Route.Home -> "home"
+    Route.FirstRun -> "firstrun"
     Route.Writing -> "writing"
     Route.Speaking -> "speaking"
     Route.Settings -> "settings"
@@ -166,6 +172,7 @@ internal fun Route.encode(): String = when (this) {
 internal fun decodeRoute(s: String): Route {
     if (!s.contains(':')) {
         return when (s) {
+            "firstrun" -> Route.FirstRun
             "writing" -> Route.Writing
             "speaking" -> Route.Speaking
             "settings" -> Route.Settings
@@ -333,7 +340,11 @@ private fun App(
     val sessionsOrNull by db.sessions().observeAll().collectAsState(initial = null)
     val sessions = sessionsOrNull ?: emptyList()
 
-    var route by rememberSaveable(stateSaver = RouteSaver) { mutableStateOf<Route>(Route.Home) }
+    // 首次启动先进引导：新装机默认「云端优先」，而云端额度可能已死、本地模型也可能没投递，
+    // 直接落在首页会让人不知道现在能不能出分。
+    var route by rememberSaveable(stateSaver = RouteSaver) {
+        mutableStateOf<Route>(if (prefs.firstRunDone) Route.Home else Route.FirstRun)
+    }
     // 页面跳转诊断：旋转屏 / 进程重建 / 深链时用它确认 route 是否符合预期。
     LaunchedEffect(route) { Log.i(TAG, "route=${route.encode()} (freshStart=$freshStart)") }
     // 网络状态决定 AI 走云端还是本地。首页需要说明降级原因，不能让用户等到云端超时才发现没网；
@@ -687,6 +698,26 @@ private fun App(
                 }
             }
         }
+    }
+    // 首启引导：把「目标 / AI 通道 / 第一道题」三步算成可渲染状态，缺哪步给按钮。
+    // remember 的 key 用 route：从设置页回到首页时就地重算，用户配完不用重启 App。
+    val firstRunPlan = remember(route, networkOnline, sessions, prefs.targetBand, prefs.examDate, prefs.localModel, prefs.apiKey) {
+        val localState = runCatching {
+            when {
+                LocalLlmEngine.isReady(context, prefs.localModel) -> LocalModelState.READY
+                LocalLlmEngine.hasExternalCopy(context, prefs.localModel) -> LocalModelState.DELIVERED
+                else -> LocalModelState.MISSING
+            }
+        }.getOrDefault(LocalModelState.MISSING)
+        FirstRun.plan(
+            targetBand = prefs.targetBand,
+            examDate = prefs.examDate,
+            localModel = prefs.localModel,
+            localModelState = localState,
+            cloudKeyReady = prefs.apiKey.isNotBlank(),
+            online = networkOnline,
+            practiceCount = sessions.count { it.status == com.txw.ielts.data.StatusLabel.DONE },
+        )
     }
     val (ttsAvailable, speak) = com.txw.ielts.ui.rememberTts()
 
@@ -1588,6 +1619,8 @@ private fun App(
         else -> Route.Home
     }
     BackHandler(enabled = backTarget != null) {
+        // 从引导按返回 = 跳过：标记看过后下次启动不再自动弹，缺的设置项随时可补。
+        if (route is Route.FirstRun) prefs.firstRunDone = true
         // 系统返回与左上角返回走同一套清理：否则重练的 fixes/预设题目会残留到下一次练习。
         practiceFocus = null
         writingPresetTopic = null
@@ -1692,6 +1725,18 @@ private fun App(
     ) { r ->
         Box(Modifier.fillMaxSize()) {
             when (r) {
+                is Route.FirstRun -> FirstRunScreen(
+                    plan = firstRunPlan,
+                    // 「去设置」不算看完引导：下次启动还能补，配置项本身不因引导而丢。
+                    onOpenSettings = { route = Route.Settings },
+                    onStartPractice = {
+                        prefs.firstRunDone = true
+                        bankFilter = "all"
+                        route = Route.Bank
+                    },
+                    onDone = { prefs.firstRunDone = true; route = Route.Home },
+                    onBack = { prefs.firstRunDone = true; route = Route.Home },
+                )
                 is Route.Home -> HomeScreen(
                     sessions = sessions,
                     onStartWriting = { route = Route.Writing; error = null },
@@ -2022,7 +2067,11 @@ private fun App(
                     }
                 }
 
-                is Route.Settings -> SettingsScreen(prefs) { route = Route.Home }
+                is Route.Settings -> SettingsScreen(
+                    prefs,
+                    onBack = { route = Route.Home },
+                    onReplayGuide = { route = Route.FirstRun },
+                )
 
                 is Route.Corpus -> CorpusHomeScreen(
                     due = due, fresh = fresh, total = totalCards, mastered = mastered,
