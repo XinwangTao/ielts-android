@@ -63,6 +63,15 @@ fun StudyPlanScreen(
                 TextButton(onClick = onResetAll) { Text("全部恢复") }
             }
         }
+        if (plan.taskDays().isNotEmpty()) {
+            // 计划 vs 实际：只给排期不给进度，用户看不出这周到底练了没有。
+            Text(
+                "本周计划 ${plan.taskDays().size} 次 · 已完成 ${plan.doneCount()} 次",
+                style = MaterialTheme.typography.bodySmall,
+                color = if (plan.doneCount() > 0) MaterialTheme.colorScheme.tertiary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         plan.note?.let {
             Text(
                 it,
@@ -95,8 +104,12 @@ fun StudyPlanScreen(
                                 .width(2.5.dp)
                                 .height(16.dp)
                                 .background(
-                                    if (day.kind == PlanDayKind.PRACTICE) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                                    when {
+                                        // 已练过的日子换成「旧金」，和设置页的「掌握」同色
+                                        day.done -> MaterialTheme.colorScheme.tertiary
+                                        day.kind == PlanDayKind.PRACTICE -> MaterialTheme.colorScheme.primary
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f)
+                                    },
                                     RoundedCornerShape(1.dp),
                                 )
                         )
@@ -109,8 +122,13 @@ fun StudyPlanScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.weight(1f))
-                        if (day.minutes > 0) {
-                            Text(
+                        when {
+                            day.done -> Text(
+                                "✓ 已完成",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.tertiary,
+                            )
+                            day.minutes > 0 -> Text(
                                 "约 ${day.minutes} 分钟",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -131,8 +149,18 @@ fun StudyPlanScreen(
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = { onOpenModule(day.module) }) {
-                            Text(if (day.kind == PlanDayKind.MOCK) "去模考" else "去练")
+                        // 休息/考试日没有可执行动作，不摆一个点了没反应的「去练」。
+                        when (day.kind) {
+                            PlanDayKind.PRACTICE -> TextButton(onClick = { onOpenModule(day.module) }) {
+                                Text(if (day.done) "再练一次" else "去练")
+                            }
+                            PlanDayKind.MOCK -> TextButton(onClick = { onOpenModule("mock") }) {
+                                Text(if (day.done) "再模考一次" else "去模考")
+                            }
+                            PlanDayKind.LIGHT -> TextButton(onClick = { onOpenModule("light") }) {
+                                Text("看错题")
+                            }
+                            else -> Unit
                         }
                         if (day.editable) {
                             TextButton(

@@ -723,6 +723,9 @@ private fun App(
         dueCards = due,
         wrongCount = wrongCount,
         overrides = planOverrides,
+        // 课表本身已经会随练习数据重算；这里再把练习记录交给它，
+        // 才好在「今天」那张卡上打勾、在页头给出「计划 N 次 / 已完成 M 次」。
+        sessions = sessions,
     )
     // 未加手动覆盖的课表：换科目轮回到这一天的原科目时用它判定「已经等于原样」，
     // 免得 SharedPreferences 里留下一条看起来没生效、过几天却突然生效的旧修改。

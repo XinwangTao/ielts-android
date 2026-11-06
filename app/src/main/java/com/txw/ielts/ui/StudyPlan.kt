@@ -1,6 +1,8 @@
 package com.txw.ielts.ui
 
 import com.txw.ielts.data.ExamTarget
+import com.txw.ielts.data.Session
+import com.txw.ielts.data.StatusLabel
 import org.json.JSONObject
 import java.time.Instant
 import java.time.LocalDate
@@ -15,6 +17,7 @@ enum class PlanDayKind { PRACTICE, MOCK, LIGHT, REST, EXAM }
  * @param date yyyy-MM-dd，同时充当「手动换科目」的稳定键：跨天重算后旧日期自然失效
  * @param label 今天 / 明天 / 周三，首页式相对称呼
  * @param swapped 这一天被用户手动换过科目，界面上要能一键恢复
+ * @param done 当天计划的那一科已经练过（按练习记录判定，只认 status=done）
  */
 data class PlanDay(
     val date: String,
@@ -26,6 +29,7 @@ data class PlanDay(
     val detail: String,
     val minutes: Int,
     val swapped: Boolean = false,
+    val done: Boolean = false,
 ) {
     val editable: Boolean get() = kind == PlanDayKind.PRACTICE
 }
@@ -39,6 +43,12 @@ data class StudyPlan(
 ) {
     fun totalMinutes(): Int = days.sumOf { it.minutes }
     fun hasManualEdits(): Boolean = days.any { it.swapped }
+
+    /** 需要动手的日子：练习日 + 模考日。休息日/考试日没有「完成」一说。 */
+    fun taskDays(): List<PlanDay> =
+        days.filter { it.kind == PlanDayKind.PRACTICE || it.kind == PlanDayKind.MOCK }
+
+    fun doneCount(): Int = taskDays().count { it.done }
 }
 
 /**
@@ -84,6 +94,7 @@ object StudyPlanCalc {
         dueCards: Int = 0,
         wrongCount: Int = 0,
         overrides: Map<String, String> = emptyMap(),
+        sessions: List<Session> = emptyList(),
     ): StudyPlan {
         val daysLeft = ExamTarget.daysUntil(examDate, now)
         // 考试日期已过：继续倒排会给出「距考试 -3 天」这种假计划，直接停下并提示改日期。
@@ -178,6 +189,9 @@ object StudyPlanCalc {
             }
         }
 
+        // 完成状态在「换科目」之后才判定：用户把今天换成写作又写了作文，
+        // 打勾要打在这张卡上，而不是原来排的听力。
+        val practiced = practicedByDate(sessions, ZoneId.systemDefault())
         val days = raw.map { day ->
             val override = overrides[day.date]?.takeIf { it in MODULES }
             if (day.editable && override != null && override != day.module) {
@@ -192,6 +206,8 @@ object StudyPlanCalc {
             } else {
                 day
             }
+        }.map { day ->
+            if (isDone(day, practiced)) day.copy(done = true) else day
         }
 
         return StudyPlan(
@@ -269,6 +285,34 @@ object StudyPlanCalc {
             prev = pick
         }
         return seq
+    }
+
+    /**
+     * 每天实际练过的科目（按本地日期归档）。
+     *
+     * 只认 status=done：待评分/没听清的记录代表「还不知道做没做成」，
+     * 打勾会让人以为自己已经练完了。跟读（shadow）不排进课表，这里忽略。
+     */
+    private fun practicedByDate(sessions: List<Session>, zone: ZoneId): Map<String, Set<String>> {
+        val out = HashMap<String, MutableSet<String>>()
+        sessions.forEach { s ->
+            if (s.status != StatusLabel.DONE || s.module !in MODULES) return@forEach
+            val date = Instant.ofEpochMilli(s.startedAt).atZone(zone).toLocalDate().toString()
+            out.getOrPut(date) { mutableSetOf() }.add(s.module)
+        }
+        return out
+    }
+
+    /** 练习日看当天排的那一科；模考日听力/阅读做了任意一套就算完成。 */
+    private fun isDone(day: PlanDay, practiced: Map<String, Set<String>>): Boolean {
+        val modules = practiced[day.date] ?: return false
+        return when (day.kind) {
+            PlanDayKind.PRACTICE -> day.module in modules
+            PlanDayKind.MOCK -> "listening" in modules || "reading" in modules
+            // 休息日不用打勾；考前轻复习是「只看错题」，没有可判定的记录；
+            // 考试日也不是练习，打勾会像在催人再练一套。
+            else -> false
+        }
     }
 
     private fun noteOf(days: List<PlanDay>, daysLeft: Int?, dueCards: Int, wrongCount: Int): String? {

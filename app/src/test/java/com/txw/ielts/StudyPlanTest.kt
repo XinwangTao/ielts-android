@@ -1,6 +1,8 @@
 package com.txw.ielts
 
 import com.txw.ielts.data.ExamTarget
+import com.txw.ielts.data.Session
+import com.txw.ielts.data.StatusLabel
 import com.txw.ielts.ui.PlanDayKind
 import com.txw.ielts.ui.PlanOverrides
 import com.txw.ielts.ui.SkillProfile
@@ -40,6 +42,7 @@ class StudyPlanTest {
         dueCards: Int = 0,
         wrongCount: Int = 0,
         overrides: Map<String, String> = emptyMap(),
+        sessions: List<Session> = emptyList(),
     ) = StudyPlanCalc.build(
         now = now,
         examDate = examDate,
@@ -48,6 +51,18 @@ class StudyPlanTest {
         dueCards = dueCards,
         wrongCount = wrongCount,
         overrides = overrides,
+        sessions = sessions,
+    )
+
+    private fun practice(
+        module: String,
+        date: LocalDate,
+        status: String = StatusLabel.DONE,
+        hour: Int = 10,
+    ): Session = Session(
+        module = module,
+        startedAt = date.atTime(hour, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli(),
+        status = status,
     )
 
     @Test
@@ -254,5 +269,125 @@ class StudyPlanTest {
             assertEquals(today.plusDays(index.toLong()).toString(), day.date)
             assertEquals(index, ExamTarget.daysUntil(day.date, now))
         }
+    }
+
+    @Test
+    fun `练完当天排的科目后课表打勾`() {
+        val plain = build(examDate = examIn(10))
+        val todayDay = plain.days.first { it.date == today.toString() }
+        assertEquals(PlanDayKind.PRACTICE, todayDay.kind)
+        assertFalse(todayDay.done)
+        assertEquals(0, plain.doneCount())
+
+        val plan = build(
+            examDate = examIn(10),
+            sessions = listOf(practice(todayDay.module, today)),
+        )
+        assertTrue(plan.days.first { it.date == today.toString() }.done)
+        assertEquals(1, plan.doneCount())
+        assertEquals(7, plan.taskDays().size)
+    }
+
+    @Test
+    fun `待评分或别的科目不算完成`() {
+        val plain = build(examDate = examIn(10))
+        val todayDay = plain.days.first { it.date == today.toString() }
+        val pending = build(
+            examDate = examIn(10),
+            sessions = listOf(practice(todayDay.module, today, status = StatusLabel.PENDING_EVAL)),
+        )
+        assertFalse(pending.days.first { it.date == today.toString() }.done)
+
+        val other = StudyPlanCalc.MODULES.first { it != todayDay.module }
+        val wrongModule = build(
+            examDate = examIn(10),
+            sessions = listOf(practice(other, today)),
+        )
+        assertFalse(wrongModule.days.first { it.date == today.toString() }.done)
+        assertEquals(0, wrongModule.doneCount())
+    }
+
+    @Test
+    fun `跟读不排进课表也不参与打勾`() {
+        val plan = build(examDate = examIn(10), sessions = listOf(practice("shadow", today)))
+        assertEquals(0, plan.doneCount())
+        assertTrue(plan.days.none { it.done })
+    }
+
+    @Test
+    fun `换过科目的日子按换后的科目判定完成`() {
+        val base = build(examDate = examIn(10))
+        val todayDay = base.days.first { it.date == today.toString() }
+        val swap = PlanOverrides.cycle(todayDay.module)
+
+        val swappedDone = build(
+            examDate = examIn(10),
+            overrides = mapOf(todayDay.date to swap),
+            sessions = listOf(practice(swap, today)),
+        )
+        assertTrue(swappedDone.days.first { it.date == today.toString() }.done)
+
+        // 原来排的科目练了，但当天已经换成别的科目，不该打勾
+        val originalOnly = build(
+            examDate = examIn(10),
+            overrides = mapOf(todayDay.date to swap),
+            sessions = listOf(practice(todayDay.module, today)),
+        )
+        assertFalse(originalOnly.days.first { it.date == today.toString() }.done)
+    }
+
+    @Test
+    fun `模考日听力或阅读任一套都算完成`() {
+        val base = build(examDate = examIn(30))
+        assertEquals(PlanDayKind.MOCK, base.days[5].kind)
+        val mockDate = today.plusDays(5)
+
+        val listening = build(examDate = examIn(30), sessions = listOf(practice("listening", mockDate)))
+        assertTrue(listening.days[5].done)
+
+        val reading = build(examDate = examIn(30), sessions = listOf(practice("reading", mockDate)))
+        assertTrue(reading.days[5].done)
+
+        val writing = build(examDate = examIn(30), sessions = listOf(practice("writing", mockDate)))
+        assertFalse(writing.days[5].done)
+    }
+
+    @Test
+    fun `休息日考试日与考前轻复习不打勾`() {
+        val relaxed = build(
+            examDate = examIn(30),
+            sessions = StudyPlanCalc.MODULES.map { practice(it, today.plusDays(6)) },
+        )
+        assertEquals(PlanDayKind.REST, relaxed.days[6].kind)
+        assertFalse(relaxed.days[6].done)
+
+        val sprint = build(examDate = examIn(2))
+        val day0 = sprint.days[0]
+        assertEquals(PlanDayKind.LIGHT, sprint.days[1].kind)
+        assertEquals(PlanDayKind.EXAM, sprint.days[2].kind)
+        val plan = build(
+            examDate = examIn(2),
+            sessions = listOf(
+                practice(day0.module, today),
+                practice("reading", today.plusDays(1)),
+                practice("reading", today.plusDays(2)),
+            ),
+        )
+        assertTrue(plan.days[0].done)
+        assertFalse(plan.days[1].done)
+        assertFalse(plan.days[2].done)
+        // 只有练习日计进「计划 N 次 / 已完成 M 次」，轻复习和考试日不算
+        assertEquals(1, plan.doneCount())
+        assertEquals(1, plan.taskDays().size)
+    }
+
+    @Test
+    fun `昨天的练习不给今天打勾`() {
+        val day = build(examDate = examIn(10)).days.first { it.date == today.toString() }
+        val plan = build(
+            examDate = examIn(10),
+            sessions = listOf(practice(day.module, today.minusDays(1))),
+        )
+        assertFalse(plan.days.first { it.date == today.toString() }.done)
     }
 }
