@@ -589,7 +589,7 @@ fun SettingsScreen(
         }
         // 存储占用：用户能分清「空间被录音、模型还是数据库占了」，再决定清什么。
         var storageText by remember { mutableStateOf<String?>(null) }
-        LaunchedEffect(clearMsg) {
+        LaunchedEffect(clearMsg, backupRefresh) {
             storageText = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 fun size(f: java.io.File?): Long = f?.let {
                     if (it.isDirectory) it.listFiles()?.sumOf { c -> size(c) } ?: 0L else it.length()
@@ -598,9 +598,15 @@ fun SettingsScreen(
                 val model = size(java.io.File(context.filesDir, "models"))
                 val db = size(context.getDatabasePath("ielts.db"))
                 fun mb(v: Long) = "%.1f MB".format(v / 1024.0 / 1024.0)
+                // 备份也在占空间（每次导出 1 MB 量级），一并显示。
+                val backups = java.io.File(context.getExternalFilesDir(null), "backup")
+                    .listFiles()?.filter { it.isFile && it.name.endsWith(".json", ignoreCase = true) }
+                    .orEmpty()
+                val backupSize = backups.sumOf { it.length() }
                 // AI 缓存条数：清缓存前后能看出有没有真的清掉。
                 val cacheCount = runCatching { org.json.JSONObject(prefs.studyAiCache).length() }.getOrDefault(0)
-                "存储：录音 ${mb(rec)} · 模型 ${mb(model)} · 数据库 ${mb(db)} · AI 缓存 $cacheCount 条"
+                "存储：录音 ${mb(rec)} · 模型 ${mb(model)} · 数据库 ${mb(db)} · " +
+                    "备份 ${backups.size} 个 ${mb(backupSize)} · AI 缓存 $cacheCount 条"
             }
         }
         storageText?.let {
