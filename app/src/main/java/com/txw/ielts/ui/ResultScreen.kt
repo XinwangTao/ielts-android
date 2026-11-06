@@ -50,6 +50,8 @@ fun ResultScreen(
     session: Session,
     busy: String?,
     error: String? = null,
+    /** 上次评分失败的原因（按会话存盘）：通知划掉或重启 App 后仍能告诉用户该改什么。 */
+    lastFailure: String? = null,
     staleLocal: Boolean = false,
     waitStartedAt: Long = 0L,
     scoreTookMs: Long = 0L,
@@ -207,6 +209,23 @@ fun ResultScreen(
                 },
                 color = MaterialTheme.colorScheme.error,
             )
+            // 通用文案说不出「是模型没投递、额度用完，还是系统把后台任务冻住了」。
+            // 失败原因在评分当时就按会话存盘，这里补一行具体原因，用户才知道下一步改什么。
+            if (!lastFailure.isNullOrBlank() && lastFailure != error) {
+                Text(
+                    "上次失败原因：$lastFailure",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (session.status == "pending_eval") {
+                Text(
+                    if (session.audioPath != null) "内容与录音都已保存，重新评分不会重新录音。"
+                    else "正文已保存，重新评分不会再扣一次练习记录。",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             Button(onClick = onRetry, enabled = busy == null) {
                 Text(busy ?: "重新评分")
             }

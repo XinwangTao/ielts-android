@@ -126,6 +126,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_LOCAL_SCORE_FINISHED, "{}") ?: "{}"
         set(v) = sp.edit().putString(KEY_LOCAL_SCORE_FINISHED, v).apply()
 
+    /** 评分失败原因（JSON：sessionId → {at,msg}）：通知划掉后结果页仍能说清为什么没出分。 */
+    var localScoreErrors: String
+        get() = sp.getString(KEY_LOCAL_SCORE_ERRORS, "{}") ?: "{}"
+        set(v) = sp.edit().putString(KEY_LOCAL_SCORE_ERRORS, v).apply()
+
     /** 云端额度/限流失败后的冷却截止时间：冷却期内 auto 直接走本地，不再每次白试云端。 */
     var cloudDownUntil: Long
         get() = sp.getLong(KEY_CLOUD_DOWN, 0L)
@@ -170,6 +175,7 @@ class Prefs(context: Context) {
         vocabEdits = "{}"
         localScoreStarted = "{}"
         localScoreFinished = "{}"
+        localScoreErrors = "{}"
     }
 
     /**
@@ -225,6 +231,7 @@ class Prefs(context: Context) {
         private const val KEY_DAY = "llm_calls_day"
         private const val KEY_LOCAL_SCORE_STARTED = "local_score_started"
         private const val KEY_LOCAL_SCORE_FINISHED = "local_score_finished"
+        private const val KEY_LOCAL_SCORE_ERRORS = "local_score_errors"
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
         private const val KEY_AI_REVIEW_CACHE = "ai_review_cache"
         private const val KEY_STUDY_AI_CACHE = "study_ai_cache"

@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import com.txw.ielts.data.AppDb
 import com.txw.ielts.data.Prefs
 import com.txw.ielts.llm.LocalLlmEngine
+import com.txw.ielts.llm.ScoreFailures
 import com.txw.ielts.llm.ScoreGate
 import com.txw.ielts.llm.SpeakingEval
 import com.txw.ielts.llm.WritingEval
@@ -72,6 +73,8 @@ class ScoreService : Service() {
                 runScore(sessionId, module, text, task)
             } catch (e: Exception) {
                 Log.e("ScoreService", "score fail: ${e.message}")
+                // 通知被划掉后用户只剩结果页：把原因按会话存盘，重开结果页仍能说清为什么没出分。
+                recordFailure(sessionId, e.message)
                 AppDb.get(this@ScoreService).sessions().updateResult(
                     sessionId, text, "", "", "", "", "pending_eval",
                 )
@@ -125,13 +128,15 @@ class ScoreService : Service() {
             if (activeIdleMs <= stallMs) continue
             Log.w("ScoreService", "watchdog: engine stalled ${activeIdleMs}ms state=$state, forceReset id=$sessionId")
             LocalLlmEngine.forceReset()
+            val reason = "系统把后台评分中断了（后台限速/冻结），内容已保存，请重新评分"
+            recordFailure(sessionId, reason)
             runCatching {
                 AppDb.get(this@ScoreService).sessions().updateResult(
                     sessionId, text, "", "", "", "", "pending_eval",
                 )
             }
             Notify.scoreFailed(
-                this@ScoreService, "系统把后台评分中断了（后台限速/冻结），内容已保存，请重新评分", sessionId,
+                this@ScoreService, reason, sessionId,
             )
             // 卡死的协程永远不会走到 finally，这里替它收尾。
             runningJobs.set(maxOf(0, runningJobs.get() - 1))
@@ -169,6 +174,7 @@ class ScoreService : Service() {
                 runScore(s.id, s.module, text, task)
             } catch (e: Exception) {
                 Log.e("ScoreService", "resume fail: ${e.message}")
+                recordFailure(s.id, e.message)
             } finally {
                 runCatching { if (wake.isHeld) wake.release() }
                 if (runningJobs.decrementAndGet() == 0) {
@@ -190,6 +196,7 @@ class ScoreService : Service() {
         // 空文本不送模型：端侧推理要 3-4 分钟，且必然产出 0 分的假成绩（2026-10-31 遗留过这种记录）。
         if (!ScoreGate.shouldScore(text)) {
             Log.w("ScoreService", "skip scoring blank text id=$sessionId module=$module")
+            clearFailure(sessionId)
             db.sessions().updateResult(
                 sessionId, session.transcript, session.essayText,
                 session.scoresJson, session.fixesJson, session.polished, "asr_empty",
@@ -313,6 +320,19 @@ class ScoreService : Service() {
         val o = runCatching { JSONObject(p.localScoreFinished) }.getOrDefault(JSONObject())
         o.put(id.toString(), System.currentTimeMillis())
         p.localScoreFinished = o.toString()
+        // 这次已经出分：把上一轮的失败原因清掉，结果页不再显示「上次失败」。
+        p.localScoreErrors = ScoreFailures.clear(p.localScoreErrors, id)
+    }
+
+    /** 失败原因按会话存下：通知划掉、重开结果页甚至重启 App 后都还能看到为什么没出分。 */
+    private fun recordFailure(id: Long, reason: String?) {
+        val p = Prefs(this)
+        p.localScoreErrors = ScoreFailures.record(p.localScoreErrors, id, reason)
+    }
+
+    private fun clearFailure(id: Long) {
+        val p = Prefs(this)
+        p.localScoreErrors = ScoreFailures.clear(p.localScoreErrors, id)
     }
 
     private fun buildNotification(content: String): Notification {
