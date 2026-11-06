@@ -70,6 +70,7 @@ fun ResultScreen(
     followUpBusy: Boolean = false,
     followUpError: String? = null,
     onRequestFollowUp: () -> Unit = {},
+    onPracticeFollowUp: (String) -> Unit = {},
     // AI 批注逐条「忽略 / 恢复」：只影响本会话的背诵与生词输入，按会话存盘由调用方负责。
     mutedFixes: Set<String> = emptySet(),
     onToggleMute: (String) -> Unit = {},
@@ -275,11 +276,14 @@ fun ResultScreen(
                         val q = followUpQuestion
                         if (q != null) {
                             Text(q, style = MaterialTheme.typography.bodyLarge)
-                            TextButton(onClick = {
-                                (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
-                                    as android.content.ClipboardManager)
-                                    .setPrimaryClip(android.content.ClipData.newPlainText("IELTS follow-up", q))
-                            }) { Text("复制问题") }
+                            Row {
+                                TextButton(onClick = {
+                                    (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                        as android.content.ClipboardManager)
+                                        .setPrimaryClip(android.content.ClipData.newPlainText("IELTS follow-up", q))
+                                }) { Text("复制问题") }
+                                TextButton(onClick = { onPracticeFollowUp(q) }) { Text("回答这题") }
+                            }
                         }
                         followUpError?.let {
                             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)

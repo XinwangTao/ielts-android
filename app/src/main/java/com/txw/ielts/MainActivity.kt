@@ -394,6 +394,8 @@ private fun App(
     var error by remember { mutableStateOf<String?>(null) }
     var practiceFocus by remember { mutableStateOf<PracticeFocus?>(null) }
     var speakingPresetQuestion by remember { mutableStateOf<String?>(null) }
+    // 预设题目的所属 Part：追问生成的是 Part 3 问题，不能当 Part 2 练。为空时按原来的 Part 2 处理。
+    var speakingPresetPart by remember { mutableStateOf<String?>(null) }
     var writingPresetTopic by remember { mutableStateOf<String?>(null) }
     var writingPresetChart by remember { mutableStateOf<com.txw.ielts.data.ChartSpec?>(null) }
 
@@ -1734,6 +1736,7 @@ private fun App(
         practiceFocus = null
         writingPresetTopic = null
         speakingPresetQuestion = null
+        speakingPresetPart = null
         backTarget?.let { route = it }
     }
 
@@ -2083,16 +2086,21 @@ private fun App(
                     onSubmit = { part, q, audio, secs ->
                         practiceFocus = null
                         speakingPresetQuestion = null
+                        speakingPresetPart = null
+        speakingPresetPart = null
                         scope.launch { runSpeaking(part, q, audio, secs) }
                     },
                     onBack = {
                         practiceFocus = null
                         speakingPresetQuestion = null
+                        speakingPresetPart = null
+        speakingPresetPart = null
                         route = Route.Home
                     },
                     focusFixes = practiceFocus?.takeIf { it.module == "speaking" }?.fixes ?: emptyList(),
-                    presetPart = if (speakingPresetQuestion != null) "Part 2"
-                    else practiceFocus?.takeIf { it.module == "speaking" }?.part,
+                    presetPart = speakingPresetPart
+                        ?: if (speakingPresetQuestion != null) "Part 2"
+                        else practiceFocus?.takeIf { it.module == "speaking" }?.part,
                     presetQuestion = speakingPresetQuestion
                         ?: practiceFocus?.takeIf { it.module == "speaking" }?.topic,
                     onOpenTopics = { route = Route.Topics },
@@ -2311,6 +2319,13 @@ private fun App(
                                         session.transcript,
                                     )
                                 }
+                            },
+                            onPracticeFollowUp = { q ->
+                                // 追问是 Part 3 问题：带上它进入口语练习，答完会走同一套评分链路。
+                                practiceFocus = null
+                                speakingPresetQuestion = q
+                                speakingPresetPart = "Part 3"
+                                route = Route.Speaking
                             },
                             onAddVocab = { items ->
                                 // 入库前套用用户的修改：模型释义/例句未必合身，改过就以改的为准。
