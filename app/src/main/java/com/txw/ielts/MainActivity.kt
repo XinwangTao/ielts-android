@@ -1929,6 +1929,8 @@ private fun App(
     suspend fun runVariant(item: BankResultItem, resultScope: String) {
         val vk = "$resultScope#${item.id}"
         if (vk in variantBusyIds) return
+        // 本次请求一开始就清掉旧失败提示：缓存命中直接出题时也不该还挂着上一次的错误。
+        variantErrors = variantErrors - vk
         // 同一道错题 + 同一份作答的变式可复用：重开结果页/重启后不必再跑一次模型。
         // 界面上已经有这道题的变式时，本次点击就是「换一道」，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
@@ -1947,7 +1949,6 @@ private fun App(
             }
         }
         variantBusyIds = variantBusyIds + vk
-        variantErrors = variantErrors - vk
         try {
             val v = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.variant(
