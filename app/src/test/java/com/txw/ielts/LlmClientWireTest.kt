@@ -103,6 +103,45 @@ class LlmClientWireTest {
         }
     }
 
+    /**
+     * 回归：口语评分曾把 ASR 原始转写整段拼进提示词（`transcriptBody` 算了却用 `$transcript`）。
+     * 复读几分钟就能产出几万字，云端请求直接超时长/超量，而本地路径正常。
+     * 这里抓真实发出的请求体，确认中部被裁、结尾还在、指标仍按原文算。
+     */
+    @Test
+    fun `口语评分超长转写裁中间后再发出`() {
+        val requests = mutableListOf<String>()
+        val server = mockServer(listOf(200 to okBody(fixture("scoring_speaking")))) { requests.add(it) }
+        try {
+            val client = LlmClient(
+                "http://127.0.0.1:${server.localPort}/v1",
+                "test-key",
+                "test-model",
+            )
+            val head = "First sentence of the answer about my city. "
+            val middle = (1..10000).joinToString(" ") { "filler$it" } + " "
+            val tail = "Last sentence closes with a short conclusion."
+            val transcript = head + middle + tail
+            client.evaluateSpeaking("Part 2", "Describe a city", transcript, 600)
+
+            val user = JSONObject(requests.single())
+                .getJSONArray("messages").getJSONObject(1).getString("content")
+            assertTrue("应带省略标记", user.contains("middle trimmed"))
+            assertTrue("结尾必须保留", user.contains(tail))
+            assertTrue("中部不该被整段发出", !user.contains(" filler5000 "))
+            assertTrue(user.contains("Speaking time: 600s"))
+            // 字数/语速仍按原文算：裁剪不能让模型以为回答很短。
+            assertTrue(user.contains("Word count: ${com.txw.ielts.llm.ScorePrompt.wordCount(transcript)}"))
+            assertTrue(
+                "整条 user 消息应在预算内",
+                com.txw.ielts.llm.PromptBudget.estimateTokens(user) <=
+                    com.txw.ielts.llm.PromptBudget.SCORE_INPUT_TOKENS + 100,
+            )
+        } finally {
+            runCatching { server.close() }
+        }
+    }
+
     @Test
     fun `1210 时自动降级为 low thinking 且加大 max tokens`() {
         val requests = mutableListOf<String>()

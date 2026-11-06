@@ -102,16 +102,8 @@ class LlmClient(
         essay: String,
         weaknesses: List<String> = emptyList(),
     ): WritingEval {
-        val words = essay.split(Regex("\\s+")).count { it.isNotBlank() }
         // 超长粘贴不能整段发出去：留开头与结尾（结论段），中部省略。
-        val body = PromptBudget.clipText(essay, PromptBudget.SCORE_INPUT_TOKENS)
-        val content = chat(
-            WRITING_SYSTEM,
-            buildString {
-                append("Task: $topic\nWord count: $words\n\nEssay:\n$body")
-                append(weaknessHint(weaknesses))
-            },
-        )
+        val content = chat(WRITING_SYSTEM, ScorePrompt.writing(topic, essay, weaknesses))
         val json = extractJson(content)
         val o = JSONObject(json)
         return WritingEval(
@@ -129,13 +121,7 @@ class LlmClient(
 
     /** 写作 Task 1（图表描述）：TA 任务完成度 + 数据覆盖 + 比较。 */
     fun evaluateWritingTask1(chart: String, essay: String): WritingEval {
-        val words = essay.split(Regex("\\s+")).count { it.isNotBlank() }
-        val content = chat(
-            TASK1_SYSTEM,
-            "Chart data:\n${PromptBudget.clipText(chart, PromptBudget.SCORE_INPUT_TOKENS)}" +
-                "\n\nWord count: $words\n\nReport:\n" +
-                PromptBudget.clipText(essay, PromptBudget.SCORE_INPUT_TOKENS),
-        )
+        val content = chat(TASK1_SYSTEM, ScorePrompt.writingTask1(chart, essay))
         val json = extractJson(content)
         val o = JSONObject(json)
         return WritingEval(
@@ -158,17 +144,10 @@ class LlmClient(
         seconds: Int,
         weaknesses: List<String> = emptyList(),
     ): SpeakingEval {
-        val words = transcript.split(Regex("\\s+")).count { it.isNotBlank() }
-        val wpm = if (seconds > 0) (words * 60.0 / seconds).toInt() else 0
-        // ASR 复读时转写可能几万字，整段发出去只会超长/超时：同样留两头。
-        val transcriptBody = PromptBudget.clipText(transcript, PromptBudget.SCORE_INPUT_TOKENS)
+        // ASR 复读时转写可能几万字：必须走与本地同一套预算（留两头），否则云端请求超时长/超量。
         val content = chat(
             SPEAKING_SYSTEM,
-            buildString {
-                append("Part: $part\nQuestion: $question\nSpeaking time: ${seconds}s\n")
-                append("Word count: $words\nWords per minute: $wpm\n\nTranscript (from offline ASR, punctuation unreliable):\n$transcript")
-                append(weaknessHint(weaknesses))
-            },
+            ScorePrompt.speaking(part, question, transcript, seconds, weaknesses),
         )
         val json = extractJson(content)
         val o = JSONObject(json)
@@ -184,13 +163,6 @@ class LlmClient(
             sentenceFixes = ScoreSanitizer.parseSentenceFixes(o),
         )
     }
-
-    /** 把学员历史弱点注入 prompt：让模型重点检查老毛病是否复发（个性化反馈闭环）。 */
-    private fun weaknessHint(weaknesses: List<String>): String =
-        if (weaknesses.isEmpty()) "" else
-            "\n\nThis student's recurring weaknesses recorded from past attempts: ${weaknesses.joinToString("; ")}. " +
-                "Check specifically whether these problems appear in this attempt. If they do, list them FIRST in top_fixes " +
-                "and state clearly whether the student is improving on them."
 
     /** 生成一套原创阅读题：文章 + 题目 + 中英双语解析 + 关键短语。 */
     fun generateReading(difficulty: String, types: List<String>, count: Int): GeneratedReading =
@@ -429,7 +401,8 @@ class LlmClient(
             Lexical Resource: B5 limited, frequent paraphrase; B6 adequate range; B7 flexible, idiomatic.
             Grammatical Range & Accuracy: B5 basic structures with errors; B6 mix of simple/complex, some errors; B7 flexible, frequent error-free sentences.
             Pronunciation: you only see a transcript, so score it as an ESTIMATE from word-level evidence (self-corrections,
-            mangled words the ASR rendered as odd tokens, pacing implied by word count vs speaking time). State that it is an estimate.
+            mangled words the ASR rendered as odd tokens, pacing implied by word count vs speaking time, and the given
+            filler-word count). State that it is an estimate.
             Hard rules: score in 0.5 steps; overall = average rounded; if the answer is under 20 words or
             off-topic, cap the overall at 4.0. Find the errors FIRST: list every answer segment with a clear grammar
             or word-choice error in sentence_fixes (up to 5, do not hide errors to justify a high score). GRA must match
