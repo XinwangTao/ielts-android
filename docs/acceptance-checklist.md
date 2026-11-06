@@ -1,0 +1,75 @@
+# 验收清单（2026-11-06）
+
+> 用途：换机/重装/大改之后照着走一遍，确认没有回归。
+> 「已验证」= 有一手证据（真机日志/截图/单测）；「未验证」= 只有代码或理论上应该成立。
+
+## 一、本地 AI 功能
+
+| 功能 | 入口 | 验证方式 | 状态 |
+|---|---|---|---|
+| 写作提纲 | 写作页「AI 提纲」 | `e2e_local_ai.sh <设备> outline` | ✅ 真机 3 论点 / 5 短语 |
+| 口语范例 | 口语页「AI 范例答案」 | `e2e_local_ai.sh <设备> sample` | ✅ 真机 209 词 / 5 关键词 / 3 结构 |
+| 生词卡 | 结果页「提取生词 / 搭配」 | `e2e_local_ai.sh <设备> vocab` | ✅ 真机 6 条 |
+| AI 复盘 | 首页「AI 复盘」→ 生成 | `e2e_local_ai.sh <设备> review` | ✅ 真机 3 条行动 |
+| Part 3 追问 | 口语结果页「生成追问」 | `e2e_local_ai.sh <设备> followup` | ✅ 真机 83 字符单句 |
+| 写作评分 | 写作业提交 | `e2e_local_ai.sh <设备> score_writing` | ✅ overall 7.5 |
+| 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5 |
+| AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*` | ✅ 探针 18/18 |
+| 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 18/18 |
+| 图表题干润色 | 出图题「AI 润色题干」 | PC 探针 `chart_prompt_polish` | ✅ 探针 18/18 |
+
+一键跑全部 PC 探针（不装机）：
+
+```bash
+python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
+```
+
+## 二、后台不中断
+
+| 场景 | 判据 | 状态 |
+|---|---|---|
+| 评分时按 HOME | session 落库 `done` + `local gen done` 日志 | ✅ 74 秒完成（session 26） |
+| 评分时熄屏 | 同上 | ✅ 见 docs/oppo-background-scoring-findings.md §12.4 |
+| AI 生成时按 HOME | `E2E: RESULT ai ...` 出现 | ✅ 提纲 23.8 秒完成 |
+| 转写时按 HOME | `asr load_ms/transcribe_ms` 正常 | ✅ |
+| 云端评分时按 HOME | 请求不中断 | ✅ 已包 Guard（`ebfba53`） |
+
+边界：ColorOS 的 `OplusHansManager` 对**冷加载 + 长生成**仍可能限速到 5 分钟量级（会完成，不是死锁）。
+想看更稳可在设置页授权悬浮窗 + 系统「允许后台运行」。
+
+## 三、结果缓存
+
+| 项 | TTL | 验证 |
+|---|---|---|
+| 写作提纲 / 口语范例 / 生词卡 | 7 天，LRU 30 条 | ✅ 首次 90 秒 → 二次 4 秒内零模型日志 |
+| AI 复盘 | 24 小时 | ✅ 卡片标「X 小时前生成」+ 建议重做提示 |
+
+缓存不会挡「换一份」：已有同题结果时再点按钮会跳过缓存重新生成，文案同步为「换一份提纲/范例/换一批生词」。
+设置页「清除本地 AI 缓存」可单独清掉，不动练习记录。
+
+## 四、数据与设置
+
+- 导出备份：设置页「导出数据备份（JSON）」，不含 Key。
+- 清空所有数据：DB + 录音 + 范文 + AI 派生缓存一起清（清完后建议重启 App）。
+- 评分通道：local / cloud / auto；云端额度失败自动冷却 1 小时，期间直接走本地。
+
+## 五、已知限制（不要当成 bug 报）
+
+1. 发音分是**文本估计**（转写 + 语速 + 填充词），不是声学评分；结果页有说明。
+2. 本地 4B 的绝对分偏高约 0.5，相对排序正确；已有确定性后处理封顶（CC/GRA/overall）。
+3. 模型冷加载 60 秒左右（首页/写作页首次 AI 操作时发生），之后常驻。
+4. 同一时间只能跑一个本地生成任务（引擎闸门），界面会提示「本地模型正在忙」。
+5. 追问故意不缓存：模型暖时只要 1.6 秒，缓存反而会挡住「换一个问题」。
+
+## 六、回归命令
+
+```bash
+# 全量单测
+./gradlew :app:testDebugUnitTest --console=plain
+
+# PC 端 AI 提示词探针
+python tools/ai_probe.py
+
+# 真机 AI 自测（一条命令，不用点按钮）
+bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_writing|score_speaking
+```
