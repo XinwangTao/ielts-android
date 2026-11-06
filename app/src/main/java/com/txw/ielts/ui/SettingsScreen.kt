@@ -402,7 +402,7 @@ fun SettingsScreen(
             exportScope.launch {
                 clearMsg = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                     runCatching {
-                        val refs = com.txw.ielts.data.AppDb.get(context).sessions().recent(500)
+                        val refs = com.txw.ielts.data.AppDb.get(context).sessions().recent(com.txw.ielts.data.RecordingCleanup.REF_LOOKBACK)
                             .mapNotNull { it.audioPath }
                             .toSet()
                         val files = context.filesDir.listFiles()
