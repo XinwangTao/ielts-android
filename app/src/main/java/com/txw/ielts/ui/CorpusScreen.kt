@@ -220,8 +220,14 @@ fun StudyScreen(
     onGrade: (Grade) -> Unit,
     onDelete: () -> Unit = {},
     onExit: () -> Unit,
+    /**
+     * 这张卡是否正在写库。由调用方（[com.txw.ielts.data.StudyRound]）持有，
+     * 而不是页面自己的 remember：页面内的标志换卡后没人复位，会一直灰着。
+     */
+    busy: Boolean = false,
+    /** 评级写库失败等提示；学习页没有别的地方显示错误，不给出口用户只会觉得按钮失灵。 */
+    error: String? = null,
 ) {
-    var grading by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     Column(
         // 学习页必须可滚动：横屏或系统大字号时，评级按钮会掉出屏幕且无法到达。
@@ -237,7 +243,7 @@ fun StudyScreen(
                 modifier = Modifier.weight(1f),
             )
             Text(typeLabel(card.type), style = MaterialTheme.typography.labelMedium)
-            TextButton(onClick = { confirmDelete = true }) {
+            TextButton(enabled = !busy, onClick = { confirmDelete = true }) {
                 Text("删除", color = MaterialTheme.colorScheme.error)
             }
         }
@@ -245,6 +251,9 @@ fun StudyScreen(
             progress = { (index.toFloat() / total).coerceIn(0f, 1f) },
             modifier = Modifier.fillMaxWidth(),
         )
+        if (error != null) {
+            Text(error, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error)
+        }
 
         BookCard(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -282,29 +291,33 @@ fun StudyScreen(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         OutlinedButton(
-                            enabled = !grading,
-                            onClick = { if (!grading) { grading = true; onGrade(Grade.AGAIN) } },
+                            enabled = !busy,
+                            onClick = { onGrade(Grade.AGAIN) },
                             modifier = Modifier.weight(1f),
                         ) { Text("不认识") }
                         OutlinedButton(
-                            enabled = !grading,
-                            onClick = { if (!grading) { grading = true; onGrade(Grade.HARD) } },
+                            enabled = !busy,
+                            onClick = { onGrade(Grade.HARD) },
                             modifier = Modifier.weight(1f),
                         ) { Text("模糊") }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         Button(
-                            enabled = !grading,
-                            onClick = { if (!grading) { grading = true; onGrade(Grade.GOOD) } },
+                            enabled = !busy,
+                            onClick = { onGrade(Grade.GOOD) },
                             modifier = Modifier.weight(1f),
                         ) { Text("认识") }
                         OutlinedButton(
-                            enabled = !grading,
-                            onClick = { if (!grading) { grading = true; onGrade(Grade.EASY) } },
+                            enabled = !busy,
+                            onClick = { onGrade(Grade.EASY) },
                             modifier = Modifier.weight(1f),
                         ) { Text("太简单") }
                     }
-                    Text("不认识的卡明天再出现；认识按 1→3→7 天递进", style = MaterialTheme.typography.labelSmall)
+                    // Again 既有「本轮立刻重问」，也把间隔打回 1 天，两个都写清楚，避免以为答错就白练。
+                    Text(
+                        "不认识：本轮隔几张再问一次，明天再练；认识按 1→3→7 天递进",
+                        style = MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
         }
