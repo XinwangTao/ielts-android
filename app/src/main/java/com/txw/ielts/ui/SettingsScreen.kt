@@ -395,7 +395,7 @@ fun SettingsScreen(
                                 // 派生缓存必须一起清：否则清空后 AI 复盘仍显示旧练习生成的建议。
                                 prefs.clearDerivedCaches()
                             }
-                            clearMsg = "已清空所有数据（本地 AI 复盘/生词/提纲缓存也已重置）"
+                            clearMsg = "已清空所有数据（本地 AI 复盘/生词/提纲缓存也已重置，建议重启 App 让界面完全刷新）"
                         }
                     }) { Text("确认清空") }
                 },
