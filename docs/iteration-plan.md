@@ -26,7 +26,10 @@
    - 解除条件：真机回归 edge-to-edge、前台服务、安装与 MNN/Whisper 加载。
    - 就绪度：`compileSdk 35` 已就位（targetSdk 仍 34），16KB 对齐静态验证通过，迁移步骤见
      `docs/android-upgrade-notes.md`。
-3. **真机验收约 34 项**
+3. **推送 CI / Dependabot**
+   - 解除条件：用户确认推送（本机规则：推送属对外动作）。
+   - 就绪度：两份 YAML 已校验，workflow 内命令与 `verify_all` 一致。
+4. **真机验收约 34 项**
    - 解除条件：允许设备实测。
    - 入口：`docs/acceptance-checklist.md` 第八节（变式题 UI、回放、预热、清理/分享/预览等）。
 
