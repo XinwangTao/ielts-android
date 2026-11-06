@@ -177,6 +177,17 @@ class Prefs(context: Context) {
         set(v) = sp.edit().putString(KEY_STUDY_PLAN, v).apply()
 
     /**
+     * JSON 类设置的「读-改-写」串行化。
+     *
+     * `prefs.studyAiCache = put(prefs.studyAiCache, ...)` 这类写法在多线程下会丢更新：
+     * 两个后台任务同时读到旧值，后写的把先写的条目覆盖掉。锁放在 companion 里，
+     * 多个 Prefs 实例（Activity / Service 各建一份）也共用同一把锁。
+     */
+    fun editJson(block: () -> Unit) {
+        synchronized(jsonLock) { block() }
+    }
+
+    /**
      * 清空「从练习数据派生出来的缓存」——设置页「清空所有数据」必须一起调。
      *
      * 只清数据库不够：AI 复盘缓存的是旧练习算出来的行动建议，生词卡/提纲缓存的是旧文本的结果，
@@ -230,6 +241,9 @@ class Prefs(context: Context) {
     }
 
     companion object {
+        /** 所有 Prefs 实例共用的 JSON 读改写锁，见 [editJson]。 */
+        private val jsonLock = Any()
+
         private const val KEY_BASE = "llm_base_url"
         private const val KEY_API = "llm_api_key"
         private const val KEY_MODEL = "llm_model"

@@ -399,10 +399,12 @@ class ScoreService : Service() {
             // 统一在这里幂等补齐：已有值不覆盖（避免续跑把等待时间重置）。
             runCatching {
                 val prefs = Prefs(context)
-                val o = JSONObject(prefs.localScoreStarted)
-                if (o.optLong(sessionId.toString(), 0L) <= 0L) {
-                    o.put(sessionId.toString(), System.currentTimeMillis())
-                    prefs.localScoreStarted = o.toString()
+                prefs.editJson {
+                    val o = JSONObject(prefs.localScoreStarted)
+                    if (o.optLong(sessionId.toString(), 0L) <= 0L) {
+                        o.put(sessionId.toString(), System.currentTimeMillis())
+                        prefs.localScoreStarted = o.toString()
+                    }
                 }
             }
             val i = Intent(context, ScoreService::class.java).apply {

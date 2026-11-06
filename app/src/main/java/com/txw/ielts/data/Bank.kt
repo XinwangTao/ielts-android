@@ -281,16 +281,20 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
     }
 
     fun saveAnswers(setId: String, answers: Map<Int, String>) {
-        val all = runCatching { JSONObject(prefs.bankProgress) }.getOrDefault(JSONObject())
-        val o = JSONObject()
-        answers.forEach { (k, v) -> if (v.isNotBlank()) o.put(k.toString(), v) }
-        if (o.length() == 0) all.remove(setId) else all.put(setId, o)
-        prefs.bankProgress = all.toString()
+        prefs.editJson {
+            val all = runCatching { JSONObject(prefs.bankProgress) }.getOrDefault(JSONObject())
+            val o = JSONObject()
+            answers.forEach { (k, v) -> if (v.isNotBlank()) o.put(k.toString(), v) }
+            if (o.length() == 0) all.remove(setId) else all.put(setId, o)
+            prefs.bankProgress = all.toString()
+        }
     }
 
     fun clearAnswers(setId: String) {
-        val all = runCatching { JSONObject(prefs.bankProgress) }.getOrDefault(JSONObject())
-        all.remove(setId)
-        prefs.bankProgress = all.toString()
+        prefs.editJson {
+            val all = runCatching { JSONObject(prefs.bankProgress) }.getOrDefault(JSONObject())
+            all.remove(setId)
+            prefs.bankProgress = all.toString()
+        }
     }
 }

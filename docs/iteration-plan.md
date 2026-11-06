@@ -58,6 +58,9 @@
 - 评分 watchdog 按状态分阈值；失败原因存盘（并行会话）。
 
 **AI**
+- 设置项并发写（2026-11-07）：`Prefs.editJson` 串行化 JSON 读改写；`studyAiCache`、`localScoreStarted/Errors`、
+  `bankProgress`、`mutedFixes/vocabEdits` 的多线程落盘不再互相覆盖（两个评分/两次生成同时完成时，
+  后写者不再丢前者的条目）。
 - 追问、错题变式、写作换题；提纲/范例/生词/变式缓存（含模型维度）；格式类失败自动重试一次。
 - `StudyAiCache` 解析记忆化（按存储串内容）；8 题出题档 `max_tokens=8000`。
 

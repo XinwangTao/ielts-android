@@ -553,7 +553,10 @@ private fun App(
                     writingOutlineError = "本地模型没有输出可用的提纲，请重试"
                 } else {
                     writingOutline = r
-                    withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                    withContext(Dispatchers.IO) {
+                        // 读改写要串行：两次生成同时落缓存时，后写的不覆盖先写的条目。
+                        prefs.editJson { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -606,7 +609,9 @@ private fun App(
                     speakingSampleError = "本地模型没有输出可用的范例，请重试"
                 } else {
                     speakingSample = r
-                    withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                    withContext(Dispatchers.IO) {
+                        prefs.editJson { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -659,7 +664,9 @@ private fun App(
             if (vocabSessionId == sessionId) {
                 vocabResult = r
                 if (r.items.isNotEmpty()) {
-                    withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                    withContext(Dispatchers.IO) {
+                        prefs.editJson { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -818,9 +825,11 @@ private fun App(
                 return@forEach
             }
             val task = s.task.ifBlank { guessTask(s.topic) }
-            val m = runCatching { JSONObject(prefs.localScoreStarted) }.getOrDefault(JSONObject())
-            m.put(s.id.toString(), System.currentTimeMillis())
-            prefs.localScoreStarted = m.toString()
+            prefs.editJson {
+                val m = runCatching { JSONObject(prefs.localScoreStarted) }.getOrDefault(JSONObject())
+                m.put(s.id.toString(), System.currentTimeMillis())
+                prefs.localScoreStarted = m.toString()
+            }
             db.sessions().updateResult(
                 s.id, s.transcript, s.essayText, s.scoresJson, s.fixesJson, s.polished, "pending_local",
             )
@@ -1335,18 +1344,20 @@ private fun App(
 
     /** 记录本地评分任务真正启动的时间；卡死判断必须用它，不能用练习开始时间。 */
     fun markLocalScoreStarted(id: Long) {
-        val o = runCatching { JSONObject(prefs.localScoreStarted) }.getOrDefault(JSONObject())
-        o.put(id.toString(), System.currentTimeMillis())
-        if (o.length() > 30) {
-            val keep = o.keys().asSequence()
-                .map { k -> k to o.optLong(k, 0L) }
-                .sortedByDescending { p -> p.second }
-                .take(20)
-                .map { p -> p.first }
-                .toSet()
-            o.keys().asSequence().toList().filterNot { k -> k in keep }.forEach { k -> o.remove(k) }
+        prefs.editJson {
+            val o = runCatching { JSONObject(prefs.localScoreStarted) }.getOrDefault(JSONObject())
+            o.put(id.toString(), System.currentTimeMillis())
+            if (o.length() > 30) {
+                val keep = o.keys().asSequence()
+                    .map { k -> k to o.optLong(k, 0L) }
+                    .sortedByDescending { p -> p.second }
+                    .take(20)
+                    .map { p -> p.first }
+                    .toSet()
+                o.keys().asSequence().toList().filterNot { k -> k in keep }.forEach { k -> o.remove(k) }
+            }
+            prefs.localScoreStarted = o.toString()
         }
-        prefs.localScoreStarted = o.toString()
     }
 
     fun localScoreStartedAt(id: Long): Long =
@@ -1355,12 +1366,16 @@ private fun App(
 
     /** 评分失败原因按会话存盘：结果页重开/重启后仍能说清「为什么没出分、下一步改什么」。 */
     fun recordScoreFailure(id: Long, reason: String?) {
-        prefs.localScoreErrors =
-            com.txw.ielts.llm.ScoreFailures.record(prefs.localScoreErrors, id, reason)
+        prefs.editJson {
+            prefs.localScoreErrors =
+                com.txw.ielts.llm.ScoreFailures.record(prefs.localScoreErrors, id, reason)
+        }
     }
 
     fun clearScoreFailure(id: Long) {
-        prefs.localScoreErrors = com.txw.ielts.llm.ScoreFailures.clear(prefs.localScoreErrors, id)
+        prefs.editJson {
+            prefs.localScoreErrors = com.txw.ielts.llm.ScoreFailures.clear(prefs.localScoreErrors, id)
+        }
     }
 
     /** 后台本地写作评分（不阻塞继续练习）。 */
@@ -2086,7 +2101,9 @@ private fun App(
                 variantErrors = variantErrors + (vk to "变式题生成失败，请重试")
             } else {
                 bankVariants = bankVariants + (vk to v)
-                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, v.raw) }
+                withContext(Dispatchers.IO) {
+                    prefs.editJson { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, v.raw) }
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "variant fail: ${e.message}")
@@ -2686,9 +2703,11 @@ private fun App(
                         }
                         val toggleMute: (String) -> Unit = { key ->
                             mutedFixes = com.txw.ielts.llm.FixTriage.toggle(mutedFixes, key)
-                            prefs.mutedFixes = com.txw.ielts.llm.FixTriage.withSession(
-                                prefs.mutedFixes, session.id, mutedFixes,
-                            )
+                            prefs.editJson {
+                                prefs.mutedFixes = com.txw.ielts.llm.FixTriage.withSession(
+                                    prefs.mutedFixes, session.id, mutedFixes,
+                                )
+                            }
                         }
                         // 生词卡手动修改同样按会话存盘：改完再入 SRS，重新打开结果页仍是改过的内容。
                         var vocabEdits by remember(session.id) {
@@ -2696,8 +2715,10 @@ private fun App(
                         }
                         val applyVocabEdits: (Map<String, com.txw.ielts.llm.VocabDraft>) -> Unit = { next ->
                             vocabEdits = next
-                            prefs.vocabEdits =
-                                com.txw.ielts.llm.VocabEdits.save(prefs.vocabEdits, session.id, next)
+                            prefs.editJson {
+                                prefs.vocabEdits =
+                                    com.txw.ielts.llm.VocabEdits.save(prefs.vocabEdits, session.id, next)
+                            }
                         }
                         ResultScreen(
                             session = session, busy = stage, error = error,
