@@ -66,7 +66,7 @@ fun ReviewScreen(
     aiReviewHint: com.txw.ielts.llm.ReviewCacheHint? = null,
     aiBusy: Boolean = false,
     aiError: String? = null,
-    onRequestReview: () -> Unit = {},
+    onRequestReview: () -> Unit,
     /** 复盘建议一键跳到对应练习页（writing / speaking / vocab / listening / reading）。 */
     onOpenAction: (String) -> Unit = {},
 ) {

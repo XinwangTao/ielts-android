@@ -73,8 +73,8 @@ fun ResultScreen(
     vocabSessionId: Long? = null,
     vocabBusy: Boolean = false,
     vocabError: String? = null,
-    onRequestVocab: (text: String, fixes: List<Triple<String, String, String>>) -> Unit = { _, _ -> },
-    onAddVocab: (List<com.txw.ielts.llm.VocabItem>) -> Unit = {},
+    onRequestVocab: (text: String, fixes: List<Triple<String, String, String>>) -> Unit,
+    onAddVocab: (List<com.txw.ielts.llm.VocabItem>) -> Unit,
     // 口语 Part 3 追问：基于本场转写，让本地模型扮演考官追问一句。
     followUpQuestion: String? = null,
     followUpBusy: Boolean = false,

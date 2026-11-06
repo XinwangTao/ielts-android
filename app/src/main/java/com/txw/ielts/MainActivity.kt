@@ -2548,6 +2548,8 @@ private fun App(
                             total = sum?.optInt("total") ?: items.size,
                             items = items,
                             transcript = "",
+                            aiExplains = aiExplains, explainingIds = explainingIds,
+                            onAiExplain = { item -> scope.launch { runAiExplain(item) } },
                             variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                             variantScope = "s${session.id}",
                             onRequestVariant = { item -> scope.launch { runVariant(item, "s${session.id}") } },

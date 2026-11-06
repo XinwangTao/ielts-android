@@ -60,7 +60,7 @@ fun BankResultScreen(
     readerLineHeight: Float = 1.4f,
     aiExplains: Map<Int, BankExplain> = emptyMap(),
     explainingIds: Set<Int> = emptySet(),
-    onAiExplain: (BankResultItem) -> Unit = {},
+    onAiExplain: (BankResultItem) -> Unit,
     // 变式题：同考点换新内容，防止重做原题变成「记住答案」。
     variants: Map<String, com.txw.ielts.llm.BankVariant> = emptyMap(),
     variantBusyIds: Set<String> = emptySet(),
