@@ -73,4 +73,8 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 - 多行 Kotlin 字符串的改动走编辑工具，不要用脚本批量替换：`
 ` 常被写成真换行，导致编译错误。
 - 涉及 UI 的改动，若当前无法真机验证，写进验收清单 TODO 并说明命令/判据。
+- `prefs.<json 字段> = fn(prefs.<同一字段>)` 这种读改写必须包在 `Prefs.editJson {}` 里（companion 级锁）：
+  后台评分/生成并发完成时，裸读改写会互相覆盖。新增 JSON 设置时同时给受锁写入路径。
+- 用脚本改多行 Kotlin/文档时注意仓库部分是 CRLF：断言/替换要按 `\r?\n` 匹配，
+  脚本跑完用 grep 复核落盘，不要让断言失败被后台任务日志吞掉。
 - 不要提交 `.tmp-shots/`、`.secret/`、录音与模型文件。
