@@ -770,26 +770,41 @@ private fun App(
     var round by remember { mutableStateOf(StudyRound()) }
     // 上一轮复习的小结：评完（或中途退出）后回到语料页先给一句交代，开新一轮时清掉。
     var lastRoundSummary by remember { mutableStateOf<com.txw.ielts.data.RoundSummary?>(null) }
+    // 队列为空时的交代：在首页/语料页都显示出来，点击不再像没反应。
+    var queueNotice by remember { mutableStateOf<com.txw.ielts.data.QueueNotice?>(null) }
+    // 页面切走就撤掉提示：它只解释「刚才那一下」，不该跨页面或跨天留着误导人。
+    LaunchedEffect(route) { queueNotice = null }
     fun beginRound(cards: List<com.txw.ielts.data.Card>): StudyRound {
         lastRoundSummary = null
         return StudyRound.start(cards)
     }
 
     // 今日任务：点一下就直接开始，不再先跳语料首页再点第二轮。
+    // 队列为空时保留上一轮小结（空入口不该抹掉刚看到的交代），只给一句可读的提示。
     fun startWrongQueue() {
         scope.launch {
             val cards = repo.buildWrongQueue()
+            if (cards.isEmpty()) {
+                queueNotice = com.txw.ielts.data.QueueNotice.emptyWrong()
+                return@launch
+            }
+            queueNotice = null
+            error = null
             round = beginRound(cards)
-            error = if (cards.isEmpty()) "暂无到期错题" else null
-            if (cards.isNotEmpty()) route = Route.Study
+            route = Route.Study
         }
     }
     fun startDueQueue() {
         scope.launch {
             val cards = repo.buildQueue(prefs.dailyNewCards)
+            if (cards.isEmpty()) {
+                queueNotice = com.txw.ielts.data.QueueNotice.emptyReview(wrongCount)
+                return@launch
+            }
+            queueNotice = null
+            error = null
             round = beginRound(cards)
-            error = if (cards.isEmpty()) "今天没有待学卡片" else null
-            if (cards.isNotEmpty()) route = Route.Study
+            route = Route.Study
         }
     }
     // 临考收紧：考前两周口语/写作的复练间隔自动缩短（14 天内减半、7 天内每天），
@@ -2137,6 +2152,8 @@ private fun App(
                         examDate = prefs.examDate,
                         skillTargets = skillTargets,
                         recoveryNotice = recoveryNotice,
+                        queueNotice = queueNotice,
+                        onDismissQueueNotice = { queueNotice = null },
                         channelNotice = ChannelPick.notice(
                             mode = prefs.scoreChannel,
                             cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil,
@@ -2563,22 +2580,11 @@ private fun App(
                     roundSummary = lastRoundSummary,
                     onDismissRound = { lastRoundSummary = null },
                     error = error,
-                    onStart = {
-                        scope.launch {
-                            val cards = repo.buildQueue(prefs.dailyNewCards)
-                            round = beginRound(cards)
-                            error = if (cards.isEmpty()) "今天没有待学卡片" else null
-                            if (cards.isNotEmpty()) route = Route.Study
-                        }
-                    },
-                    onWrongStart = {
-                        scope.launch {
-                            val cards = repo.buildWrongQueue()
-                            round = beginRound(cards)
-                            error = if (cards.isEmpty()) "暂无错题" else null
-                            if (cards.isNotEmpty()) route = Route.Study
-                        }
-                    },
+                    queueNotice = queueNotice,
+                    onDismissQueueNotice = { queueNotice = null },
+                    // 与首页「今日任务」共用同一套队列构建与空队列提示，避免两处口径/文案分叉。
+                    onStart = { startDueQueue() },
+                    onWrongStart = { startWrongQueue() },
                     onBack = { route = Route.Home },
                 )
 

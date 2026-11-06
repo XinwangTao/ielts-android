@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.txw.ielts.data.QueueNotice
 import com.txw.ielts.data.Session
 import com.txw.ielts.data.StreakCalc
 import java.text.SimpleDateFormat
@@ -85,6 +86,9 @@ fun HomeScreen(
     examDate: String = "",
     skillTargets: SkillTargets? = null,
     recoveryNotice: String? = null,
+    /** 点了今日任务但队列为空时的说明（原因 + 去哪继续）。 */
+    queueNotice: QueueNotice? = null,
+    onDismissQueueNotice: () -> Unit = {},
     channelNotice: com.txw.ielts.llm.ChannelNotice? = null,
 ) {
     val streak = remember(sessions) { StreakCalc.currentStreak(sessions) }
@@ -273,6 +277,26 @@ fun HomeScreen(
                 }
             }
             Spacer(Modifier.height(20.dp))
+        }
+
+        // 点今日任务拿到空队列：原地给一句交代，别让点击看起来没反应。
+        if (queueNotice != null) {
+            BookCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        queueNotice.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        queueNotice.detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onDismissQueueNotice) { Text("知道了") }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
         }
 
         // —— 目录标题 ——

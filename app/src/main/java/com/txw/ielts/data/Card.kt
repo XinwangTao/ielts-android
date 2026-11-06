@@ -34,7 +34,14 @@ interface CardDao {
     @Query("SELECT * FROM cards")
     suspend fun all(): List<Card>
 
-    @Query("SELECT COUNT(*) FROM cards WHERE dueAt > 0 AND dueAt <= :now")
+    /**
+     * 每日复习队列的到期卡张数。
+     *
+     * 口径必须与 [due] 完全一致：听读/跟读错题卡（source=bank/shadow）只进错题专项，
+     * 不会出现在每日队列里。之前这里没排除它们，语料页和首页「今日任务」会把
+     * 到期错题算成「待复习 N 张」，点进去队列却是空的（buildQueue 的 due 排除了错题）。
+     */
+    @Query("SELECT COUNT(*) FROM cards WHERE dueAt > 0 AND dueAt <= :now AND source NOT IN ('bank','shadow')")
     suspend fun countDue(now: Long): Int
 
     /** 新卡总数：含练习反馈卡（它们同样按新卡复习，只是在队列里优先安排）。 */

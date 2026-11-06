@@ -62,6 +62,9 @@ fun CorpusHomeScreen(
     /** 上一轮复习的小结；评完最后一张卡回到这里时给个交代，点「知道了」后消失。 */
     roundSummary: RoundSummary? = null,
     onDismissRound: () -> Unit = {},
+    /** 点了「开始学习 / 错题专项」但队列为空时的说明（原因 + 去哪继续）。 */
+    queueNotice: com.txw.ielts.data.QueueNotice? = null,
+    onDismissQueueNotice: () -> Unit = {},
     onStart: () -> Unit,
     onWrongStart: () -> Unit,
     onBack: () -> Unit,
@@ -75,6 +78,25 @@ fun CorpusHomeScreen(
         IosNavBar("语料积累", onBack = onBack)
         if (!error.isNullOrBlank()) {
             Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+
+        // 空队列不是错误：用普通提示说明原因与下一步，别和评分失败的红字混在一起。
+        if (queueNotice != null) {
+            BookCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        queueNotice.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        queueNotice.detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    TextButton(onClick = onDismissQueueNotice) { Text("知道了") }
+                }
+            }
         }
 
         // 一轮复习刚结束：先说清「刚才做了什么」，再谈今天还剩多少。
