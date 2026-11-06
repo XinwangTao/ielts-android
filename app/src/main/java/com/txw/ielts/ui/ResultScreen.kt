@@ -84,9 +84,12 @@ fun ResultScreen(
     var vocabAdded by remember(session.id) { mutableStateOf(false) }
     // 展示真实已等待时间：本地评分 1-4 分钟，用户需要知道还要等多久。
     var waitedSec by remember { mutableLongStateOf(0L) }
+    // 开始时间缺失（旧数据 / 进程重启 / 调用方没写）时从进入结果页开始数，
+    // 不能回退到 session.startedAt —— 那是录音起点，会显示「已等待」几十分钟。
+    var fallbackBase by remember(session.id) { mutableLongStateOf(System.currentTimeMillis()) }
     LaunchedEffect(session.status, waitStartedAt) {
         if (session.status != "pending_local") return@LaunchedEffect
-        val base = waitStartedAt.takeIf { it > 0 } ?: session.startedAt
+        val base = waitStartedAt.takeIf { it > 0 } ?: fallbackBase
         while (true) {
             waitedSec = ((System.currentTimeMillis() - base) / 1000).coerceAtLeast(0)
             kotlinx.coroutines.delay(1_000)

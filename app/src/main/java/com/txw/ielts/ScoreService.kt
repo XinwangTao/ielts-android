@@ -333,6 +333,17 @@ class ScoreService : Service() {
         private const val LOAD_STALL_AFTER_MS = 8 * 60_000L
 
         fun start(context: Context, sessionId: Long, module: String, text: String, task: String = "task2"): Boolean {
+            // 结果页用这个时间算「已等待 N 分」；只有 MainActivity 的部分入口写过，
+            // onResume 续跑/Service 重启路径没写，结果页就会退化成从录音时刻开始数。
+            // 统一在这里幂等补齐：已有值不覆盖（避免续跑把等待时间重置）。
+            runCatching {
+                val prefs = Prefs(context)
+                val o = JSONObject(prefs.localScoreStarted)
+                if (o.optLong(sessionId.toString(), 0L) <= 0L) {
+                    o.put(sessionId.toString(), System.currentTimeMillis())
+                    prefs.localScoreStarted = o.toString()
+                }
+            }
             val i = Intent(context, ScoreService::class.java).apply {
                 putExtra("sessionId", sessionId)
                 putExtra("module", module)

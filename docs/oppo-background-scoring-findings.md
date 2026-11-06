@@ -85,8 +85,10 @@
 ## 八、待办
 
 - [ ] `ScoreService` 给每次生成加 `withTimeoutOrNull`（建议 5 分钟/次），超时退 `pending_eval` 而非静默卡住。
-- [ ] 结果页计时基准改用「评分开始时间」持久化字段，并对 `pending_local` 超过阈值给出明确「已中断，重新评分」。
-- [ ] 验证后台评分（唯一成功样例是前台跑的）。
+- [x] 结果页计时基准改用「评分开始时间」持久化字段，并对 `pending_local` 超过阈值给出明确「已中断，重新评分」。
+      → 2026-11-06 修复：`ScoreService.start` 统一幂等写入 `localScoreStarted`（覆盖 onResume 续跑路径）；
+      结果页不再回退到 `session.startedAt`（录音起点），缺失时从进入页开始计时。
+- [x] 验证后台评分（唯一成功样例是前台跑的）。→ 2026-11-06 §12：后台 74 秒完成，session 26 落库。
 - [ ] `pending_local` 的自愈不要在启动时静默重排，应显式提示。
 
 ---

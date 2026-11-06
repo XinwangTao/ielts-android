@@ -2183,10 +2183,12 @@ private fun App(
                         }
                         ResultScreen(
                             session = session, busy = stage, error = error,
+                            // 开始时间缺失时不回退到 session.startedAt（录音起点），
+                            // 结果页会从进入时开始计时，避免显示「已等待」几十分钟。
                             staleLocal = session.status == "pending_local" &&
-                                System.currentTimeMillis() -
-                                (localScoreStartedAt(session.id).takeIf { it > 0 } ?: session.startedAt) > 10 * 60_000L,
-                            waitStartedAt = localScoreStartedAt(session.id).takeIf { it > 0 } ?: session.startedAt,
+                                localScoreStartedAt(session.id) > 0L &&
+                                System.currentTimeMillis() - localScoreStartedAt(session.id) > 10 * 60_000L,
+                            waitStartedAt = localScoreStartedAt(session.id),
                             scoreTookMs = runCatching {
                                 val fin = JSONObject(prefs.localScoreFinished).optLong(session.id.toString(), 0L)
                                 val st = localScoreStartedAt(session.id)
