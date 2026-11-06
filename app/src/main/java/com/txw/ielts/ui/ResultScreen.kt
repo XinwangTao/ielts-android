@@ -1004,9 +1004,15 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                         runCatching { np.release() }
                     }
                 } else {
-                    runCatching { p.start() }
-                    RecordingAudio.currentPlayer = p
-                    RecordingAudio.currentPath.value = path
+                    // 恢复失败时不要切到「暂停录音」：会变成点了没声音、按钮还显示正在播。
+                    if (runCatching { p.start() }.isSuccess) {
+                        RecordingAudio.currentPlayer = p
+                        RecordingAudio.currentPath.value = path
+                    } else {
+                        loadFailed = true
+                        runCatching { p.release() }
+                        player = null
+                    }
                 }
             }) { Text(if (loadFailed) "录音不可用" else if (playing) "暂停录音" else "播放我的录音") }
             TextButton(onClick = {

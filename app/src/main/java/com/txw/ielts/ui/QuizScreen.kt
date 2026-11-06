@@ -376,8 +376,10 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
             runCatching { player.pause() }
             playing = false
         } else if (started) {
-            runCatching { player.start() }
-            playing = true
+            // 恢复失败时不能把按钮切成「暂停」：用户会以为在播，实际一点声音都没有。
+            val ok = runCatching { player.start() }.isSuccess
+            playing = ok
+            if (!ok) failure = "继续播放失败，请点「重播」"
         } else {
             prepareAndPlay(fromBeginning = true)
         }
@@ -460,7 +462,10 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
                     selected = listOf(0.75f, 1f, 1.25f, 1.5f).indexOf(speed).coerceAtLeast(0),
                     onSelect = { i ->
                         speed = listOf(0.75f, 1f, 1.25f, 1.5f)[i]
-                        if (playing) runCatching { player.setPlaybackSpeedCompat(speed) }
+                        if (playing) {
+                            runCatching { player.setPlaybackSpeedCompat(speed) }
+                                .onFailure { failure = "当前设备不支持该倍速" }
+                        }
                     },
                 )
             }
