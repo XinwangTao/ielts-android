@@ -424,6 +424,23 @@ fun SettingsScreen(
         }) {
             Text("清理无主录音")
         }
+        // 存储占用：用户能分清「空间被录音、模型还是数据库占了」，再决定清什么。
+        var storageText by remember { mutableStateOf<String?>(null) }
+        LaunchedEffect(clearMsg) {
+            storageText = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                fun size(f: java.io.File?): Long = f?.let {
+                    if (it.isDirectory) it.listFiles()?.sumOf { c -> size(c) } ?: 0L else it.length()
+                } ?: 0L
+                val rec = context.filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.sumOf { it.length() } ?: 0L
+                val model = size(java.io.File(context.filesDir, "models"))
+                val db = size(context.getDatabasePath("ielts.db"))
+                fun mb(v: Long) = "%.1f MB".format(v / 1024.0 / 1024.0)
+                "存储：录音 ${mb(rec)} · 模型 ${mb(model)} · 数据库 ${mb(db)}"
+            }
+        }
+        storageText?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         TextButton(onClick = { confirmClear = true }) {
             Text("清空所有数据", color = MaterialTheme.colorScheme.error)
         }
