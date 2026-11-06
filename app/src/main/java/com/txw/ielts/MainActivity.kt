@@ -1766,11 +1766,18 @@ private fun App(
                 suspendCancellableCoroutine { cont ->
                     var settled = false
                     var tts: TextToSpeech? = null
+                    // 超时/取消时协程直接结束，但 TTS 引擎绑定还在：必须在这里 shutdown，
+                    // 否则每次超时都留下一个常驻的合成引擎（对比重试 3 次就是 3 个）。
+                    val closed = java.util.concurrent.atomic.AtomicBoolean(false)
+                    fun closeTts() {
+                        if (closed.compareAndSet(false, true)) runCatching { tts?.stop(); tts?.shutdown() }
+                    }
+                    cont.invokeOnCancellation { closeTts() }
                     fun finish(done: Boolean) {
                         if (settled) return
                         settled = true
                         Log.i(TAG, "tts one finish=$done size=${outFile.length()}")
-                        runCatching { tts?.stop(); tts?.shutdown() }
+                        closeTts()
                         if (cont.isActive) cont.resume(done)
                     }
                     tts = TextToSpeech(context) { status ->

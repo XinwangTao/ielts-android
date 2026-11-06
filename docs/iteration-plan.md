@@ -25,7 +25,7 @@
 > 前台服务（失败不泄漏 AudioRecord/麦克风保活）、stop 与 release 解耦、worker 异常不再杀进程；
 > 口语模考录音中禁止提交并提示「某段中断，请重录」；`ai_bank.json` 原子写 + 损坏隔离 `.corrupt`；
 > 音频缓存按 assets 长度校验并 `.part` 后改名；词典整库拷贝加锁 + SQLite 头校验。
-> 长尾未做：TTS `synthesizeOne` 超时协程可能残留（影响仅是多占一个合成槽，暂不阻塞交付）。
+> TTS `synthesizeOne` 超时/取消时补 `invokeOnCancellation → shutdown`（重试 3 次不再累积 3 个引擎绑定）。
 
 ## 阻塞（写清解除条件，不在本阶段空等）
 
