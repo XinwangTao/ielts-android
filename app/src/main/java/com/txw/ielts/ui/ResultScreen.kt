@@ -879,16 +879,32 @@ private fun ScoreBar(label: String, score: Double, color: Color) {
 }
 
 /** 口语录音回放：转写看不出停顿、语速与发音问题，能听自己是最直接的自查方式。 */
+/** 全局只允许一个录音在放：对练列表里每一轮都有自己的播放器，不协调会同时出声。 */
+internal object RecordingAudio {
+    val currentPath = androidx.compose.runtime.mutableStateOf<String?>(null)
+    var currentPlayer: android.media.MediaPlayer? = null
+
+    fun pauseOthers(exceptPath: String) {
+        if (currentPath.value != null && currentPath.value != exceptPath) {
+            runCatching { currentPlayer?.pause() }
+            currentPath.value = null
+        }
+    }
+}
+
 @Composable
 internal fun RecordingPlayer(path: String, compact: Boolean = false) {
     var player by remember(path) { mutableStateOf<android.media.MediaPlayer?>(null) }
-    var playing by remember(path) { mutableStateOf(false) }
+    // 是否正在播放以全局状态为准：别的录音开始播时，这一个要自动变成「播放」。
+    val playing = RecordingAudio.currentPath.value == path
     // 0.75x 更容易听清连读和自己的口误；1.25x 用来练反应。
     var speed by remember(path) { mutableStateOf(1f) }
     var durationMs by remember(path) { mutableLongStateOf(0L) }
     var positionMs by remember(path) { mutableLongStateOf(0L) }
     androidx.compose.runtime.DisposableEffect(path) {
         onDispose {
+            if (RecordingAudio.currentPath.value == path) RecordingAudio.currentPath.value = null
+            if (RecordingAudio.currentPlayer === player) RecordingAudio.currentPlayer = null
             runCatching { player?.release() }
             player = null
         }
@@ -913,9 +929,10 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                 val p = player
                 if (playing) {
                     runCatching { p?.pause() }
-                    playing = false
+                    RecordingAudio.currentPath.value = null
                     return@TextButton
                 }
+                RecordingAudio.pauseOthers(path)
                 if (p == null) {
                     val np = android.media.MediaPlayer()
                     val ok = runCatching {
@@ -927,17 +944,19 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                     if (ok) {
                         durationMs = np.duration.toLong().coerceAtLeast(0L)
                         np.setOnCompletionListener {
-                            playing = false
+                            RecordingAudio.currentPath.value = null
                             positionMs = 0L
                         }
                         player = np
-                        playing = true
+                        RecordingAudio.currentPlayer = np
+                        RecordingAudio.currentPath.value = path
                     } else {
                         runCatching { np.release() }
                     }
                 } else {
                     runCatching { p.start() }
-                    playing = true
+                    RecordingAudio.currentPlayer = p
+                    RecordingAudio.currentPath.value = path
                 }
             }) { Text(if (playing) "暂停录音" else "播放我的录音") }
             TextButton(onClick = {
