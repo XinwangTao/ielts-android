@@ -471,8 +471,12 @@ private fun App(
         // 但如果界面上已经有这道题的提纲，这次点击就是「想换一份」，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key("outline", prefs.localModel, task, topic)
         if (writingOutline == null || writingOutlineTopic != topic) {
-            com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
-                val cached = com.txw.ielts.llm.StudyAi.parseOutline(raw)
+            // 缓存串最大几十到两百多 KB：解析放到 IO，别在主线程做。
+            val cachedRaw = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)
+            }
+            if (cachedRaw != null) {
+                val cached = com.txw.ielts.llm.StudyAi.parseOutline(cachedRaw)
                 if (!cached.isEmpty) {
                     writingOutline = cached
                     writingOutlineTopic = topic
@@ -518,8 +522,11 @@ private fun App(
         // 界面上已有这题的范例时，这次点击是想换一份，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key("sample", prefs.localModel, part, question)
         if (speakingSample == null || speakingSampleQuestion != question) {
-            com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
-                val cached = com.txw.ielts.llm.StudyAi.parseSample(raw)
+            val cachedRaw = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)
+            }
+            if (cachedRaw != null) {
+                val cached = com.txw.ielts.llm.StudyAi.parseSample(cachedRaw)
                 if (!cached.isEmpty) {
                     speakingSample = cached
                     speakingSampleQuestion = question
@@ -566,8 +573,11 @@ private fun App(
             "vocab", prefs.localModel, sessionId.toString(), text, fixes.joinToString("\u0001") { it.first },
         )
         if (vocabResult == null || vocabSessionId != sessionId) {
-            com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
-                val cached = com.txw.ielts.llm.StudyAi.parseVocab(raw)
+            val cachedRaw = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)
+            }
+            if (cachedRaw != null) {
+                val cached = com.txw.ielts.llm.StudyAi.parseVocab(cachedRaw)
                 if (cached.items.isNotEmpty()) {
                     vocabResult = cached
                     vocabSessionId = sessionId
@@ -1925,11 +1935,16 @@ private fun App(
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
             "variant", prefs.localModel, resultScope, item.prompt, item.right, item.yours, item.explain,
         )
-        if (bankVariants[vk] == null) com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
-            val cached = com.txw.ielts.llm.StudyAi.parseVariant(raw)
-            if (!cached.isEmpty) {
-                bankVariants = bankVariants + (vk to cached)
-                return
+        if (bankVariants[vk] == null) {
+            val cachedRaw = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)
+            }
+            if (cachedRaw != null) {
+                val cached = com.txw.ielts.llm.StudyAi.parseVariant(cachedRaw)
+                if (!cached.isEmpty) {
+                    bankVariants = bankVariants + (vk to cached)
+                    return
+                }
             }
         }
         variantBusyIds = variantBusyIds + vk

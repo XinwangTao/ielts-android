@@ -909,6 +909,18 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
             player = null
         }
     }
+    // 切后台/锁屏要停：组合不会销毁，不暂停就一直在后台放。
+    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    androidx.compose.runtime.DisposableEffect(lifecycleOwner, path) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
+                runCatching { player?.pause() }
+                if (RecordingAudio.currentPath.value == path) RecordingAudio.currentPath.value = null
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     // 播放中每 300ms 刷新进度；拖动后也要立刻反映到进度条上。
     LaunchedEffect(playing, player) {
         while (playing) {
