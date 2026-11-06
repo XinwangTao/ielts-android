@@ -692,7 +692,7 @@ private fun App(
                 val cache = com.txw.ielts.llm.AiReviewCache(
                     review = r,
                     createdAt = System.currentTimeMillis(),
-                    fingerprint = com.txw.ielts.llm.AiReviewCache.fingerprint(summary),
+                    fingerprint = com.txw.ielts.llm.AiReviewCache.fingerprint(summary + "\nmodel=" + prefs.localModel),
                     sessionsCount = sessions.size,
                 )
                 aiReview = r
@@ -709,7 +709,7 @@ private fun App(
     // 复盘卡的新鲜度提示：数据没变/新增了几条/已过期，都写清楚，别让用户盲目重跑模型。
     val aiReviewHint = remember(aiReviewCache, sessions, prefs.targetBand, prefs.examDate) {
         aiReviewCache?.hint(
-            currentFingerprint = com.txw.ielts.llm.AiReviewCache.fingerprint(buildReviewSummary()),
+            currentFingerprint = com.txw.ielts.llm.AiReviewCache.fingerprint(buildReviewSummary() + "\nmodel=" + prefs.localModel),
             currentSessionsCount = sessions.size,
             now = System.currentTimeMillis(),
         )
