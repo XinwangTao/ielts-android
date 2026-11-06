@@ -1665,7 +1665,8 @@ private fun App(
         } catch (e: Exception) {
             Log.e(TAG, "mock fail: ${e.message}")
             stage = null
-            route = Route.Home
+            // 留在模考页：错误文案只有该页会显示，跳回首页等于「点了提交然后什么都没发生」。
+            route = Route.WritingMock
             error = "模考评分中断：${e.message}（已完成的部分已保存）"
         }
     }

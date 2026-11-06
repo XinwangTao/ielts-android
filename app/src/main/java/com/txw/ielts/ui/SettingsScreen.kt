@@ -651,7 +651,8 @@ fun SettingsScreen(
                     TextButton(onClick = {
                         confirmClear = false
                         exportScope.launch {
-                            runCatching {
+                            // 不能无条件报成功：清库失败（数据库被占用/损坏）时用户会以为已经清干净。
+                            val ok = runCatching {
                                 // 清库 + 删录音/范文都放 IO：录音多时逐个 delete 在主线程会卡住确认框。
                                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                                     com.txw.ielts.data.AppDb.get(context).clearAllTables()
@@ -663,7 +664,10 @@ fun SettingsScreen(
                                 // 派生缓存必须一起清：否则清空后 AI 复盘仍显示旧练习生成的建议。
                                 prefs.clearDerivedCaches()
                             }
-                            clearMsg = "已清空所有数据（本地 AI 复盘/生词/提纲缓存也已重置，建议重启 App 让界面完全刷新）"
+                            clearMsg = ok.fold(
+                                onSuccess = { "已清空所有数据（本地 AI 复盘/生词/提纲缓存也已重置，建议重启 App 让界面完全刷新）" },
+                                onFailure = { "清空失败：${it.message}（部分数据可能仍在，可重试或重启后再说）" },
+                            )
                         }
                     }) { Text("确认清空") }
                 },
