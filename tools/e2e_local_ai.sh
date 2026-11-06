@@ -12,7 +12,7 @@ FORCE=${3:-}
 # 预检：手机正被别的 App 占用时，启动后大概率被抢回，ColorOS 会冻结本地推理。
 # 先快速失败，别让用户/脚本白等 8 分钟；确实要强跑时第三个参数加 --force。
 BEFORE=$("$ADB" -s "$DEVICE" shell "dumpsys window | grep -m1 mCurrentFocus" 2>/dev/null || true)
-if [ "$FORCE" != "--force" ] && ! printf '%s' "$BEFORE" | grep -qE "com.txw.ielts|launcher"; then
+if [ "$FORCE" != "--force" ] && [ -n "$BEFORE" ] && ! printf '%s' "$BEFORE" | grep -qE "mCurrentFocus=null|com.txw.ielts|launcher"; then
   echo "!! 当前前台不是桌面/雅思：${BEFORE:-未知}" >&2
   echo "   启动后可能被该 App 抢回，ColorOS 会冻结本地推理。" >&2
   echo "   回桌面后重跑；确实要强跑：bash $0 <设备> $MODE --force" >&2
