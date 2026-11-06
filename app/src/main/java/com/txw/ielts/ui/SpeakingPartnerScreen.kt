@@ -326,6 +326,8 @@ fun SpeakingPartnerScreen(
                     Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Q${i + 1} ${t.question}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("A: ${t.answer}", style = MaterialTheme.typography.bodyMedium)
+                        // 每一轮都能回放：对练里最容易发现的是卡顿和口头禅。
+                        if (t.audioPath.isNotBlank()) RecordingPlayer(t.audioPath, compact = true)
                     }
                 }
             }

@@ -880,7 +880,7 @@ private fun ScoreBar(label: String, score: Double, color: Color) {
 
 /** 口语录音回放：转写看不出停顿、语速与发音问题，能听自己是最直接的自查方式。 */
 @Composable
-private fun RecordingPlayer(path: String) {
+internal fun RecordingPlayer(path: String, compact: Boolean = false) {
     var player by remember(path) { mutableStateOf<android.media.MediaPlayer?>(null) }
     var playing by remember(path) { mutableStateOf(false) }
     androidx.compose.runtime.DisposableEffect(path) {
@@ -919,10 +919,12 @@ private fun RecordingPlayer(path: String) {
                 playing = true
             }
         }) { Text(if (playing) "暂停录音" else "播放我的录音") }
-        Text(
-            "听停顿与语速（转写看不出这些）",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (!compact) {
+            Text(
+                "听停顿与语速（转写看不出这些）",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
