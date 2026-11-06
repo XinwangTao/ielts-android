@@ -33,18 +33,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.txw.ielts.data.Card
+import com.txw.ielts.data.CardType
 import com.txw.ielts.data.Grade
 import com.txw.ielts.data.ModuleTrend
 import com.txw.ielts.data.Sm2
 import com.txw.ielts.data.WrongTrend
-
-private fun typeLabel(t: String) = when (t) {
-    "word" -> "词汇"
-    "collocation" -> "搭配句型"
-    "topic" -> "话题语料"
-    "error" -> "错题"
-    else -> t
-}
 
 @Composable
 fun CorpusHomeScreen(
@@ -147,7 +140,7 @@ fun CorpusHomeScreen(
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 typeCounts.sortedByDescending { it.second }.forEach { (t, n) ->
                     Row(Modifier.fillMaxWidth()) {
-                        Text(typeLabel(t), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                        Text(CardType.typeLabel(t), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
                         Text("$n 张", style = MaterialTheme.typography.labelLarge)
                     }
                 }
@@ -257,7 +250,7 @@ fun StudyScreen(
                 fontFamily = FontFamily.Serif,
                 modifier = Modifier.weight(1f),
             )
-            Text(typeLabel(card.type), style = MaterialTheme.typography.labelMedium)
+            Text(CardType.cardLabel(card), style = MaterialTheme.typography.labelMedium)
             TextButton(enabled = !busy, onClick = { confirmDelete = true }) {
                 Text("删除", color = MaterialTheme.colorScheme.error)
             }

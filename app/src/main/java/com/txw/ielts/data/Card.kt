@@ -9,13 +9,13 @@ import androidx.room.Query
 @Entity(tableName = "cards")
 data class Card(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val type: String = "word",          // word | collocation | topic | error
+    val type: String = "word",          // word | collocation | topic | error | cloze | vocab（展示文案见 CardType）
     val front: String = "",
     val back: String = "",
     val example: String = "",
     val exampleCn: String = "",
     val tags: String = "",              // 逗号分隔
-    val source: String = "seed",        // seed | error
+    val source: String = "seed",        // seed | error | fix | bank | shadow | lookup | ai_vocab
     val createdAt: Long = System.currentTimeMillis(),
     // SM-2 状态
     val ease: Double = 2.5,
