@@ -316,12 +316,11 @@ class ScoreService : Service() {
     }
 
     private fun buildNotification(content: String): Notification {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL, "本地评分", NotificationManager.IMPORTANCE_LOW)
-            )
-        }
+        // minSdk 26：通知渠道无需再判断版本。
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL, "本地评分", NotificationManager.IMPORTANCE_LOW)
+        )
         return NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("雅思随身练")
@@ -371,12 +370,9 @@ class ScoreService : Service() {
             }
             // Android 12+ 在后台启动前台服务会抛 ForegroundServiceStartNotAllowedException；
             // 返回 false 让调用方把状态退回可重试，而不是静默卡在 pending_local。
+            // minSdk 26：startForegroundService 恒可用，无需判断版本。
             return runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    context.startForegroundService(i)
-                } else {
-                    context.startService(i)
-                }
+                context.startForegroundService(i)
                 true
             }.getOrDefault(false)
         }

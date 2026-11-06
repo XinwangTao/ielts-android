@@ -19,12 +19,11 @@ object Notify {
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
     private fun ensureChannel(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            manager(context).createNotificationChannel(
-                NotificationChannel(CHANNEL, "评分完成", NotificationManager.IMPORTANCE_DEFAULT)
-                    .apply { description = "本地模型评分完成的提醒" }
-            )
-        }
+        // minSdk 26：通知渠道无需再判断版本。
+        manager(context).createNotificationChannel(
+            NotificationChannel(CHANNEL, "评分完成", NotificationManager.IMPORTANCE_DEFAULT)
+                .apply { description = "本地模型评分完成的提醒" }
+        )
     }
 
     private fun openApp(context: Context, sessionId: Long): PendingIntent {

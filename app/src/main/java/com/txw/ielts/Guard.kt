@@ -137,12 +137,11 @@ class GuardService : Service() {
     }
 
     private fun startForegroundCompat(mic: Boolean) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            nm.createNotificationChannel(
-                NotificationChannel(CHANNEL, "后台任务保护", NotificationManager.IMPORTANCE_MIN)
-            )
-        }
+        // minSdk 26：通知渠道无需再判断版本。
+        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL, "后台任务保护", NotificationManager.IMPORTANCE_MIN)
+        )
         val n = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("雅思随身练")
