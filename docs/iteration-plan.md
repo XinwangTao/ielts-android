@@ -27,7 +27,8 @@
    `Guard.kt` 的 `SCREEN_DIM_WAKE_LOCK` 属保活关键路径，同样等真机。
 2. **导入预览（只读）**：纯逻辑部分已完成（`BackupRestore.summary`，返回「将新增 N 条练习、M 张卡片…」，
    1 例单测）；剩余是选文件与展示的 UI，属 L1 流程的一部分，待确认后再接。
-3. **导出体验**：导出后提供「打开备份目录」入口（FileProvider 或 DocumentsUI），需评估清单改动。
+3. [x] **导出体验**（2026-11-06）：设置页新增「分享最近备份」——FileProvider（`${applicationId}.fileprovider`
+   + `res/xml/backup_paths.xml`，只暴露 external-files/backup）把最新 JSON 交给系统分享；真机行为记入验收清单。
 
 ## 阻塞（不在本阶段空等）
 

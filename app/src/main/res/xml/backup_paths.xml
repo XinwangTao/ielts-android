@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 只暴露导出目录：备份 JSON 在 getExternalFilesDir(null)/backup/ 下。 -->
+<paths>
+    <external-files-path name="backup" path="backup/" />
+</paths>

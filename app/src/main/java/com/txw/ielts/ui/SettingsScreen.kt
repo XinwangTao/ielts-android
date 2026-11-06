@@ -388,6 +388,29 @@ fun SettingsScreen(
             )
         }
 
+        // 备份写在外部私有目录，手机上不方便翻：直接交给系统分享（存到网盘/发给自己）。
+        TextButton(onClick = {
+            val dir = java.io.File(context.getExternalFilesDir(null), "backup")
+            val latest = dir.listFiles()
+                ?.filter { it.isFile && it.name.endsWith(".json", ignoreCase = true) }
+                ?.maxByOrNull { it.lastModified() }
+            if (latest == null) {
+                exportMsg = "还没有备份文件，先点上面的「导出数据备份」"
+            } else {
+                runCatching {
+                    val uri = androidx.core.content.FileProvider.getUriForFile(
+                        context, "${context.packageName}.fileprovider", latest,
+                    )
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "application/json"
+                        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, "分享备份"))
+                }.onFailure { exportMsg = "分享失败：${it.message}" }
+            }
+        }) { Text("分享最近备份") }
+
         var confirmClear by remember { mutableStateOf(false) }
         var clearMsg by remember { mutableStateOf<String?>(null) }
         // 只清 AI 派生缓存：练习记录、词汇卡、课表都保留，适合「想换一份提纲/复盘」但不想丢数据。

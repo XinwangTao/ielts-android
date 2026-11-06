@@ -29,6 +29,16 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.IeltsSpike">
+        <!-- 只用于「分享最近备份」：把 external-files/backup 下的 JSON 以 content:// 交给系统分享。 -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/backup_paths" />
+        </provider>
         <activity
             android:name=".MainActivity"
             android:exported="true">
