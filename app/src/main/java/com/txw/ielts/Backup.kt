@@ -59,7 +59,9 @@ object Backup {
                     essays.forEach { e ->
                         put(JSONObject().apply {
                             put("sessionId", e.sessionId); put("topic", e.topic)
-                            put("polished", e.polished); put("band", e.band); put("savedAt", e.savedAt)
+                            put("polished", e.polished); put("savedAt", e.savedAt)
+                            // NaN/Inf 会让 JSONObject.put 抛异常并让整次导出失败，这里归零。
+                            put("band", if (e.band.isFinite()) e.band else 0.0)
                         })
                     }
                 })
