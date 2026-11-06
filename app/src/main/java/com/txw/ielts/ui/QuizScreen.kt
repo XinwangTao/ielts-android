@@ -340,8 +340,9 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
     var durSec by remember { mutableIntStateOf(0) }
 
     // 音频首次使用会从 assets 拷到 cacheDir（最大 1.7MB）：放到 IO，避免组合期卡第一帧。
-    val file by androidx.compose.runtime.produceState<java.io.File?>(null, set.id) {
-        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { repo.audioFile(set) }
+    var file by remember(set.id) { mutableStateOf<java.io.File?>(null) }
+    LaunchedEffect(set.id) {
+        file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { repo.audioFile(set) }
     }
     val player = remember { MediaPlayer() }
     DisposableEffect(Unit) {
