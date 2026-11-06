@@ -256,16 +256,16 @@ def cases() -> list[dict]:
              validate="review"),
         dict(name="reading_generation", system=sys_read,
              user="Difficulty: 7.0\nQuestion types: choice, tfng, gap\nQuestion count: 6",
-             validate="reading", count=6),
+             validate="reading", count=6, max_tokens=6000),
         dict(name="reading_generation_8", system=sys_read,
              user="Difficulty: 7.0\nQuestion types: choice, tfng, gap\nQuestion count: 8",
-             validate="reading", count=8),
+             validate="reading", count=8, max_tokens=6000),
         dict(name="listening_generation", system=sys_listen,
              user="Difficulty: 6.5\nQuestion types: choice, gap\nQuestion count: 6",
-             validate="listening", count=6),
+             validate="listening", count=6, max_tokens=6000),
         dict(name="listening_generation_8", system=sys_listen,
              user="Difficulty: 6.5\nQuestion types: choice, gap\nQuestion count: 8",
-             validate="listening", count=8),
+             validate="listening", count=8, max_tokens=6000),
         dict(name="bank_explain", system=sys_explain,
              user=("Question: The writer says the museum was originally built to store private collections.\n"
                    "Correct answer: NOT GIVEN\nYour answer: TRUE\n"
@@ -522,7 +522,7 @@ def main() -> int:
         t0 = time.time()
         print(f"[{c['name']}] 请求中…", flush=True)
         try:
-            raw = call_model(args.base, args.model, c["system"], c["user"], max_tokens=args.max_tokens)
+            raw = call_model(args.base, args.model, c["system"], c["user"], max_tokens=c.get("max_tokens", args.max_tokens))
             issues = validate(c, raw)
         except urllib.error.HTTPError as e:
             raw = ""
