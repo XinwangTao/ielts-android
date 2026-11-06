@@ -899,7 +899,13 @@ private fun App(
     val nowMs = System.currentTimeMillis()
     // 一轮复习的状态（当前卡 / 翻面 / 哪张卡正在写库）统一交给 StudyRound，
     // 评级按钮的置灰跟着它走：换卡或 Again 就地重问都会解锁，不会只评得动第一张。
-    var round by remember { mutableStateOf(StudyRound()) }
+    // 整轮复习快照 saveable：旋转/进程重建后接着评，不退回语料页也不从头开始。
+    var round by rememberSaveable(
+        stateSaver = androidx.compose.runtime.saveable.Saver<StudyRound, String>(
+            save = { com.txw.ielts.data.StudyRoundCodec.encode(it) },
+            restore = { com.txw.ielts.data.StudyRoundCodec.decode(it) ?: StudyRound.EMPTY },
+        ),
+    ) { mutableStateOf(StudyRound()) }
     // 上一轮复习的小结：评完（或中途退出）后回到语料页先给一句交代，开新一轮时清掉。
     var lastRoundSummary by remember { mutableStateOf<com.txw.ielts.data.RoundSummary?>(null) }
     // 队列为空时的交代：在首页/语料页都显示出来，点击不再像没反应。
