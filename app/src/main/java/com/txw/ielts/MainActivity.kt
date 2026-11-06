@@ -446,14 +446,17 @@ private fun App(
 
     suspend fun requestWritingOutline(topic: String, task: String) {
         // 同一题目 + 同一 Task 的提纲不会变：命中缓存直接展示，省掉一次 30-60 秒端侧推理。
+        // 但如果界面上已经有这道题的提纲，这次点击就是「想换一份」，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key("outline", task, topic)
-        com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
-            val cached = com.txw.ielts.llm.StudyAi.parseOutline(raw)
-            if (!cached.isEmpty) {
-                writingOutline = cached
-                writingOutlineTopic = topic
-                writingOutlineError = null
-                return
+        if (writingOutline == null || writingOutlineTopic != topic) {
+            com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
+                val cached = com.txw.ielts.llm.StudyAi.parseOutline(raw)
+                if (!cached.isEmpty) {
+                    writingOutline = cached
+                    writingOutlineTopic = topic
+                    writingOutlineError = null
+                    return
+                }
             }
         }
         writingOutlineBusy = true
@@ -488,14 +491,17 @@ private fun App(
 
     suspend fun requestSpeakingSample(part: String, question: String) {
         // 同一道题的范例可以复用：切走再回来不必重跑 30-60 秒端侧推理。
+        // 界面上已有这题的范例时，这次点击是想换一份，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key("sample", part, question)
-        com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
-            val cached = com.txw.ielts.llm.StudyAi.parseSample(raw)
-            if (!cached.isEmpty) {
-                speakingSample = cached
-                speakingSampleQuestion = question
-                speakingSampleError = null
-                return
+        if (speakingSample == null || speakingSampleQuestion != question) {
+            com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
+                val cached = com.txw.ielts.llm.StudyAi.parseSample(raw)
+                if (!cached.isEmpty) {
+                    speakingSample = cached
+                    speakingSampleQuestion = question
+                    speakingSampleError = null
+                    return
+                }
             }
         }
         speakingSampleBusy = true
@@ -530,16 +536,19 @@ private fun App(
 
     suspend fun requestVocab(sessionId: Long, text: String, fixes: List<Triple<String, String, String>>) {
         // 同一篇作文/同一段转写的生词卡不会变：重开结果页直接展示，省一次 30-60 秒推理。
+        // 界面上已有本次会话的生词卡时，这次点击是想换一批，跳过缓存重新提取。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
             "vocab", sessionId.toString(), text, fixes.joinToString("\u0001") { it.first },
         )
-        com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
-            val cached = com.txw.ielts.llm.StudyAi.parseVocab(raw)
-            if (cached.items.isNotEmpty()) {
-                vocabResult = cached
-                vocabSessionId = sessionId
-                vocabError = null
-                return
+        if (vocabResult == null || vocabSessionId != sessionId) {
+            com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
+                val cached = com.txw.ielts.llm.StudyAi.parseVocab(raw)
+                if (cached.items.isNotEmpty()) {
+                    vocabResult = cached
+                    vocabSessionId = sessionId
+                    vocabError = null
+                    return
+                }
             }
         }
         vocabBusy = true
