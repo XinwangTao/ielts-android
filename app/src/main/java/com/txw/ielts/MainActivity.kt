@@ -1746,6 +1746,41 @@ private fun App(
                     val r = com.txw.ielts.llm.StudyAi.vocab(context, model, essay, emptyList())
                     Log.i(TAG, "E2E: RESULT ai vocab items=${r.items.size} raw=${r.raw.isNotBlank()}")
                 }
+                "score_writing" -> {
+                    val topic = "Some people believe university students should study whatever they like. " +
+                        "Others think they should only study subjects that will be useful. " +
+                        "Discuss both views and give your own opinion."
+                    val essay = """
+                        Some people believe that university students should be free to study whatever they are passionate about, while others argue that they should only choose subjects with clear employment value. In my opinion, both perspectives have merit, but a balanced approach is the most sensible.
+
+                        On the one hand, allowing students to follow their interests can lead to greater motivation and academic success. When people study a subject they genuinely enjoy, they are more likely to engage deeply with the material, persist through difficulties, and produce original work. For example, a student who loves history may spend extra hours in the library and eventually become a researcher who contributes to public understanding of the past. If universities force everyone into a narrow set of useful courses, this kind of curiosity may be lost.
+
+                        On the other hand, higher education is expensive, and graduates need to repay loans and find work. Subjects such as medicine, engineering and computer science provide clear routes into employment, while some arts courses may not. Governments and universities therefore have a responsibility to offer guidance about labour-market trends and to ensure that students understand the financial consequences of their choices.
+
+                        However, the idea that only vocational subjects are valuable is too simplistic. Critical thinking, communication and cultural awareness are also important for society, and these skills are developed through a wide range of disciplines. A better solution is to combine flexibility with support: students should be able to choose their major, but universities should provide career counselling, internships and opportunities to combine subjects.
+
+                        In conclusion, I believe students should be allowed to study what they love, provided that they receive honest information about employment prospects. A system that respects both personal interest and practical responsibility is likely to produce happier graduates and a more adaptable workforce.
+                    """.trimIndent()
+                    val ev = com.txw.ielts.llm.LocalLlmEngine.scoreWriting(
+                        context, model, topic, essay, listOf("字数与展开"), "task2",
+                    )
+                    Log.i(TAG, "E2E: RESULT ai score_writing overall=${ev.overall} tr=${ev.tr} " +
+                        "cc=${ev.cc} lr=${ev.lr} gra=${ev.gra} fixes=${ev.fixes.size} " +
+                        "sentences=${ev.sentenceFixes.size} raw=${ev.rawJson.length}")
+                }
+                "score_speaking" -> {
+                    val q = "Describe a skill you learned that was difficult at first. You should say what it was, " +
+                        "how you learned it, why it was difficult, and explain how you feel about it now."
+                    val transcript = """
+                        I would like to talk about learning to swim, which was really difficult for me at the beginning. I learned it when I was 22 years old, during a summer holiday at the coast. My friend Tom taught me the basics in a shallow pool before we moved to the sea. At first I was terrified of putting my face under the water, and I could not float at all. The main reason it was difficult is that I had a bad experience as a child, so I panicked easily. I practiced for about half an hour every morning for two weeks, and I watched short videos to copy the arm movements. Slowly I became confident, and by the end of the holiday I could swim 50 meters without stopping. I feel proud of it now, because it taught me that patience and small daily steps can overcome fear.
+                    """.trimIndent()
+                    val ev = com.txw.ielts.llm.LocalLlmEngine.scoreSpeaking(
+                        context, model, "Part 2", q, transcript, 95,
+                    )
+                    Log.i(TAG, "E2E: RESULT ai score_speaking overall=${ev.overall} fc=${ev.fluency} " +
+                        "lr=${ev.lexical} gra=${ev.grammar} p=${ev.pronunciation} fixes=${ev.fixes.size} " +
+                        "sentences=${ev.sentenceFixes.size} raw=${ev.rawJson.length}")
+                }
                 else -> Log.w(TAG, "E2E: RESULT ai unknown=$mode")
             }
             }
