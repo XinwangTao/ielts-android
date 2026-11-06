@@ -72,6 +72,7 @@ fun BankResultScreen(
     onBack: () -> Unit,
 ) {
     val wrong = items.count { !it.ok }
+    val context = androidx.compose.ui.platform.LocalContext.current
     // 变式题答案默认收起：先自测再对答案，直接摊开就失去练习意义。
     var revealedVariants by remember { mutableStateOf(emptySet<String>()) }
     Column(
@@ -215,6 +216,11 @@ fun BankResultScreen(
                                 }
                             }
                             // 已经有变式时，这里就是「换一道」；主逻辑会跳过缓存重新生成。
+                            TextButton(onClick = {
+                                (context.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+                                    as android.content.ClipboardManager)
+                                    .setPrimaryClip(android.content.ClipData.newPlainText("IELTS variant", v.question))
+                            }) { Text("复制题目") }
                             TextButton(
                                 enabled = vk !in variantBusyIds,
                                 onClick = { onRequestVariant(item) },
