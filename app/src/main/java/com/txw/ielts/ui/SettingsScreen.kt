@@ -297,6 +297,50 @@ fun SettingsScreen(
                 )
             }
         }) { Text("打开应用信息（电池 / 后台设置）") }
+
+        // —— 悬浮窗保活：ColorOS 的 Hans 冻结器只看 FGS 不够（2026-11-06 实测），
+        // 需要一个「仍然有可见窗口」的信号。1x1 透明悬浮窗由 Guard 在评分/AI 生成期间临时添加。 ——
+        var canOverlay by remember { mutableStateOf(android.provider.Settings.canDrawOverlays(context)) }
+        // 用户从系统设置页返回时本页不会重建：轮询两个权限状态，避免显示过期的「未允许」。
+        LaunchedEffect(Unit) {
+            while (true) {
+                ignoringBattery = power.isIgnoringBatteryOptimizations(context.packageName)
+                canOverlay = android.provider.Settings.canDrawOverlays(context)
+                kotlinx.coroutines.delay(1500)
+            }
+        }
+        Text(
+            if (canOverlay) "悬浮窗保活：已允许"
+            else "悬浮窗保活：未允许（长评分切后台仍可能被冻结）",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (canOverlay) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = {
+                val uri = android.net.Uri.parse("package:${context.packageName}")
+                val direct = android.content.Intent(
+                    android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, uri,
+                )
+                runCatching { context.startActivity(direct) }.onFailure {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                        )
+                    }
+                }
+                canOverlay = android.provider.Settings.canDrawOverlays(context)
+            }) { Text(if (canOverlay) "已允许（可再检查）" else "允许悬浮窗（后台保活）") }
+            TextButton(onClick = {
+                canOverlay = android.provider.Settings.canDrawOverlays(context)
+            }) { Text("刷新状态") }
+        }
+        Text(
+            "开启后，评分 / AI 生成期间会临时显示一个 1×1 透明悬浮窗（结束后立刻移除），并让屏幕保持暗亮，用来绕开系统对后台进程的冻结。" +
+                "不授权时自动跳过，不影响其他功能；不需要可在系统设置里随时关闭。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(
             "ColorOS 还有一层自己的冻结：设置 → 电池 → 应用耗电管理 → 雅思随身练 → 允许后台运行 / 允许自启动 / 允许关联启动。" +
                 "开启后长评分在后台更稳；未开启时请在评分期间保持 App 在前台。",
