@@ -105,4 +105,18 @@ class BackupRestoreTest {
         val kept = BackupRestore.keepNew(p, setOf(BackupRestore.sessionKey(p.sessions.single())), emptySet())
         assertTrue(BackupRestore.summary(kept).contains("0 条练习"))
     }
+
+    @Test
+    fun `去重键格式与 SQL 拼接一致`() {
+        // SessionDao.dedupeKeys: module || char(1) || topic || char(1) || startedAt
+        assertEquals(
+            "writingT1100",
+            BackupRestore.sessionKey(Session(module = "writing", topic = "T1", startedAt = 100)),
+        )
+        // CardDao.dedupeKeys: type || char(1) || lower(trim(front))
+        assertEquals(
+            "vocabpractical value",
+            BackupRestore.cardKey(Card(type = "vocab", front = "  Practical Value  ")),
+        )
+    }
 }
