@@ -1860,6 +1860,17 @@ private fun App(
     suspend fun runVariant(item: BankResultItem, resultScope: String) {
         val vk = "$resultScope#${item.id}"
         if (vk in variantBusyIds) return
+        // 同一道错题 + 同一份作答的变式可复用：重开结果页/重启后不必再跑一次模型。
+        val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
+            "variant", resultScope, item.prompt, item.right, item.yours,
+        )
+        com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
+            val cached = com.txw.ielts.llm.StudyAi.parseVariant(raw)
+            if (!cached.isEmpty) {
+                bankVariants = bankVariants + (vk to cached)
+                return
+            }
+        }
         variantBusyIds = variantBusyIds + vk
         error = null
         try {
@@ -1873,6 +1884,7 @@ private fun App(
                 error = "变式题生成失败，请重试"
             } else {
                 bankVariants = bankVariants + (vk to v)
+                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, v.raw)
             }
         } catch (e: Exception) {
             Log.e(TAG, "variant fail: ${e.message}")

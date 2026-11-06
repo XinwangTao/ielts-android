@@ -244,7 +244,8 @@ object StudyAi {
         val raw = LocalLlmEngine.generateText(
             context, model, VARIANT_SYSTEM, PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
         )
-        return parseVariant(raw)
+        // 解析成功也保留原始输出：调用方据此缓存，重开结果页不必再跑一次。
+        return parseVariant(raw).let { if (it.isEmpty) it else it.copy(raw = raw) }
     }
 
     fun parseVariant(raw: String): BankVariant {
