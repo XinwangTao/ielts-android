@@ -32,6 +32,13 @@
 3. [x] **导出体验**（2026-11-06）：设置页新增「分享最近备份」——FileProvider（`${applicationId}.fileprovider`
    + `res/xml/backup_paths.xml`，只暴露 external-files/backup）把最新 JSON 交给系统分享；真机行为记入验收清单。
 
+## 长尾离线池（队列清空时从这里挑，低风险优先）
+
+1. **备份列表 UI**：设置页列出 backup 目录的 JSON（时间 / 大小），可单条删除；复用 `BackupFiles`。
+2. **导出文件名可读化**：`ielts_backup_yyyyMMdd_HHmm.json` → 追加模型/条目数（如 `..._w12_c30.json`）。
+3. **导入预览入口（只读）**：选文件 → 解析 → 只显示 `BackupRestore.summary`，不写库；是否算 L1 需先判定。
+4. **剩余弃用**：系统栏颜色迁移随 Stage C；`SCREEN_DIM_WAKE_LOCK` 等真机验证后再评估替代。
+
 ## 阻塞（不在本阶段空等）
 
 - **备份导入写库**（L1）：图见 `docs/archify/ielts-backup-restore_workflow.{html,json}`；
