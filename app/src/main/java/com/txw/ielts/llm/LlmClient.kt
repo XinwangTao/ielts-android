@@ -484,6 +484,7 @@ class LlmClient(
             equivalent forms (e.g., 35 / thirty-five) so the student is not penalised for a different notation.
             For dates, times, prices and numbers, copy the exact words used in the script: if the script says
             'the thirteenth of June', include that form in answers (optionally alongside '13 June').
+            For numbers, include both the digit and spoken forms in answers (e.g., ['44','forty-four']).
             Put each accepted answer in its own array element (e.g., ['twenty','20']); never join them with a slash.
             Generate EXACTLY the requested number of questions.
             Return STRICT JSON only, single-line strings:
