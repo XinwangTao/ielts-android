@@ -321,6 +321,45 @@ private data class BankResultData(    val setId: String,
     val items: List<BankResultItem>,
 )
 
+/**
+ * 从会话重建题库结果页数据（旋转/进程恢复时用）。
+ * setId 用路由里保存的那个，保证与内存快照的 key 一致。
+ */
+private fun bankResultFromSession(session: Session, setId: String): BankResultData? {
+    val sum = runCatching { JSONObject(session.scoresJson) }.getOrNull()
+    val items = runCatching {
+        val arr = JSONObject(session.fixesJson).getJSONArray("items")
+        (0 until arr.length()).mapNotNull { i ->
+            runCatching {
+                val x = arr.getJSONObject(i)
+                BankResultItem(
+                    id = x.optInt("id"),
+                    prompt = x.optString("prompt"),
+                    yours = x.optString("yours"),
+                    right = x.optString("right"),
+                    explain = x.optString("explain"),
+                    explainEn = x.optString("explain_en"),
+                    keys = x.optJSONArray("keys")?.let { k ->
+                        (0 until k.length()).map { k.get(it).toString() }
+                    } ?: emptyList(),
+                    ok = x.optBoolean("ok"),
+                )
+            }.getOrNull()
+        }
+    }.getOrDefault(emptyList())
+    if (items.isEmpty()) return null
+    return BankResultData(
+        setId = setId,
+        title = session.topic,
+        module = session.module,
+        passage = "",
+        transcript = "",
+        correct = sum?.optInt("correct") ?: 0,
+        total = sum?.optInt("total") ?: items.size,
+        items = items,
+    )
+}
+
 /** 离线时 auto 通道直接走本地，避免先白等云端重试（每次约 50 秒才降级）。 */
 private fun hasNetwork(context: Context): Boolean = runCatching {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
@@ -2987,9 +3026,23 @@ private fun App(
                                         }
                                     }
                                     is Route.BankResult -> {
-                                        val data = bankResult
-                                        if (data == null || data.setId != r.setId) {
+                                        // 旋转/进程恢复后 Route 还在，但载荷（bankResult）只在内存：
+                                        // 先按 sessionId 从 fixesJson 重建，不能把「载荷丢失」当成「记录不存在」。
+                                        val live = bankResult?.takeIf { it.setId == r.setId }
+                                        var restored by remember(r.sessionId, r.setId) {
+                                            mutableStateOf<BankResultData?>(null)
+                                        }
+                                        LaunchedEffect(r.sessionId, r.setId, live) {
+                                            if (live == null && sessionsOrNull != null) {
+                                                restored = db.sessions().byId(r.sessionId)
+                                                    ?.let { bankResultFromSession(it, r.setId) }
+                                            }
+                                        }
+                                        val data = live ?: restored
+                                        if (data == null && sessionsOrNull != null) {
                                             LaunchedEffect(r.sessionId) { route = Route.Bank }
+                                        } else if (data == null) {
+                                            Text("载入中…", style = MaterialTheme.typography.bodyMedium)
                                         } else {
                                             BankResultScreen(
                                                 title = data.title, module = data.module,

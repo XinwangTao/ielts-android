@@ -19,7 +19,8 @@
 
 > 2026-11-07 UI/路由复审完成：已修跟读历史错进写作模板、Task 类型丢失、精讲跨套串用、
 > 答题页旋转丢进度、词典/音频主线程 IO、ShadowResult 加载态误判。**未修**（需更大重构，记入长尾）：
-> BankResult / Study / ShadowStudy 的页面载荷旋转后仍会失效（Route 恢复但数据没恢复）。
+> BankResult 已修（按 sessionId 从 fixesJson 重建，含「载入中」守卫）；**Study / ShadowStudy 仍未修**
+> （复习卡位置与跟读句索引需要 saveable 化，属较大改动，留待下一轮）。
 
 ## 阻塞（写清解除条件，不在本阶段空等）
 
