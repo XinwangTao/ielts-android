@@ -19,7 +19,10 @@ import java.util.Locale
  */
 object Backup {
 
-    suspend fun export(context: Context): File? = withContext(Dispatchers.IO) {
+    /** 导出结果：文件 + 条目数，界面据此告诉用户备份里到底有什么。 */
+    data class Result(val file: File, val sessions: Int, val cards: Int)
+
+    suspend fun export(context: Context): Result? = withContext(Dispatchers.IO) {
         runCatching {
             val db = AppDb.get(context)
             val sessions = db.sessions().recent(100_000)
@@ -78,7 +81,8 @@ object Backup {
             }
             val dir = File(context.getExternalFilesDir(null), "backup").apply { mkdirs() }
             val name = "ielts_backup_${SimpleDateFormat("yyyyMMdd_HHmm", Locale.US).format(Date())}.json"
-            File(dir, name).apply { writeText(o.toString()) }
+            val out = File(dir, name).apply { writeText(o.toString()) }
+            Result(out, sessions.size, cards.size)
         }.getOrNull()
     }
 }
