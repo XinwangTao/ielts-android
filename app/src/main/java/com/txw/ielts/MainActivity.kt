@@ -1930,6 +1930,16 @@ private fun App(
                             onBack = { route = Route.Home },
                         )
                     } else {
+                        // 批注忽略状态按会话存盘：结果页来回切换、App 重启后都还认得哪些被忽略。
+                        var mutedFixes by remember(session.id) {
+                            mutableStateOf(com.txw.ielts.llm.FixTriage.sessionKeys(prefs.mutedFixes, session.id))
+                        }
+                        val toggleMute: (String) -> Unit = { key ->
+                            mutedFixes = com.txw.ielts.llm.FixTriage.toggle(mutedFixes, key)
+                            prefs.mutedFixes = com.txw.ielts.llm.FixTriage.withSession(
+                                prefs.mutedFixes, session.id, mutedFixes,
+                            )
+                        }
                         ResultScreen(
                             session = session, busy = stage, error = error,
                             staleLocal = session.status == "pending_local" &&
@@ -1976,12 +1986,14 @@ private fun App(
                                 }
                             },
                             onPracticeAgain = {
-                                val fixes = runCatching {
+                                val rawFixes = runCatching {
                                     val o = JSONObject(session.fixesJson)
                                     o.optJSONArray("fixes")?.let { a ->
                                         (0 until a.length()).map { a.get(it).toString() }
                                     } ?: emptyList()
                                 }.getOrDefault(emptyList())
+                                // 重练只带用户认可的批注：被忽略的条目不进下一轮 focus。
+                                val fixes = com.txw.ielts.llm.FixTriage.filterFixes(rawFixes, mutedFixes)
                                 val isSpeaking = session.module == "speaking"
                                 practiceFocus = PracticeFocus(
                                     module = session.module,
@@ -2003,6 +2015,8 @@ private fun App(
                             onAddVocab = { items ->
                                 scope.launch { repo.addVocabCards(items) }
                             },
+                            mutedFixes = mutedFixes,
+                            onToggleMute = toggleMute,
                             onBack = { route = Route.Home },
                         )
                     }

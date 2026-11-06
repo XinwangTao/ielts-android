@@ -65,6 +65,9 @@ fun ResultScreen(
     vocabError: String? = null,
     onRequestVocab: (text: String, fixes: List<Triple<String, String, String>>) -> Unit = { _, _ -> },
     onAddVocab: (List<com.txw.ielts.llm.VocabItem>) -> Unit = {},
+    // AI 批注逐条「忽略 / 恢复」：只影响本会话的背诵与生词输入，按会话存盘由调用方负责。
+    mutedFixes: Set<String> = emptySet(),
+    onToggleMute: (String) -> Unit = {},
 ) {
     val speaking = session.module == "speaking"
     val context = LocalContext.current
@@ -92,13 +95,13 @@ fun ResultScreen(
         // 正常条目以文字/数字开头；坏数据形如「，」「，应改为」，被首字符规则挡掉。
         return t.length >= 2 && t.first().isLetterOrDigit() && t.count { it.isLetterOrDigit() } >= 2
     }
-    val fixes = runCatching {
+    val allFixes = runCatching {
         val o = JSONObject(session.fixesJson)
         o.optJSONArray("fixes")?.let { a ->
             (0 until a.length()).map { a.get(it).toString() }.filter(::meaningfulFix)
         } ?: emptyList()
     }.getOrDefault(emptyList())
-    val sentenceFixes = runCatching {
+    val allSentenceFixes = runCatching {
         val o = JSONObject(session.fixesJson)
         o.optJSONArray("sentence_fixes")?.let { a ->
             (0 until a.length()).mapNotNull { i ->
@@ -113,6 +116,16 @@ fun ResultScreen(
             }
         } ?: emptyList()
     }.getOrDefault(emptyList())
+    // 用户忽略的批注只从「可采纳」列表里移除，单独列在下面并可一键恢复：
+    // 端侧模型偶尔把对的句子改错，直接塞进 SRS 会让复习卡整个污染掉。
+    val fixes = com.txw.ielts.llm.FixTriage.filterFixes(allFixes, mutedFixes)
+    val sentenceFixes = com.txw.ielts.llm.FixTriage.filterSentenceFixes(allSentenceFixes, mutedFixes)
+    val mutedFixItems = allFixes.filter { com.txw.ielts.llm.FixTriage.fixKey(it) in mutedFixes }
+    val mutedSentenceItems = allSentenceFixes.filter {
+        com.txw.ielts.llm.FixTriage.sentenceKey(it.first) in mutedFixes
+    }
+    // 忽略/恢复后允许再次「加入背诵」：库里按 CardText.key 判重，重复点击不会重复建卡。
+    LaunchedEffect(mutedFixes) { addedToCorpus = false }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -261,13 +274,56 @@ fun ResultScreen(
             }
         }
 
-        if (fixes.isNotEmpty()) {
+        if (allFixes.isNotEmpty()) {
             BookCard {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("最该改的三点", style = MaterialTheme.typography.titleSmall)
-                    fixes.forEachIndexed { i, f -> Text("${i + 1}. $f", style = MaterialTheme.typography.bodyMedium) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "最该改的三点",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (mutedFixItems.isNotEmpty()) {
+                            TextButton(onClick = {
+                                mutedFixItems.forEach { onToggleMute(com.txw.ielts.llm.FixTriage.fixKey(it)) }
+                            }) { Text("全部恢复", style = MaterialTheme.typography.labelSmall) }
+                        }
+                    }
+                    if (fixes.isEmpty()) {
+                        Text(
+                            "这组批注已全部忽略，不会进入背诵与生词。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    fixes.forEachIndexed { i, f ->
+                        Row(verticalAlignment = Alignment.Top) {
+                            Text(
+                                "${i + 1}. $f",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = {
+                                onToggleMute(com.txw.ielts.llm.FixTriage.fixKey(f))
+                            }) { Text("忽略", style = MaterialTheme.typography.labelSmall) }
+                        }
+                    }
+                    // 忽略不是删除：条目照常列出来，点「恢复」立刻回到上面，避免误点后找不回来。
+                    mutedFixItems.forEach { f ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "已忽略：$f",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = {
+                                onToggleMute(com.txw.ielts.llm.FixTriage.fixKey(f))
+                            }) { Text("恢复", style = MaterialTheme.typography.labelSmall) }
+                        }
+                    }
                     TextButton(
-                        enabled = !addedToCorpus,
+                        enabled = !addedToCorpus && (fixes.isNotEmpty() || sentenceFixes.isNotEmpty()),
                         onClick = { onAddToCorpus(fixes, sentenceFixes); addedToCorpus = true },
                     ) { Text(if (addedToCorpus) "已加入背诵" else "把这几点加入背诵") }
                     Button(
@@ -283,26 +339,62 @@ fun ResultScreen(
             }
         }
 
-        if (sentenceFixes.isNotEmpty()) {
+        if (allSentenceFixes.isNotEmpty()) {
             BookCard {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        if (speaking) "逐句打磨（说错的句子逐条改）" else "逐句打磨（写错的句子逐条改）",
-                        style = MaterialTheme.typography.titleSmall,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            if (speaking) "逐句打磨（说错的句子逐条改）" else "逐句打磨（写错的句子逐条改）",
+                            style = MaterialTheme.typography.titleSmall,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (mutedSentenceItems.isNotEmpty()) {
+                            TextButton(onClick = {
+                                mutedSentenceItems.forEach {
+                                    onToggleMute(com.txw.ielts.llm.FixTriage.sentenceKey(it.first))
+                                }
+                            }) { Text("全部恢复", style = MaterialTheme.typography.labelSmall) }
+                        }
+                    }
+                    if (sentenceFixes.isEmpty()) {
+                        Text(
+                            "逐句改法已全部忽略，不会进入改错卡与生词。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     sentenceFixes.forEachIndexed { i, (sentence, issue, better) ->
                         Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(
-                                "${i + 1}. 原句：$sentence",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
+                            Row(verticalAlignment = Alignment.Top) {
+                                Text(
+                                    "${i + 1}. 原句：$sentence",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                TextButton(onClick = {
+                                    onToggleMute(com.txw.ielts.llm.FixTriage.sentenceKey(sentence))
+                                }) { Text("忽略", style = MaterialTheme.typography.labelSmall) }
+                            }
                             Text(
                                 "问题：$issue",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.error,
                             )
                             Text("更好：$better", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                    mutedSentenceItems.forEach { (sentence, _, _) ->
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "已忽略：$sentence",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.weight(1f),
+                            )
+                            TextButton(onClick = {
+                                onToggleMute(com.txw.ielts.llm.FixTriage.sentenceKey(sentence))
+                            }) { Text("恢复", style = MaterialTheme.typography.labelSmall) }
                         }
                     }
                 }

@@ -136,6 +136,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_AI_REVIEW_CACHE, "") ?: ""
         set(v) = sp.edit().putString(KEY_AI_REVIEW_CACHE, v).apply()
 
+    /** 结果页「已忽略的 AI 批注」（JSON：sessionId → 忽略键数组），重新打开结果页仍然生效。 */
+    var mutedFixes: String
+        get() = sp.getString(KEY_MUTED_FIXES, "{}") ?: "{}"
+        set(v) = sp.edit().putString(KEY_MUTED_FIXES, v).apply()
+
     var callsToday: Int
         get() {
             rolloverIfNeeded()
@@ -181,6 +186,7 @@ class Prefs(context: Context) {
         private const val KEY_LOCAL_SCORE_FINISHED = "local_score_finished"
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
         private const val KEY_AI_REVIEW_CACHE = "ai_review_cache"
+        private const val KEY_MUTED_FIXES = "ai_muted_fixes"
         private const val KEY_TARGET_BAND = "target_band"
         private const val KEY_EXAM_DATE = "exam_date"
         private const val KEY_TARGET_L = "target_band_listening"
