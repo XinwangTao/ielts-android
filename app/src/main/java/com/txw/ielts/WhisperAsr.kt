@@ -25,6 +25,8 @@ class WhisperAsr(
 
     fun load(): Long {
         if (recognizer != null) return 0
+        Guard.start(context)
+        try {
         val t0 = System.currentTimeMillis()
         val config = OfflineRecognizerConfig(
             featConfig = FeatureConfig(sampleRate = WavRecorder.SAMPLE_RATE, featureDim = 80),
@@ -46,39 +48,48 @@ class WhisperAsr(
         // 给绝对路径时必须让 assetManager 为 null，否则直接 exit(255)。
         recognizer = OfflineRecognizer(config = config)
         return System.currentTimeMillis() - t0
+        } finally {
+            Guard.stop(context)
+        }
     }
 
     /** 返回 (识别文本, 识别耗时毫秒) */
     fun transcribe(wav: File): Pair<String, Long> {
-        val rec = recognizer ?: error("模型未加载")
-        val samples = readWavSamples(wav)
-        val t0 = System.currentTimeMillis()
-        val text = StringBuilder()
-        // whisper 的离线解码按 30s 窗口工作，长音频整段送进去只会出第一段，
-        // 这里按 28s 切片（0.5s 重叠，避免切断单词）后逐段识别再拼接。
-        val chunk = 28 * WavRecorder.SAMPLE_RATE
-        val overlap = WavRecorder.SAMPLE_RATE / 2
-        var start = 0
-        var index = 0
-        while (start < samples.size) {
-            val end = minOf(start + chunk, samples.size)
-            val piece = samples.copyOfRange(start, end)
-            val stream = rec.createStream()
-            stream.acceptWaveform(piece, WavRecorder.SAMPLE_RATE)
-            rec.decode(stream)
-            val part = rec.getResult(stream).text.trim()
-            stream.release()
-            if (part.isNotBlank()) {
-                val merged = if (index == 0) part else mergeOverlap(text.toString(), part)
-                text.setLength(0)
-                text.append(merged)
+        // 转写也是长 CPU 任务：切后台时同样用媒体前台服务钉住进程。
+        Guard.start(context)
+        try {
+            val rec = recognizer ?: error("模型未加载")
+            val samples = readWavSamples(wav)
+            val t0 = System.currentTimeMillis()
+            val text = StringBuilder()
+            // whisper 的离线解码按 30s 窗口工作，长音频整段送进去只会出第一段，
+            // 这里按 28s 切片（0.5s 重叠，避免切断单词）后逐段识别再拼接。
+            val chunk = 28 * WavRecorder.SAMPLE_RATE
+            val overlap = WavRecorder.SAMPLE_RATE / 2
+            var start = 0
+            var index = 0
+            while (start < samples.size) {
+                val end = minOf(start + chunk, samples.size)
+                val piece = samples.copyOfRange(start, end)
+                val stream = rec.createStream()
+                stream.acceptWaveform(piece, WavRecorder.SAMPLE_RATE)
+                rec.decode(stream)
+                val part = rec.getResult(stream).text.trim()
+                stream.release()
+                if (part.isNotBlank()) {
+                    val merged = if (index == 0) part else mergeOverlap(text.toString(), part)
+                    text.setLength(0)
+                    text.append(merged)
+                }
+                Log.i("SPIKE", "chunk#$index ${start / WavRecorder.SAMPLE_RATE}s-${end / WavRecorder.SAMPLE_RATE}s chars=${part.length}")
+                index++
+                if (end == samples.size) break
+                start = end - overlap
             }
-            Log.i("SPIKE", "chunk#$index ${start / WavRecorder.SAMPLE_RATE}s-${end / WavRecorder.SAMPLE_RATE}s chars=${part.length}")
-            index++
-            if (end == samples.size) break
-            start = end - overlap
+            return text.toString() to (System.currentTimeMillis() - t0)
+        } finally {
+            Guard.stop(context)
         }
-        return text.toString() to (System.currentTimeMillis() - t0)
     }
 
     fun release() {

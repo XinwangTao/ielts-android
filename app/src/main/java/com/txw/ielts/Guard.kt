@@ -49,15 +49,33 @@ class GuardService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val timeout = Runnable { stopSelf() }
     private var track: AudioTrack? = null
+    private var screenWake: android.os.PowerManager.WakeLock? = null
+    private var overlay: android.view.View? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForegroundCompat()
         startSilence()
-        // 兜底：任何调用方忘记 stop 时，最多占用 15 分钟。
+        addOverlay()
+        // 屏幕熄灭时 ColorOS 仍会限制后台 App 的 CPU（实测 cgroup 已是 foreground，MNN 仍 0 token）。
+        // 评分/AI 生成期间保持屏幕 dim 常亮，宁可多耗电也要把任务跑完。
+        if (screenWake == null) {
+            val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+            screenWake = pm.newWakeLock(
+                android.os.PowerManager.SCREEN_DIM_WAKE_LOCK or
+                    android.os.PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                "ielts:guard-screen",
+            ).apply {
+                setReferenceCounted(false)
+                acquire(MAX_HOLD_MS)
+            }
+        }
+        // 兜底：调用方忘记 stop 时最多占用 MAX_HOLD_MS。
+        // 为什么不是 15 分钟：后台冷加载实测可达 5 分钟，评分 fixes 为空还会重试一次，
+        // 单次评分可能超过 15 分钟；兜底先到会在后半段撤掉保护。
         handler.removeCallbacks(timeout)
-        handler.postDelayed(timeout, 15 * 60_000L)
+        handler.postDelayed(timeout, MAX_HOLD_MS)
         return START_STICKY
     }
 
@@ -80,6 +98,40 @@ class GuardService : Service() {
         } else {
             startForeground(NOTIF_ID, n)
         }
+    }
+
+    /**
+     * 1x1 透明悬浮窗：ColorOS 的厂商层按「App 是否有可见窗口」冻结，单靠前台服务不够。
+     * 需要 SYSTEM_ALERT_WINDOW；未授权时静默跳过（测试可 `adb appops set ... SYSTEM_ALERT_WINDOW allow`）。
+     */
+    private fun addOverlay() {
+        if (overlay != null) return
+        if (!android.provider.Settings.canDrawOverlays(this)) return
+        runCatching {
+            val wm = getSystemService(WINDOW_SERVICE) as android.view.WindowManager
+            val v = android.view.View(this).apply {
+                setBackgroundColor(android.graphics.Color.argb(1, 0, 0, 0))
+            }
+            val params = android.view.WindowManager.LayoutParams(
+                1, 1,
+                android.view.WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+                android.view.WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    android.view.WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
+                android.graphics.PixelFormat.TRANSLUCENT,
+            ).apply {
+                gravity = android.view.Gravity.TOP or android.view.Gravity.START
+            }
+            wm.addView(v, params)
+            overlay = v
+        }
+    }
+
+    private fun removeOverlay() {
+        val v = overlay ?: return
+        runCatching {
+            (getSystemService(WINDOW_SERVICE) as android.view.WindowManager).removeView(v)
+        }
+        overlay = null
     }
 
     /** 1 秒静音 PCM 循环播放；只为一个真实的音频轨道，让系统按媒体任务对待本进程。 */
@@ -112,6 +164,9 @@ class GuardService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacks(timeout)
+        removeOverlay()
+        runCatching { screenWake?.release() }
+        screenWake = null
         runCatching { track?.stop() }
         runCatching { track?.release() }
         track = null
@@ -121,5 +176,8 @@ class GuardService : Service() {
     companion object {
         private const val CHANNEL = "guard"
         private const val NOTIF_ID = 2002
+
+        /** 单次任务最长保护时长：覆盖「冷加载 5 分钟 + 主生成 + 重试生成」的最坏情况。 */
+        private const val MAX_HOLD_MS = 30 * 60_000L
     }
 }

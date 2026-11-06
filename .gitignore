@@ -15,6 +15,7 @@ captures/
 *.m4a
 *.wav
 samples/
+.tmp-shots/
 
 # 可下载的数据产物（ECDICT 词库 92MB，来源见 dict-assets/README.md）
 dict-assets/*

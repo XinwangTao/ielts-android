@@ -100,10 +100,14 @@ class ScoreService : Service() {
         while (isActive) {
             delay(15_000)
             val beat = LocalLlmEngine.lastBeatAt
-            if (beat <= 0 || LocalLlmEngine.state == "idle") continue
+            val state = LocalLlmEngine.state
+            if (beat <= 0 || state == "idle") continue
             val idleMs = System.currentTimeMillis() - beat
-            if (idleMs <= STALL_AFTER_MS) continue
-            Log.w("ScoreService", "watchdog: engine stalled ${idleMs}ms, forceReset id=$sessionId")
+            // 加载阶段没有 token 心跳：实测后台冷加载最长约 5 分钟（14:16 那次 429s 全程）。
+            // 用统一的 180s 会把「正在正常加载」误判成卡死，白等一次加载又重来。
+            val stallMs = if (state == "loading") LOAD_STALL_AFTER_MS else STALL_AFTER_MS
+            if (idleMs <= stallMs) continue
+            Log.w("ScoreService", "watchdog: engine stalled ${idleMs}ms state=$state, forceReset id=$sessionId")
             LocalLlmEngine.forceReset()
             runCatching {
                 AppDb.get(this@ScoreService).sessions().updateResult(
@@ -324,6 +328,9 @@ class ScoreService : Service() {
 
         /** 心跳断多久算卡死。留得比一次「加载+一个 token 批次」的长尾大，避免误判正常慢评分。 */
         private const val STALL_AFTER_MS = 180_000L
+
+        /** 加载阶段没有 token 心跳，实测后台冷加载可达 5 分钟；阈值必须显著大于最慢的正常加载。 */
+        private const val LOAD_STALL_AFTER_MS = 8 * 60_000L
 
         fun start(context: Context, sessionId: Long, module: String, text: String, task: String = "task2"): Boolean {
             val i = Intent(context, ScoreService::class.java).apply {
