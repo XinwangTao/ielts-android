@@ -741,6 +741,9 @@ fun ResultScreen(
             }) { Text("复制改写（Band 7）") }
         }
 
+        // 口语：能回放自己的录音，才听得出停顿、语速和发音问题（转写看不出这些）。
+        if (speaking) session.audioPath?.let { path -> RecordingPlayer(path) }
+
         BoxWithConstraints {
             val wide = maxWidth > 640.dp
             if (wide) {
@@ -872,5 +875,54 @@ private fun ScoreBar(label: String, score: Double, color: Color) {
                     .background(color, CircleShape),
             )
         }
+    }
+}
+
+/** 口语录音回放：转写看不出停顿、语速与发音问题，能听自己是最直接的自查方式。 */
+@Composable
+private fun RecordingPlayer(path: String) {
+    var player by remember(path) { mutableStateOf<android.media.MediaPlayer?>(null) }
+    var playing by remember(path) { mutableStateOf(false) }
+    androidx.compose.runtime.DisposableEffect(path) {
+        onDispose {
+            runCatching { player?.release() }
+            player = null
+        }
+    }
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        TextButton(onClick = {
+            val p = player
+            if (playing) {
+                runCatching { p?.pause() }
+                playing = false
+                return@TextButton
+            }
+            if (p == null) {
+                val np = android.media.MediaPlayer()
+                val ok = runCatching {
+                    np.setDataSource(path)
+                    np.prepare()
+                    np.start()
+                }.isSuccess
+                if (ok) {
+                    np.setOnCompletionListener { playing = false }
+                    player = np
+                    playing = true
+                } else {
+                    runCatching { np.release() }
+                }
+            } else {
+                runCatching { p.start() }
+                playing = true
+            }
+        }) { Text(if (playing) "暂停录音" else "播放我的录音") }
+        Text(
+            "听停顿与语速（转写看不出这些）",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
