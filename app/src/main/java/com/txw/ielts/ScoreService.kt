@@ -97,17 +97,33 @@ class ScoreService : Service() {
      * 结果页也只能无限数「已等待 N 分」。这里用心跳判死，把结果退成可重试，并把卡死的引擎强拆。
      */
     private suspend fun CoroutineScope.watchdogLoop(sessionId: Long, text: String) {
+        val pm = getSystemService(Context.POWER_SERVICE) as android.os.PowerManager
+        var lastBeatSeen = 0L
+        // 熄屏期间累计的「系统暂停」时长：只从当前这段心跳间隔里扣，不能跨心跳累加。
+        var offAccumMs = 0L
         while (isActive) {
-            delay(15_000)
+            delay(WATCH_TICK_MS)
+            val now = System.currentTimeMillis()
             val beat = LocalLlmEngine.lastBeatAt
+            if (beat != lastBeatSeen) {
+                lastBeatSeen = beat
+                offAccumMs = 0
+            }
+            // 熄屏时 ColorOS 会把进程冻结一段再自动解冻（2026-11-06 实测：熄屏后 freeze=1 约 40s，
+            // 随后继续出 token 并正常评分完成）。熄屏期间的停滞是系统暂停，不是引擎卡死，
+            // 不计入判定；亮屏后只按「熄屏之外的真实停滞」决定是否强拆。
+            if (!pm.isInteractive) {
+                offAccumMs += WATCH_TICK_MS
+                continue
+            }
             val state = LocalLlmEngine.state
             if (beat <= 0 || state == "idle") continue
-            val idleMs = System.currentTimeMillis() - beat
+            val activeIdleMs = (now - beat - offAccumMs).coerceAtLeast(0)
             // 加载阶段没有 token 心跳：实测后台冷加载最长约 5 分钟（14:16 那次 429s 全程）。
             // 用统一的 180s 会把「正在正常加载」误判成卡死，白等一次加载又重来。
             val stallMs = if (state == "loading") LOAD_STALL_AFTER_MS else STALL_AFTER_MS
-            if (idleMs <= stallMs) continue
-            Log.w("ScoreService", "watchdog: engine stalled ${idleMs}ms state=$state, forceReset id=$sessionId")
+            if (activeIdleMs <= stallMs) continue
+            Log.w("ScoreService", "watchdog: engine stalled ${activeIdleMs}ms state=$state, forceReset id=$sessionId")
             LocalLlmEngine.forceReset()
             runCatching {
                 AppDb.get(this@ScoreService).sessions().updateResult(
@@ -331,6 +347,9 @@ class ScoreService : Service() {
 
         /** 加载阶段没有 token 心跳，实测后台冷加载可达 5 分钟；阈值必须显著大于最慢的正常加载。 */
         private const val LOAD_STALL_AFTER_MS = 8 * 60_000L
+
+        /** 看门狗轮询间隔；熄屏暂停时长也按这个步长累计，避免依赖真实时间差。 */
+        private const val WATCH_TICK_MS = 15_000L
 
         fun start(context: Context, sessionId: Long, module: String, text: String, task: String = "task2"): Boolean {
             // 结果页用这个时间算「已等待 N 分」；只有 MainActivity 的部分入口写过，
