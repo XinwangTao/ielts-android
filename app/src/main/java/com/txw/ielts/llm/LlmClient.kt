@@ -172,7 +172,8 @@ class LlmClient(
             chat(
                 READING_GEN_SYSTEM,
                 "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
-                maxTokens = 6000,
+                // 8 题档更长：再放宽一档，减少后几题被截断成缺 explain_en。
+                maxTokens = if (count >= 8) 8000 else 6000,
             ),
             count,
         )
@@ -183,7 +184,7 @@ class LlmClient(
             chat(
                 LISTENING_GEN_SYSTEM,
                 "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
-                maxTokens = 6000,
+                maxTokens = if (count >= 8) 8000 else 6000,
             ),
             count,
         )

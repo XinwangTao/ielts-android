@@ -260,13 +260,13 @@ def cases() -> list[dict]:
              validate="reading", count=6, max_tokens=6000),
         dict(name="reading_generation_8", system=sys_read,
              user="Difficulty: 7.0\nQuestion types: choice, tfng, gap\nQuestion count: 8",
-             validate="reading", count=8, max_tokens=6000),
+             validate="reading", count=8, max_tokens=8000),
         dict(name="listening_generation", system=sys_listen,
              user="Difficulty: 6.5\nQuestion types: choice, gap\nQuestion count: 6",
              validate="listening", count=6, max_tokens=6000),
         dict(name="listening_generation_8", system=sys_listen,
              user="Difficulty: 6.5\nQuestion types: choice, gap\nQuestion count: 8",
-             validate="listening", count=8, max_tokens=6000),
+             validate="listening", count=8, max_tokens=8000),
         dict(name="bank_explain", system=sys_explain,
              user=("Question: The writer says the museum was originally built to store private collections.\n"
                    "Correct answer: NOT GIVEN\nYour answer: TRUE\n"
