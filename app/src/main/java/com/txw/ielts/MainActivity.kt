@@ -467,7 +467,7 @@ private fun App(
     suspend fun requestWritingOutline(topic: String, task: String) {
         // 同一题目 + 同一 Task 的提纲不会变：命中缓存直接展示，省掉一次 30-60 秒端侧推理。
         // 但如果界面上已经有这道题的提纲，这次点击就是「想换一份」，跳过缓存重新生成。
-        val cacheKey = com.txw.ielts.llm.StudyAiCache.key("outline", task, topic)
+        val cacheKey = com.txw.ielts.llm.StudyAiCache.key("outline", prefs.localModel, task, topic)
         if (writingOutline == null || writingOutlineTopic != topic) {
             com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
                 val cached = com.txw.ielts.llm.StudyAi.parseOutline(raw)
@@ -512,7 +512,7 @@ private fun App(
     suspend fun requestSpeakingSample(part: String, question: String) {
         // 同一道题的范例可以复用：切走再回来不必重跑 30-60 秒端侧推理。
         // 界面上已有这题的范例时，这次点击是想换一份，跳过缓存重新生成。
-        val cacheKey = com.txw.ielts.llm.StudyAiCache.key("sample", part, question)
+        val cacheKey = com.txw.ielts.llm.StudyAiCache.key("sample", prefs.localModel, part, question)
         if (speakingSample == null || speakingSampleQuestion != question) {
             com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
                 val cached = com.txw.ielts.llm.StudyAi.parseSample(raw)
@@ -558,7 +558,7 @@ private fun App(
         // 同一篇作文/同一段转写的生词卡不会变：重开结果页直接展示，省一次 30-60 秒推理。
         // 界面上已有本次会话的生词卡时，这次点击是想换一批，跳过缓存重新提取。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
-            "vocab", sessionId.toString(), text, fixes.joinToString("\u0001") { it.first },
+            "vocab", prefs.localModel, sessionId.toString(), text, fixes.joinToString("\u0001") { it.first },
         )
         if (vocabResult == null || vocabSessionId != sessionId) {
             com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
@@ -1904,7 +1904,7 @@ private fun App(
         // 同一道错题 + 同一份作答的变式可复用：重开结果页/重启后不必再跑一次模型。
         // 界面上已经有这道题的变式时，本次点击就是「换一道」，跳过缓存重新生成。
         val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
-            "variant", resultScope, item.prompt, item.right, item.yours, item.explain,
+            "variant", prefs.localModel, resultScope, item.prompt, item.right, item.yours, item.explain,
         )
         if (bankVariants[vk] == null) com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
             val cached = com.txw.ielts.llm.StudyAi.parseVariant(raw)
