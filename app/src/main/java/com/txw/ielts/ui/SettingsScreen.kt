@@ -376,6 +376,7 @@ fun SettingsScreen(
         var backupFiles by remember { mutableStateOf<List<java.io.File>>(emptyList()) }
         var backupRefresh by remember { mutableStateOf(0) }
         var pendingDeleteBackup by remember { mutableStateOf<java.io.File?>(null) }
+        var showAllBackups by remember { mutableStateOf(false) }
         // 导入预览（只读）：选文件 → 解析 → 只看摘要，不写库（写库仍属 L1 待确认）。
         var backupPreview by remember { mutableStateOf<String?>(null) }
         val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(
@@ -503,10 +504,11 @@ fun SettingsScreen(
             )
         }
 
-        // 备份列表：最多显示 10 个，逐个可删（删除前确认）。
+        // 备份列表：默认显示最近 10 个，超过时可展开全部；逐个可删（删除前确认）。
         if (backupFiles.isNotEmpty()) {
             Text("备份文件（${backupFiles.size}）", style = MaterialTheme.typography.labelLarge)
-            backupFiles.take(10).forEach { f ->
+            val visibleBackups = if (showAllBackups) backupFiles else backupFiles.take(10)
+            visibleBackups.forEach { f ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "${f.name} · ${f.length() / 1024} KB",
@@ -515,6 +517,11 @@ fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                     )
                     TextButton(onClick = { pendingDeleteBackup = f }) { Text("删除") }
+                }
+            }
+            if (backupFiles.size > 10) {
+                TextButton(onClick = { showAllBackups = !showAllBackups }) {
+                    Text(if (showAllBackups) "收起" else "显示全部（${backupFiles.size}）")
                 }
             }
         }
