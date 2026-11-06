@@ -83,6 +83,15 @@
   不再把 PNG 解码塞进首帧；设置页「清空所有数据」的删录音/范文移入 IO 线程。
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。
 
+**工程**
+- Room 结构快照（2026-11-07）：`exportSchema=false` 改为导出到 `app/schemas/`，v3（sessions 13 列 / cards 15 列）
+  入库成基线；今后改表必须配 Migration，并可用 MigrationTestHelper 做迁移测试（需 androidTest，暂不跑）。
+- lint 基线收敛（2026-11-07）：4 warning → 2。电池优化直连对话框按既有设计保留（不上架 Play，
+  `@SuppressLint("BatteryLife")` 注明原因与 fallback）；只打 arm64，关闭 ChromeOS ABI 提示。
+  剩余：OldTargetApi（等 Stage C）、core-ktx 可升级（1.17 需 compileSdk 36，随 Stage C 一起动）。
+- 设置项并发写（2026-11-07）：`Prefs.editJson` 串行化 JSON 读改写；`studyAiCache`、
+  `localScoreStarted/Errors`、`bankProgress`、`mutedFixes/vocabEdits` 的并发落盘不再互相覆盖。
+
 ## 判断标准
 
 - 每一步落地后跑 `bash tools/verify_all.sh`（单测 + lint + AI 探针），全绿才算完成。
