@@ -903,6 +903,8 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
     var speed by remember(path) { mutableStateOf(1f) }
     var durationMs by remember(path) { mutableLongStateOf(0L) }
     var positionMs by remember(path) { mutableLongStateOf(0L) }
+    // 录音被清理/丢失时给出明确原因，否则点了只会「没反应」。
+    var loadFailed by remember(path) { mutableStateOf(false) }
     androidx.compose.runtime.DisposableEffect(path) {
         onDispose {
             if (RecordingAudio.currentPath.value == path) RecordingAudio.currentPath.value = null
@@ -947,6 +949,7 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                     return@TextButton
                 }
                 RecordingAudio.pauseOthers(path)
+                loadFailed = false
                 if (p == null) {
                     val np = android.media.MediaPlayer()
                     val ok = runCatching {
@@ -965,6 +968,7 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                         RecordingAudio.currentPlayer = np
                         RecordingAudio.currentPath.value = path
                     } else {
+                        loadFailed = true
                         runCatching { np.release() }
                     }
                 } else {
@@ -972,7 +976,7 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                     RecordingAudio.currentPlayer = p
                     RecordingAudio.currentPath.value = path
                 }
-            }) { Text(if (playing) "暂停录音" else "播放我的录音") }
+            }) { Text(if (loadFailed) "录音不可用" else if (playing) "暂停录音" else "播放我的录音") }
             TextButton(onClick = {
                 speed = when (speed) {
                     1f -> 0.75f
@@ -989,7 +993,13 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                     }
                 )
             }
-            if (durationMs > 0L) {
+            if (loadFailed) {
+                Text(
+                    "录音文件已不存在（可能被清理）",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            } else if (durationMs > 0L) {
                 Text(
                     "${clock(positionMs)} / ${clock(durationMs)}",
                     style = MaterialTheme.typography.labelSmall,
