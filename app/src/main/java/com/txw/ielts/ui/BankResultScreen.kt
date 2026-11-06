@@ -214,6 +214,13 @@ fun BankResultScreen(
                                     Text("查看答案")
                                 }
                             }
+                            // 已经有变式时，这里就是「换一道」；主逻辑会跳过缓存重新生成。
+                            TextButton(
+                                enabled = vk !in variantBusyIds,
+                                onClick = { onRequestVariant(item) },
+                            ) {
+                                Text(if (vk in variantBusyIds) "换题中…" else "换一道同考点新题")
+                            }
                         }
                     }
                 }
