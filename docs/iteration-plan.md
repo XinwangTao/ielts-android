@@ -59,7 +59,8 @@
 
 - **备份导入写库**（L1）：图 `docs/archify/ielts-backup-restore_workflow.{html,json}`；
   **实现级设计已就绪**：`docs/backup-import-implementation.md`（默认：新增不覆盖 / 设置默认不导入 / 单事务，
-  含导入前自动快照与测试计划）。仍待确认三项决策后落地。
+  含导入前自动快照与测试计划）。**免写的纯逻辑已落地**：`BackupImporter.mergeAiSets`（按 id 去重、新的在前、上限 200，
+  4 例单测）。仍待确认三项决策后写库。
 - **Stage C（targetSdk 35）**：需真机回归 edge-to-edge、前台服务、安装与 MNN/Whisper 加载。
 - **真机验收 28 项**：`docs/acceptance-checklist.md` 第八节。
 
