@@ -88,7 +88,8 @@ object StudyAi {
             }
         }
         val raw = LocalLlmEngine.generateText(context, model, system, user)
-        return parseOutline(raw)
+        // 解析成功也保留原始输出：调用方据此缓存，返回页面时不必再跑一遍模型。
+        return parseOutline(raw).let { if (it.isEmpty) it else it.copy(raw = raw) }
     }
 
     suspend fun speakingSample(
@@ -98,26 +99,29 @@ object StudyAi {
         question: String,
     ): SpeakingSample {
         val user = "Part: $part\nQuestion: ${question.trim()}"
-        val first = parseSample(LocalLlmEngine.generateText(context, model, SPEAKING_SYSTEM, user))
+        val firstRaw = LocalLlmEngine.generateText(context, model, SPEAKING_SYSTEM, user)
+        val first = parseSample(firstRaw)
         // 本地 4B 的 Part 2 实测只写 146 词（目标 180-220）；给一次更明确的重写机会，
         // 只有确实更长才采用，重试失败也不丢第一版。
         if (part == "Part 2" && wordCount(first.answer) < 170) {
-            val retry = try {
-                parseSample(
-                    LocalLlmEngine.generateText(
-                        context, model, SPEAKING_SYSTEM,
-                        "$user\n\nYour previous answer was too short. Rewrite it with at least 180 words " +
-                            "(about 12-15 sentences). Do not stop early.",
-                    )
+            val retryRaw = try {
+                LocalLlmEngine.generateText(
+                    context, model, SPEAKING_SYSTEM,
+                    "$user\n\nYour previous answer was too short. Rewrite it with at least 180 words " +
+                        "(about 12-15 sentences). Do not stop early.",
                 )
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (_: Exception) {
                 null
             }
-            if (retry != null && wordCount(retry.answer) > wordCount(first.answer)) return retry
+            val retry = retryRaw?.let { parseSample(it) }
+            if (retry != null && wordCount(retry.answer) > wordCount(first.answer)) {
+                return retry.copy(raw = retryRaw!!)
+            }
         }
-        return first
+        // 解析成功也保留原始输出，供调用方缓存复用。
+        return first.copy(raw = firstRaw)
     }
 
     private fun wordCount(s: String): Int = s.split(Regex("\\s+")).count { it.isNotBlank() }

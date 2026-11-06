@@ -136,6 +136,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_AI_REVIEW_CACHE, "") ?: ""
         set(v) = sp.edit().putString(KEY_AI_REVIEW_CACHE, v).apply()
 
+    /** 写作提纲 / 口语范例的原始输出快照（JSON：指纹 → {at, raw}），避免退出页面后重跑模型。 */
+    var studyAiCache: String
+        get() = sp.getString(KEY_STUDY_AI_CACHE, "{}") ?: "{}"
+        set(v) = sp.edit().putString(KEY_STUDY_AI_CACHE, v).apply()
+
     /** 结果页「已忽略的 AI 批注」（JSON：sessionId → 忽略键数组），重新打开结果页仍然生效。 */
     var mutedFixes: String
         get() = sp.getString(KEY_MUTED_FIXES, "{}") ?: "{}"
@@ -206,6 +211,7 @@ class Prefs(context: Context) {
         private const val KEY_LOCAL_SCORE_FINISHED = "local_score_finished"
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
         private const val KEY_AI_REVIEW_CACHE = "ai_review_cache"
+        private const val KEY_STUDY_AI_CACHE = "study_ai_cache"
         private const val KEY_MUTED_FIXES = "ai_muted_fixes"
         private const val KEY_VOCAB_EDITS = "ai_vocab_edits"
         private const val KEY_STUDY_PLAN = "study_plan_overrides"

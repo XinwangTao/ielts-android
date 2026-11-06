@@ -445,6 +445,17 @@ private fun App(
             !LocalLlmEngine.hasExternalCopy(context, prefs.localModel)
 
     suspend fun requestWritingOutline(topic: String, task: String) {
+        // 同一题目 + 同一 Task 的提纲不会变：命中缓存直接展示，省掉一次 30-60 秒端侧推理。
+        val cacheKey = com.txw.ielts.llm.StudyAiCache.key("outline", task, topic)
+        com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
+            val cached = com.txw.ielts.llm.StudyAi.parseOutline(raw)
+            if (!cached.isEmpty) {
+                writingOutline = cached
+                writingOutlineTopic = topic
+                writingOutlineError = null
+                return
+            }
+        }
         writingOutlineBusy = true
         writingOutlineError = null
         writingOutlineTopic = topic
@@ -462,7 +473,12 @@ private fun App(
             val r = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.outline(context, prefs.localModel, topic, task)
             }
-            if (r.isEmpty) writingOutlineError = "本地模型没有输出可用的提纲，请重试" else writingOutline = r
+            if (r.isEmpty) {
+                writingOutlineError = "本地模型没有输出可用的提纲，请重试"
+            } else {
+                writingOutline = r
+                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw)
+            }
         } catch (e: Exception) {
             writingOutlineError = "提纲生成失败：${e.message}"
         } finally {
@@ -471,6 +487,17 @@ private fun App(
     }
 
     suspend fun requestSpeakingSample(part: String, question: String) {
+        // 同一道题的范例可以复用：切走再回来不必重跑 30-60 秒端侧推理。
+        val cacheKey = com.txw.ielts.llm.StudyAiCache.key("sample", part, question)
+        com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
+            val cached = com.txw.ielts.llm.StudyAi.parseSample(raw)
+            if (!cached.isEmpty) {
+                speakingSample = cached
+                speakingSampleQuestion = question
+                speakingSampleError = null
+                return
+            }
+        }
         speakingSampleBusy = true
         speakingSampleError = null
         speakingSampleQuestion = question
@@ -488,7 +515,12 @@ private fun App(
             val r = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.speakingSample(context, prefs.localModel, part, question)
             }
-            if (r.isEmpty) speakingSampleError = "本地模型没有输出可用的范例，请重试" else speakingSample = r
+            if (r.isEmpty) {
+                speakingSampleError = "本地模型没有输出可用的范例，请重试"
+            } else {
+                speakingSample = r
+                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw)
+            }
         } catch (e: Exception) {
             speakingSampleError = "范例生成失败：${e.message}"
         } finally {
