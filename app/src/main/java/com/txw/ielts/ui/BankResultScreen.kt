@@ -58,8 +58,9 @@ fun BankResultScreen(
     transcript: String,
     readerFontSize: Int = 16,
     readerLineHeight: Float = 1.4f,
-    aiExplains: Map<Int, BankExplain> = emptyMap(),
-    explainingIds: Set<Int> = emptySet(),
+    // 精讲同样按「结果页作用域 + 题号」存：不同套题的同号题不能串讲。
+    aiExplains: Map<String, BankExplain> = emptyMap(),
+    explainingIds: Set<String> = emptySet(),
     onAiExplain: (BankResultItem) -> Unit,
     // 变式题：同考点换新内容，防止重做原题变成「记住答案」。
     variants: Map<String, com.txw.ielts.llm.BankVariant> = emptyMap(),
@@ -161,13 +162,14 @@ fun BankResultScreen(
                         )
                     }
                     if (!item.ok) {
-                        val exp = aiExplains[item.id]
+                        val ek = "$variantScope#${item.id}"
+                        val exp = aiExplains[ek]
                         if (exp == null) {
                             OutlinedButton(
                                 onClick = { onAiExplain(item) },
-                                enabled = item.id !in explainingIds,
+                                enabled = ek !in explainingIds,
                             ) {
-                                Text(if (item.id in explainingIds) "精讲生成中…" else "AI 精讲（消耗 1 次额度）")
+                                Text(if (ek in explainingIds) "精讲生成中…" else "AI 精讲（消耗 1 次额度）")
                             }
                         } else {
                             Text("AI 精讲", style = MaterialTheme.typography.labelLarge)

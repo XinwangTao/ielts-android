@@ -205,7 +205,10 @@ private fun ReadingCard(
     fun openSheet(word: String) {
         scope.launch {
             lookupWord = word
-            sheetEntry = com.txw.ielts.data.DictionaryStore.lookup(context, word)
+            // 首次查词可能要把外部词典整库拷进来 + 打开 SQLite：必须离开主线程。
+            sheetEntry = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                com.txw.ielts.data.DictionaryStore.lookup(context, word)
+            }
             added = false
             sheetOpen = true
         }
@@ -336,7 +339,10 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
     var posSec by remember { mutableIntStateOf(0) }
     var durSec by remember { mutableIntStateOf(0) }
 
-    val file = remember(set.id) { repo.audioFile(set) }
+    // 音频首次使用会从 assets 拷到 cacheDir（最大 1.7MB）：放到 IO，避免组合期卡第一帧。
+    val file by androidx.compose.runtime.produceState<java.io.File?>(null, set.id) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { repo.audioFile(set) }
+    }
     val player = remember { MediaPlayer() }
     DisposableEffect(Unit) {
         player.setOnCompletionListener { playing = false }

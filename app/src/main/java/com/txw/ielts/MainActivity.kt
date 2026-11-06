@@ -397,6 +397,8 @@ private fun App(
     // 预设题目的所属 Part：追问生成的是 Part 3 问题，不能当 Part 2 练。为空时按原来的 Part 2 处理。
     var speakingPresetPart by remember { mutableStateOf<String?>(null) }
     var writingPresetTopic by remember { mutableStateOf<String?>(null) }
+    // 预设题目的 Task：换题生成的是同类型题目，回填时不能一律当 Task 2。
+    var writingPresetTask by remember { mutableStateOf<String?>(null) }
     var writingPresetChart by remember { mutableStateOf<com.txw.ielts.data.ChartSpec?>(null) }
 
     // 本地 AI 学习助手（图：docs/archify/ielts-local-ai_workflow）：
@@ -686,6 +688,7 @@ private fun App(
                     practiceFocus = null
                     writingPresetChart = null
                     writingPresetTopic = topic
+                    writingPresetTask = task
                     // 生成期间用户可能已经离开这个结果页：只有仍在看它时才自动跳过去，别把人拽走。
                     if (route == Route.Result(session.id)) route = Route.Writing
                 }
@@ -1006,21 +1009,32 @@ private fun App(
     val bankRepo = remember { BankRepo(context, prefs) }
     val bankSets = remember { runCatching { bankRepo.sets() }.getOrDefault(emptyList()) }
     var bankAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
-    var quizStartAt by remember { mutableStateOf(0L) }
-    var quizLimitMin by remember { mutableIntStateOf(0) }
+    // 用 rememberSaveable：旋转/进程重建后计时与限时不能归零。
+    var quizStartAt by rememberSaveable { mutableStateOf(0L) }
+    var quizLimitMin by rememberSaveable { mutableStateOf(0) }
     var bankResult by remember { mutableStateOf<BankResultData?>(null) }
     var aiSets by remember { mutableStateOf(bankRepo.aiSets()) }
     var aiGenBusy by remember { mutableStateOf(false) }
     var aiGenError by remember { mutableStateOf<String?>(null) }
     var aiGenStage by remember { mutableStateOf<String?>(null) }
     var aiGenReady by remember { mutableStateOf<String?>(null) }   // 后台生成完成待查看的套题 id
-    var aiExplains by remember { mutableStateOf<Map<Int, BankExplain>>(emptyMap()) }
-    var explainingIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    // 精讲按「作用域#题号」存，跨套题不串。
+    var aiExplains by remember { mutableStateOf<Map<String, BankExplain>>(emptyMap()) }
+    var explainingIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     // 键是「结果页作用域#题号」：不同套题/不同会话的同号题不能共用变式。
     var bankVariants by remember { mutableStateOf<Map<String, com.txw.ielts.llm.BankVariant>>(emptyMap()) }
     var variantBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
     // 变式题的失败原因按题展示在卡片里：写进全局 error 结果页根本不显示，用户只看到「点了没反应」。
     var variantErrors by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
+
+    // Route 恢复了但答题 Map 只在内存：从已保存进度回填，避免空 Map 把整套答案覆盖掉。
+    LaunchedEffect(route) {
+        val r = route
+        if (r is Route.Quiz && bankAnswers.isEmpty()) {
+            val saved = withContext(Dispatchers.IO) { bankRepo.savedAnswers(r.setId) }
+            if (saved.isNotEmpty()) bankAnswers = saved
+        }
+    }
 
     fun openSet(setId: String, limitMin: Int = 0) {
         bankAnswers = bankRepo.savedAnswers(setId)
@@ -1904,7 +1918,8 @@ private fun App(
         }
     }
 
-    suspend fun runAiExplain(item: BankResultItem) {
+    suspend fun runAiExplain(item: BankResultItem, resultScope: String) {
+        val ek = "$resultScope#${item.id}"
         val mode = prefs.scoreChannel
         val online = hasNetwork(context)
         ChannelPick.cloudOfflineError(mode, online, localAiAvailable())?.let {
@@ -1918,7 +1933,7 @@ private fun App(
             online,
             prefs.remainingCalls(),
         )
-        explainingIds = explainingIds + item.id
+        explainingIds = explainingIds + ek
         Guard.start(context)
         try {
             val exp = withContext(Dispatchers.IO) {
@@ -1938,12 +1953,12 @@ private fun App(
                     },
                 )
             }
-            aiExplains = aiExplains.toMutableMap().apply { put(item.id, exp) }
+            aiExplains = aiExplains.toMutableMap().apply { put(ek, exp) }
         } catch (e: Exception) {
             Log.e(TAG, "ai explain fail: ${e.message}")
             error = "精讲失败：${e.message}"
         } finally {
-            explainingIds = explainingIds - item.id
+            explainingIds = explainingIds - ek
             Guard.stop(context)
         }
     }
@@ -2019,6 +2034,7 @@ private fun App(
         // 系统返回与左上角返回走同一套清理：否则重练的 fixes/预设题目会残留到下一次练习。
         practiceFocus = null
         writingPresetTopic = null
+        writingPresetTask = null
         speakingPresetQuestion = null
         speakingPresetPart = null
         backTarget?.let { route = it }
@@ -2285,7 +2301,11 @@ private fun App(
                         onBank = { bankFilter = "all"; route = Route.Bank },
                         onAiGen = { route = Route.AiGen; aiGenError = null },
                         onShadow = { route = Route.Shadow },
-                        onOpen = { route = Route.Result(it) },
+                        // 跟读记录不是写作/口语：直接进跟读结果页，别落到通用结果页显示 Band 0.0。
+                        onOpen = { id ->
+                            val s = sessions.firstOrNull { it.id == id }
+                            route = if (s?.module == "shadow") Route.ShadowResult(id) else Route.Result(id)
+                        },
                         onSettings = { route = Route.Settings },
                         onModelEssays = { route = Route.ModelEssays },
                         onOpenPlan = { route = Route.Plan },
@@ -2357,19 +2377,22 @@ private fun App(
                     onSubmit = { task, topic, audio, typed, secs ->
                         practiceFocus = null
                         writingPresetTopic = null
+                        writingPresetTask = null
                         writingPresetChart = null
                         scope.launch { runWriting(task, topic, audio, typed, secs) }
                     },
                     onBack = {
                         practiceFocus = null
                         writingPresetTopic = null
+                        writingPresetTask = null
                         writingPresetChart = null
                         route = Route.Home
                     },
                     focusFixes = practiceFocus?.takeIf { it.module == "writing" }?.fixes ?: emptyList(),
                     presetTopic = writingPresetTopic
                         ?: practiceFocus?.takeIf { it.module == "writing" }?.topic,
-                    presetTask = practiceFocus?.takeIf { it.module == "writing" }?.task ?: "task2",
+                    presetTask = writingPresetTask
+                        ?: practiceFocus?.takeIf { it.module == "writing" }?.task ?: "task2",
                     presetChart = writingPresetChart,
                     onOpenArguments = { route = Route.Arguments },
                     onOpenMock = { route = Route.WritingMock },
@@ -2553,7 +2576,7 @@ private fun App(
                             items = items,
                             transcript = "",
                             aiExplains = aiExplains, explainingIds = explainingIds,
-                            onAiExplain = { item -> scope.launch { runAiExplain(item) } },
+                            onAiExplain = { item -> scope.launch { runAiExplain(item, "s${session.id}") } },
                             variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                             variantScope = "s${session.id}",
                             onRequestVariant = { item -> scope.launch { runVariant(item, "s${session.id}") } },
@@ -2860,8 +2883,12 @@ private fun App(
 
                 is Route.ShadowResult -> {
                     val session = sessions.firstOrNull { it.id == r.sessionId }
-                    if (session == null) {
+                    if (session == null && sessionsOrNull != null) {
+                        // 数据已加载完仍找不到 → 记录确实不存在。
                         LaunchedEffect(r.sessionId) { route = Route.Shadow }
+                    } else if (session == null) {
+                        // 进程恢复时 Room 首帧还没到：别把「加载中」当成「记录不存在」弹回去。
+                        Text("载入中…", style = MaterialTheme.typography.bodyMedium)
                     } else {
                         val acc = runCatching { JSONObject(session.scoresJson).optInt("accuracy") }.getOrDefault(0)
                         val items = runCatching {
@@ -2949,11 +2976,11 @@ private fun App(
                                                 onAddWord = { w, ph, tr -> scope.launch { repo.addLookupWord(w, ph, tr) } },
                                                 onAnswer = { qid, v ->
                                                     bankAnswers = bankAnswers.toMutableMap().apply { put(qid, v) }
-                                                    bankRepo.saveAnswers(set.id, bankAnswers)
+                                                    if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                                 },
                                                 onSubmit = { scope.launch { submitQuiz(set.id) } },
                                                 onBack = {
-                                                    bankRepo.saveAnswers(set.id, bankAnswers)
+                                                    if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                                     route = if (isAi) Route.AiGen else Route.Bank
                                                 },
                                             )
@@ -2971,7 +2998,7 @@ private fun App(
                                                 transcript = data.transcript,
                                                 readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
                                                 aiExplains = aiExplains, explainingIds = explainingIds,
-                                                onAiExplain = { item -> scope.launch { runAiExplain(item) } },
+                                                onAiExplain = { item -> scope.launch { runAiExplain(item, data.setId) } },
                                                 variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                                                 variantScope = data.setId,
                                                 onRequestVariant = { item -> scope.launch { runVariant(item, data.setId) } },
@@ -3010,11 +3037,11 @@ private fun App(
                                         onAddWord = { w, ph, tr -> scope.launch { repo.addLookupWord(w, ph, tr) } },
                                         onAnswer = { qid, v ->
                                             bankAnswers = bankAnswers.toMutableMap().apply { put(qid, v) }
-                                            bankRepo.saveAnswers(set.id, bankAnswers)
+                                            if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                         },
                                         onSubmit = { scope.launch { submitQuiz(set.id) } },
                                         onBack = {
-                                            bankRepo.saveAnswers(set.id, bankAnswers)
+                                            if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                             route = if (isAi) Route.AiGen else Route.Bank
                                         },
                                     )
@@ -3032,7 +3059,7 @@ private fun App(
                                         transcript = data.transcript,
                                         readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
                                         aiExplains = aiExplains, explainingIds = explainingIds,
-                                        onAiExplain = { item -> scope.launch { runAiExplain(item) } },
+                                        onAiExplain = { item -> scope.launch { runAiExplain(item, data.setId) } },
                                         variants = bankVariants, variantBusyIds = variantBusyIds,
                                         variantErrors = variantErrors,
                                         variantScope = data.setId,
