@@ -301,6 +301,8 @@ fun HomeScreen(
         ChapterRow("二", "范文库", "收藏的高分范文", onModelEssays)
         // 与「学习统计」同页，但明确标出 AI 复盘入口，避免功能藏在看板顶部没人发现。
         ChapterRow("三", "AI 复盘", "本地模型 · 最近 7 天行动建议", onReview)
+        // 今日任务为空时上面的入口不渲染；附录常驻一个，保证课表永远进得去。
+        ChapterRow("四", "7 天计划", "按考期倒排一周 · 可换科目", onOpenPlan)
 
         // —— AI 生成状态（书页脚注式）——
         if (aiGenBusy || aiGenReadyId != null || aiGenError != null) {
