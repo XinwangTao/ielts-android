@@ -45,4 +45,5 @@ python tools/ai_probe.py --only listening_generation_8
 
 - 本地 4B **AI 复盘**：加载后 30.9 秒生成 375 tokens，页面显示总结 + 3 条行动 + 缓存提示，通过。
 - `e2e_ai` 无点击自测（`14c7352` 补 IO/取消处理后）：`outline` 3 论点 / 5 短语、`sample` 195 词 / 5 关键词 / 3 结构、`vocab` 6 条，三项均解析成功。
+- 本地评分无点击模式 `score_writing` / `score_speaking`（`ca22f93`）：代码与 `tools/e2e_local_ai.sh` 已就绪，真机验证被 TickFlow / ColorOS 安装授权弹窗抢前台，待补。
 - 测试副产物 `card 170` / `session 22` 已按授权清理，现有 169 张卡 / 15 条记录。

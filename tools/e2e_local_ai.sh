@@ -1,11 +1,11 @@
 #!/bin/bash
 # 本地 4B AI 无点击自测：一条命令等结果，不用在手机上点按钮。
-# 用法: bash tools/e2e_local_ai.sh <adb设备> [outline|sample|vocab]
+# 用法: bash tools/e2e_local_ai.sh <adb设备> [outline|sample|vocab|score_writing|score_speaking]
 # 例子: bash tools/e2e_local_ai.sh adb-afa99023-q6q7Cb._adb-tls-connect._tcp outline
 set -euo pipefail
 export MSYS_NO_PATHCONV=1
 ADB=${ADB:-adb}
-DEVICE=${1:?用法: $0 <adb设备> [outline|sample|vocab]}
+DEVICE=${1:?用法: $0 <adb设备> [outline|sample|vocab|score_writing|score_speaking]}
 MODE=${2:-outline}
 
 "$ADB" -s "$DEVICE" logcat -c
