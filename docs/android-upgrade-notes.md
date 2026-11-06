@@ -21,12 +21,13 @@
 - `lifecycle-runtime-ktx` 2.8.6 → 2.8.7：patch 级，无 API 变化。
 - 验证：单测 + `assembleDebug` 通过；lint 由 **5 warning 降到 4**（lifecycle 的 GradleDependency 告警消失）。
 
-### Stage B（只升 compileSdk，不动 targetSdk）
+### Stage B（只升 compileSdk，不动 targetSdk）— 已完成 2026-11-06
 
-- `compileSdk = 35`，`targetSdk` 保持 34。
-- 需要本机安装 Android 15 平台包。
-- 验证：`assembleDebug` + 全量单测；确认 AGP 版本支持（当前 AGP 见 `gradle/libs.versions.toml`）。
-- 收益：为 core-ktx / lifecycle 更新铺路；**运行时行为不变**，风险低。
+- `compileSdk = 35`，`targetSdk` 保持 34；已通过 `sdkmanager` 安装 `platforms;android-35`。
+- 验证：`assembleDebug` 通过、456 例单测全绿、lint 仍 0 error / 4 warning。
+- 编译期新增若干 deprecation 警告（`SCREEN_DIM_WAKE_LOCK`、`LocalLifecycleOwner`、`statusBarColor` 等），
+  属 API 35 的弃用提示，不影响运行；后续可逐步迁移。
+- 收益：为 core-ktx / lifecycle 更新铺路；**运行时行为不变**（targetSdk 未动）。
 
 ### Stage C（升 targetSdk 35，需真机回归）
 

@@ -19,8 +19,8 @@
 4. [x] **依赖与 targetSdk 评估 + Stage A**（2026-11-06）：lifecycle 已升 2.8.7 并通过构建；结论在 `docs/android-upgrade-notes.md`——
        可先做 lifecycle patch；compileSdk 35 无 AGP 阻碍；**16KB 页对齐静态验证通过**（8 个 .so 全 16384）；
        targetSdk 35 仍待真机回归（edge-to-edge、FGS、安装加载）。
-       **Stage B 前置**：本机只装了 android-34 / android-36，缺 android-35；AGP 8.7.3 最高支持 35，
-       因此「compileSdk 35」需先 `sdkmanager "platforms;android-35"`（联网下载），暂记为待办。
+       **Stage B 已完成（2026-11-06）**：已装 `platforms;android-35`，`compileSdk = 35`，targetSdk 仍 34；
+       打包/单测/lint 全过（新增若干 deprecation 警告，不影响运行）。下一步 Stage C 需真机回归。
 5. [ ] **真机验收**：见 `docs/acceptance-checklist.md` 第八节（约 25 项）。
 
 ## 判断标准

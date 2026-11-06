@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.txw.ielts"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.txw.ielts"
