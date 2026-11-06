@@ -211,6 +211,7 @@ def cases() -> list[dict]:
     sys_read = from_kotlin("LlmClient.kt", "READING_GEN_SYSTEM")
     sys_listen = from_kotlin("LlmClient.kt", "LISTENING_GEN_SYSTEM")
     sys_explain = from_kotlin("LlmClient.kt", "BANK_EXPLAIN_SYSTEM")
+    sys_variant = from_kotlin("StudyAi.kt", "VARIANT_SYSTEM")
 
     weakness = ("\n\nThis student's recurring weaknesses recorded from past attempts: 字数与展开; 主谓一致. "
                 "Check specifically whether these problems appear in this attempt. If they do, list them FIRST in top_fixes "
@@ -276,6 +277,12 @@ def cases() -> list[dict]:
                    "Candidate's answer: Yes, I think schools focus too much on exams. Students should learn cooking, "
                    "personal finance and basic repair because these skills are useful in daily life."),
              validate="followup"),
+        dict(name="bank_variant",
+             system=sys_variant,
+             user=("Original question: The writer says the museum was originally built to store private collections.\n"
+                   "Correct answer: NOT GIVEN\nStudent's answer: TRUE\n"
+                   "Explanation: 原文只提到 19 世纪建造，没有说明最初用途。"),
+             validate="variant"),
         dict(name="chart_prompt_polish",
              system="You are an IELTS Writing Task 1 examiner. Rewrite the given Task 1 prompt in natural exam-authentic English. Keep every number, category and unit exactly as given; do not add or remove data. Output only the prompt sentence(s), no explanation.",
              user="Chart type: table\nTitle: household spending by category in 1995 and 2015\nUnit: %\nData:\n" + TABLE_DATA,
@@ -338,6 +345,21 @@ def validate(case: dict, text: str) -> list[str]:
         fixes = d.get("top_fixes")
         if not isinstance(fixes, list) or not (3 <= len(fixes) <= 5):
             issues.append(f"top_fixes 条数={len(fixes) if isinstance(fixes, list) else 'N/A'}（要求 3，容忍 4-5）")
+    elif v == "variant":
+        check_keys(d, ["question", "options", "answer", "explain"], issues)
+        q = str(d.get("question", "")).strip()
+        opts = d.get("options")
+        ans = str(d.get("answer", "")).strip()
+        if not q:
+            issues.append("question 为空")
+        if not isinstance(opts, list):
+            issues.append("options 不是数组")
+        elif opts and ans not in [str(o).strip() for o in opts]:
+            issues.append(f"answer 不在 options 里：{ans!r}")
+        if not has_cjk(str(d.get("explain", ""))):
+            issues.append("explain 不是中文")
+        if q and "museum" in q.lower():
+            issues.append("变式题复用了原题内容（museum）")
     elif v == "outline":
         check_keys(d, ["stance", "arguments", "phrases"], issues)
         if not str(d.get("stance", "")).strip():

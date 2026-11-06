@@ -17,7 +17,12 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -56,11 +61,17 @@ fun BankResultScreen(
     aiExplains: Map<Int, BankExplain> = emptyMap(),
     explainingIds: Set<Int> = emptySet(),
     onAiExplain: (BankResultItem) -> Unit = {},
+    // 变式题：同考点换新内容，防止重做原题变成「记住答案」。
+    variants: Map<Int, com.txw.ielts.llm.BankVariant> = emptyMap(),
+    variantBusyIds: Set<Int> = emptySet(),
+    onRequestVariant: (BankResultItem) -> Unit = {},
     onAddWrong: () -> Unit,
     onRetry: () -> Unit,
     onBack: () -> Unit,
 ) {
     val wrong = items.count { !it.ok }
+    // 变式题答案默认收起：先自测再对答案，直接摊开就失去练习意义。
+    var revealedVariants by remember { mutableStateOf(emptySet<Int>()) }
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -165,6 +176,40 @@ fun BankResultScreen(
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
+                            }
+                        }
+                        // 变式题：同一考点换新内容。先只看题面，答案放在「查看答案」后面，留出自测空间。
+                        val v = variants[item.id]
+                        if (v == null) {
+                            OutlinedButton(
+                                onClick = { onRequestVariant(item) },
+                                enabled = item.id !in variantBusyIds,
+                            ) {
+                                Text(if (item.id in variantBusyIds) "变式题生成中…" else "再来一道同考点新题")
+                            }
+                        } else if (!v.isEmpty) {
+                            Text("变式练习", style = MaterialTheme.typography.labelLarge)
+                            Text(v.question, style = MaterialTheme.typography.bodyMedium)
+                            v.options.forEachIndexed { i, o ->
+                                Text(
+                                    "${('A' + i)}. $o",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (item.id in revealedVariants) {
+                                Text("答案：${v.answer}", style = MaterialTheme.typography.bodySmall)
+                                if (v.explain.isNotBlank()) {
+                                    Text(
+                                        v.explain,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            } else {
+                                TextButton(onClick = { revealedVariants = revealedVariants + item.id }) {
+                                    Text("查看答案")
+                                }
                             }
                         }
                     }

@@ -66,6 +66,17 @@ data class AiReview(
         get() = summary.isBlank() && tasks.isEmpty() && encouragement.isBlank() && raw.isBlank()
 }
 
+/** 错题变式题：同一考点换新内容，防止「记住答案」而不是「学会方法」。 */
+data class BankVariant(
+    val question: String,
+    val options: List<String>,
+    val answer: String,
+    val explain: String,
+    val raw: String = "",
+) {
+    val isEmpty: Boolean get() = question.isBlank()
+}
+
 /**
  * 本地 AI 学习助手：写作提纲、口语范例、评分后生词卡、最近练习复盘。
  * 图：docs/archify/ielts-local-ai_workflow。
@@ -210,6 +221,50 @@ object StudyAi {
         return s
     }
 
+    /**
+     * 错题变式题：同一考点换新内容。
+     *
+     * 直接重做原题容易变成「记住答案」；换一道考同样能力的新题，才看得出是不是真的会了。
+     * 只生成、不落库，用户对着卡片自测即可。
+     */
+    suspend fun variant(
+        context: Context,
+        model: String,
+        prompt: String,
+        correct: String,
+        yours: String,
+        explain: String,
+    ): BankVariant {
+        val user = buildString {
+            append("Original question: ").append(prompt.trim())
+            append("\nCorrect answer: ").append(correct.trim())
+            if (yours.isNotBlank()) append("\nStudent's answer: ").append(yours.trim())
+            if (explain.isNotBlank()) append("\nExplanation: ").append(explain.trim())
+        }
+        val raw = LocalLlmEngine.generateText(
+            context, model, VARIANT_SYSTEM, PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
+        )
+        return parseVariant(raw)
+    }
+
+    fun parseVariant(raw: String): BankVariant {
+        val body = jsonBody(raw) ?: return BankVariant("", emptyList(), "", "", raw.trim())
+        val parsed = runCatching {
+            val o = JSONObject(body)
+            BankVariant(
+                question = o.optString("question").trim(),
+                options = o.optJSONArray("options")?.let { a ->
+                    (0 until a.length()).map { a.optString(it).trim() }
+                }.orEmpty().filter { it.isNotBlank() }.take(5),
+                answer = o.optString("answer").trim(),
+                explain = o.optString("explain").trim(),
+            )
+        }.getOrNull()
+        return if (parsed == null || parsed.isEmpty) {
+            BankVariant("", emptyList(), "", "", raw.trim())
+        } else parsed
+    }
+
     fun parseOutline(raw: String): StudyOutline {
         val body = jsonBody(raw) ?: return StudyOutline("", emptyList(), emptyList(), raw.trim())
         val parsed = runCatching {
@@ -343,6 +398,21 @@ object StudyAi {
         - reference a detail the candidate actually said, so it feels like a real examiner listening.
         - one sentence, at most 25 words, ending with a question mark.
         - return plain text only, never JSON, never key-value wrapping.
+    """.trimIndent()
+
+    private val VARIANT_SYSTEM = """
+        You are an IELTS question writer. The student answered a question incorrectly.
+        Write ONE new practice question that tests the SAME skill but with different content.
+        Return STRICT JSON only, with exactly this shape:
+        {"question":"the new question","options":["option 1","option 2"],"answer":"the correct option text","explain":"中文解析：为什么是这个答案"}
+        Rules:
+        - same question type and difficulty as the original.
+        - options: exactly 4 for four-option multiple choice; 3 for True/False/Not Given or Yes/No/Not Given; empty array for gap-fill / short answer.
+        - answer MUST exactly equal one of the options (or, for gap-fill, the target word/phrase).
+        - do not reuse the original wording or numbers; change the content, keep the tested skill.
+        - explain in Chinese, one or two sentences.
+        - never use a double quote inside a string value.
+        - no markdown, no commentary, JSON only.
     """.trimIndent()
 
     private val VOCAB_SYSTEM = """

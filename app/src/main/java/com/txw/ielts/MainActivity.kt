@@ -901,6 +901,8 @@ private fun App(
     var aiGenReady by remember { mutableStateOf<String?>(null) }   // 后台生成完成待查看的套题 id
     var aiExplains by remember { mutableStateOf<Map<Int, BankExplain>>(emptyMap()) }
     var explainingIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var bankVariants by remember { mutableStateOf<Map<Int, com.txw.ielts.llm.BankVariant>>(emptyMap()) }
+    var variantBusyIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
 
     fun openSet(setId: String, limitMin: Int = 0) {
         bankAnswers = bankRepo.savedAnswers(setId)
@@ -1803,6 +1805,31 @@ private fun App(
         }
     }
 
+    /** 错题变式题：同考点换新内容，避免重做原题变成背答案。 */
+    suspend fun runVariant(item: BankResultItem) {
+        if (item.id in variantBusyIds) return
+        variantBusyIds = variantBusyIds + item.id
+        error = null
+        try {
+            val v = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.variant(
+                    context, prefs.localModel,
+                    item.prompt, item.right, item.yours, item.explain,
+                )
+            }
+            if (v.isEmpty) {
+                error = "变式题生成失败，请重试"
+            } else {
+                bankVariants = bankVariants + (item.id to v)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "variant fail: ${e.message}")
+            error = "变式题生成失败：${e.message}"
+        } finally {
+            variantBusyIds = variantBusyIds - item.id
+        }
+    }
+
     // 全面屏侧滑 / 返回键：回到上一级页面，而不是退出 App
     val backTarget: Route? = when (val r = route) {
         Route.Home -> null
@@ -2329,6 +2356,8 @@ private fun App(
                             total = sum?.optInt("total") ?: items.size,
                             items = items,
                             transcript = "",
+                            variants = bankVariants, variantBusyIds = variantBusyIds,
+                            onRequestVariant = { item -> scope.launch { runVariant(item) } },
                             onAddWrong = {
                                 scope.launch {
                                     repo.addBankWrong(
@@ -2732,6 +2761,8 @@ private fun App(
                                                 readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
                                                 aiExplains = aiExplains, explainingIds = explainingIds,
                                                 onAiExplain = { item -> scope.launch { runAiExplain(item) } },
+                                                variants = bankVariants, variantBusyIds = variantBusyIds,
+                                                onRequestVariant = { item -> scope.launch { runVariant(item) } },
                                                 onAddWrong = {
                                                     scope.launch {
                                                         val rows = data.items.filter { !it.ok }

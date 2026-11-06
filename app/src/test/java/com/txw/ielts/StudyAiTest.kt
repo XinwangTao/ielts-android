@@ -151,8 +151,7 @@ class StudyAiTest {
     }
 
     @Test
-    fun `追问模型返回 JSON 时取 question 字段`() {
-        // 真机实测（OPPO qwen3-4b）：提示词要求纯文本，模型仍返回 JSON 包装。
+    fun `追问模型返回 JSON 时取 question 字段`() {        // 真机实测（OPPO qwen3-4b）：提示词要求纯文本，模型仍返回 JSON 包装。
         assertEquals(
             "Do you think educational systems should prioritize student interests over job market demands?",
             StudyAi.cleanFollowUp(
@@ -177,5 +176,32 @@ class StudyAiTest {
         assertEquals("s", o.stance)
         assertEquals(1, o.arguments.size)
         assertEquals("a", o.phrases.single())
+    }
+
+    @Test
+    fun `变式题解析正常 JSON`() {
+        val v = StudyAi.parseVariant(
+            """{"question":"What is the speaker's main concern?","options":["Cost","Delay","Safety","Noise"],"answer":"Safety","explain":"录音里反复提到安全风险。"}"""
+        )
+        assertEquals("What is the speaker's main concern?", v.question)
+        assertEquals(listOf("Cost", "Delay", "Safety", "Noise"), v.options)
+        assertEquals("Safety", v.answer)
+        assertEquals("录音里反复提到安全风险。", v.explain)
+    }
+
+    @Test
+    fun `变式题填空题没有选项`() {
+        val v = StudyAi.parseVariant("""{"question":"The museum opens at ___ on Monday.","options":[],"answer":"9 am","explain":"原文明确说 9 点。"}""")
+        assertEquals("9 am", v.answer)
+        assertTrue(v.options.isEmpty())
+    }
+
+    @Test
+    fun `变式题坏 JSON 退原文`() {
+        val raw = "这道题考的是同义替换。"
+        val v = StudyAi.parseVariant(raw)
+        assertEquals("", v.question)
+        assertEquals(raw, v.raw)
+        assertTrue(v.isEmpty)
     }
 }

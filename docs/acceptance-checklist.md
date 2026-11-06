@@ -16,6 +16,7 @@
 | 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5 |
 | AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*` | ✅ 探针 18/18 |
 | 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 18/18 |
+| 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` | ✅ 探针通过；真机 UI 待验 |
 | 图表题干润色 | 出图题「AI 润色题干」 | PC 探针 `chart_prompt_polish` | ✅ 探针 18/18 |
 
 一键跑全部 PC 探针（不装机）：
