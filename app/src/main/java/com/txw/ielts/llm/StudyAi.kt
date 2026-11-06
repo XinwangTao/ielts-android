@@ -180,8 +180,18 @@ object StudyAi {
         return cleanFollowUp(LocalLlmEngine.generateText(context, model, FOLLOW_UP_SYSTEM, prompt))
     }
 
-    /** 模型偶尔带上 "Question:" 前缀、引号或解释：只留第一句问题。 */
+    /** 模型偶尔带上 "Question:" 前缀、引号、解释或 JSON 包装：只留第一句问题。 */
     fun cleanFollowUp(raw: String): String {
+        // 本地 4B 实测会按训练习惯返回 {"question":"..."}（提示词要求纯文本也不听）：先拆 JSON。
+        // extractJson 对纯文本会抛 IOException，这里当成「没有 JSON」继续走文本清洗。
+        val json = runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
+        if (json != null) {
+            val fromJson = runCatching {
+                val o = org.json.JSONObject(json)
+                o.optString("question").ifBlank { o.optString("follow_up") }
+            }.getOrNull()
+            if (!fromJson.isNullOrBlank()) return fromJson.trim()
+        }
         val line = raw.lineSequence().map { it.trim() }.firstOrNull { it.isNotBlank() } ?: return ""
         var s = line
             .removePrefix("Question:").removePrefix("question:").removePrefix("Q:").trim()
@@ -326,6 +336,7 @@ object StudyAi {
         - the question must be abstract or opinion-based, like a real Part 3 question, not a repeat of the Part 2 cue card.
         - reference a detail the candidate actually said, so it feels like a real examiner listening.
         - one sentence, at most 25 words, ending with a question mark.
+        - return plain text only, never JSON, never key-value wrapping.
     """.trimIndent()
 
     private val VOCAB_SYSTEM = """

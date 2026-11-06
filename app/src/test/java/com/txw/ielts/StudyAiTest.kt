@@ -151,6 +151,21 @@ class StudyAiTest {
     }
 
     @Test
+    fun `追问模型返回 JSON 时取 question 字段`() {
+        // 真机实测（OPPO qwen3-4b）：提示词要求纯文本，模型仍返回 JSON 包装。
+        assertEquals(
+            "Do you think educational systems should prioritize student interests over job market demands?",
+            StudyAi.cleanFollowUp(
+                """{"question": "Do you think educational systems should prioritize student interests over job market demands?"}"""
+            ),
+        )
+        assertEquals(
+            "Should schools teach practical skills?",
+            StudyAi.cleanFollowUp("""好的，以下是问题：{"follow_up": "Should schools teach practical skills?"}"""),
+        )
+    }
+
+    @Test
     fun `解析容忍 JSON 后面的说明文字和花括号`() {
         // 旧实现用 lastIndexOf('}')，会被尾部说明里的括号带偏；现在与评分共用括号配对提取。
         val raw = """
