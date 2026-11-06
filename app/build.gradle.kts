@@ -52,6 +52,11 @@ android {
     testOptions {
         unitTests.isReturnDefaultValues = true
     }
+
+    lint {
+        // 只打 arm64-v8a（本地 ONNX 模型没有 x86 版本）；ChromeOS 的 ARM 翻译用不上这类检查。
+        disable += "ChromeOsAbiSupport"
+    }
 }
 
 // Room 结构快照：导出到 app/schemas 并入库。以后改表（加字段/索引）能对照旧结构写迁移，

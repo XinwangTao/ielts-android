@@ -1,5 +1,6 @@
 package com.txw.ielts.ui
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.txw.ielts.data.Prefs
 
+@SuppressLint("BatteryLife")
 @Composable
 fun SettingsScreen(
     prefs: Prefs,

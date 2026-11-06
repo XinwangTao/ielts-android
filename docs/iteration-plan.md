@@ -87,4 +87,4 @@
 
 - 每一步落地后跑 `bash tools/verify_all.sh`（单测 + lint + AI 探针），全绿才算完成。
 - 涉及 UI 的步骤，若当期不能上机，必须在 `docs/acceptance-checklist.md` 写清「看什么、怎么判」。
-- 当前基线：单测 **477 例**、lint 0 error / 4 warning、探针 21/21、打包通过（`verify_all` EXIT=0）。
+- 当前基线：单测 **477 例**、lint 0 error / 2 warning、探针 21/21、打包通过（`verify_all` EXIT=0）。
