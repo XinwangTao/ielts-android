@@ -95,6 +95,9 @@
 - `StudyAiCache` 解析记忆化（按存储串内容）；8 题出题档 `max_tokens=8000`。
 
 **音频**
+- 跟读对比算法抽纯函数（2026-11-07）：`ShadowCompare` 从 `ShadowRepo` 抽出并补 7 例单测；
+  分词改用 `\p{L}\p{N}` 并统一弯引号——此前 café 会被切成 caf、don’t 会变成 don+t，
+  读对也判漏读。算法本身（LCS/准确率分母）核对无错。
 - 回放单实例、倍速、进度、拖动、切后台暂停；写作口述也可回放。
 - 录音清理：引用集并入对练 turns；`SessionDao.audioPaths()` 只读 DISTINCT；保留期判定抽 `RecordingCleanup`。
 

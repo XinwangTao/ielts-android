@@ -47,48 +47,8 @@ class ShadowRepo(private val context: Context) {
         return out
     }
 
-    /** 分词：小写、去首尾标点、按空格切。 */
-    private fun tokenize(s: String): List<String> =
-        s.lowercase().trim()
-            .replace(Regex("[^a-z0-9' ]"), " ")
-            .replace(Regex("\\s+"), " ")
-            .trim()
-            .split(' ')
-            .filter { it.isNotBlank() }
+    /** 词级对比：算法在 [ShadowCompare]，这里只保留对外的仓储入口。 */
+    fun compare(reference: String, hypothesis: String): ShadowDiff =
+        ShadowCompare.compare(reference, hypothesis)
 
-    /** 词级对比：用 LCS 对齐，matchedRef 为读对下标，extraHyp 为多读词。 */
-    fun compare(reference: String, hypothesis: String): ShadowDiff {
-        val ref = tokenize(reference)
-        val hyp = tokenize(hypothesis)
-        val matchedRef = HashSet<Int>()
-        val matchedHyp = HashSet<Int>()
-
-        if (ref.isEmpty()) return ShadowDiff(ref, emptySet(), ref.indices.toSet(), hyp, 0.0)
-        if (hyp.isEmpty()) return ShadowDiff(ref, emptySet(), ref.indices.toSet(), emptyList(), 0.0)
-
-        // LCS 长度表
-        val n = ref.size
-        val m = hyp.size
-        val dp = Array(n + 1) { IntArray(m + 1) }
-        for (i in n - 1 downTo 0) {
-            for (j in m - 1 downTo 0) {
-                dp[i][j] = if (ref[i] == hyp[j]) dp[i + 1][j + 1] + 1
-                else maxOf(dp[i + 1][j], dp[i][j + 1])
-            }
-        }
-        // 回溯标记匹配
-        var i = 0
-        var j = 0
-        while (i < n && j < m) {
-            when {
-                ref[i] == hyp[j] -> { matchedRef.add(i); matchedHyp.add(j); i++; j++ }
-                dp[i + 1][j] >= dp[i][j + 1] -> i++
-                else -> j++
-            }
-        }
-        val missed = ref.indices.filter { it !in matchedRef }.toSet()
-        val extra = hyp.indices.filter { it !in matchedHyp }.map { hyp[it] }
-        val accuracy = matchedRef.size.toDouble() / n
-        return ShadowDiff(ref, matchedRef, missed, extra, accuracy)
-    }
 }
