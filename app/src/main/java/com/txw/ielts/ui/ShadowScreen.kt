@@ -254,6 +254,8 @@ fun ShadowResultScreen(
     title: String,
     accuracy: Int,
     items: List<ShadowResultItem>,
+    /** 本轮跟读录音：跟读最需要的正是「对照自己读的」。 */
+    audioPath: String? = null,
     onAddWrong: () -> Unit,
     onRetry: () -> Unit,
     onBack: () -> Unit,
@@ -267,6 +269,8 @@ fun ShadowResultScreen(
             TextButton(onClick = onBack) { Text("返回") }
             Text("跟读结果", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
         }
+        // 跟读最该做的是「听自己」，对照原文找漏读与语调。
+        if (!audioPath.isNullOrBlank()) RecordingPlayer(audioPath)
 
         BookCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
             Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

@@ -2818,6 +2818,7 @@ private fun App(
                             title = session.topic,
                             accuracy = acc,
                             items = items,
+                            audioPath = session.audioPath,
                             onAddWrong = {
                                 scope.launch { repo.addShadowWords(items.flatMap { it.missed }) }
                             },
