@@ -100,6 +100,7 @@ class BackupRestoreTest {
         assertTrue(s, s.contains("1 张卡片"))
         assertTrue(s, s.contains("1 套 AI 题"))
         assertTrue(s, s.contains("跳过 4 条坏数据"))
+        assertTrue(s, s.contains("设置 1 项"))
         // 过滤后摘要只反映将要写入的数量。
         val kept = BackupRestore.keepNew(p, setOf(BackupRestore.sessionKey(p.sessions.single())), emptySet())
         assertTrue(BackupRestore.summary(kept).contains("0 条练习"))

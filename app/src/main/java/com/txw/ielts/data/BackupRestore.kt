@@ -126,6 +126,8 @@ object BackupRestore {
         parts += "${plan.cards.size} 张卡片"
         val ai = plan.aiSets?.length() ?: 0
         if (ai > 0) parts += "$ai 套 AI 题"
+        val settingsCount = plan.settings?.length() ?: 0
+        if (settingsCount > 0) parts += "设置 $settingsCount 项"
         val skipped = plan.skippedSessions + plan.skippedCards
         val head = "将新增 " + parts.joinToString("、")
         return if (skipped > 0) "$head；跳过 $skipped 条坏数据" else head

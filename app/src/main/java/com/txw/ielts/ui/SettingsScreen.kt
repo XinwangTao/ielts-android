@@ -388,10 +388,12 @@ fun SettingsScreen(
                             context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
                         }.getOrNull()
                     }
+                    // 带上文件名：用户可能一次选错文件，得知道自己预览的是哪个。
+                    val name = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() } ?: "备份文件"
                     backupPreview = if (text == null) {
-                        "读取文件失败"
+                        "$name：读取文件失败"
                     } else {
-                        runCatching {
+                        "$name — " + runCatching {
                             com.txw.ielts.data.BackupRestore.summary(com.txw.ielts.data.BackupRestore.parse(text))
                         }.getOrElse { it.message ?: "解析失败" }
                     }
