@@ -741,8 +741,8 @@ fun ResultScreen(
             }) { Text("复制改写（Band 7）") }
         }
 
-        // 口语：能回放自己的录音，才听得出停顿、语速和发音问题（转写看不出这些）。
-        if (speaking) session.audioPath?.let { path -> RecordingPlayer(path) }
+        // 有录音就给回放：口语自不必说，写作「口述」的草稿也该能听自己讲得顺不顺。
+        session.audioPath?.let { path -> RecordingPlayer(path) }
 
         BoxWithConstraints {
             val wide = maxWidth > 640.dp
