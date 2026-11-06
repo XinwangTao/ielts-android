@@ -49,6 +49,10 @@ interface SessionDao {
     @Query("SELECT DISTINCT audioPath FROM sessions WHERE audioPath IS NOT NULL AND audioPath <> ''")
     suspend fun audioPaths(): List<String>
 
+    /** 导入预览去重用：与 BackupRestore.sessionKey 同格式（以  分隔）。 */
+    @Query("SELECT module || char(1) || topic || char(1) || startedAt FROM sessions")
+    suspend fun dedupeKeys(): List<String>
+
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun byId(id: Long): Session?
 

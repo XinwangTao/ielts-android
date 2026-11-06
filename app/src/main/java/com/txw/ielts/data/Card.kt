@@ -28,6 +28,10 @@ data class Card(
 
 @Dao
 interface CardDao {
+    /** 导入预览去重用：与 BackupRestore.cardKey 同格式（以  分隔）。 */
+    @Query("SELECT type || char(1) || lower(trim(front)) FROM cards")
+    suspend fun dedupeKeys(): List<String>
+
     @Query("SELECT COUNT(*) FROM cards")
     suspend fun countAll(): Int
 

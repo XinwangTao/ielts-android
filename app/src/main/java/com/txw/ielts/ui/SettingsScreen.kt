@@ -395,7 +395,18 @@ fun SettingsScreen(
                         "$name：读取文件失败"
                     } else {
                         "$name — " + runCatching {
-                            com.txw.ielts.data.BackupRestore.summary(com.txw.ielts.data.BackupRestore.parse(text))
+                            val plan = com.txw.ielts.data.BackupRestore.parse(text)
+                            // 与本机现有数据对一遍：预览要显示「真正会新增多少」，不是文件里有多少。
+                            val db = com.txw.ielts.data.AppDb.get(context)
+                            val kept = com.txw.ielts.data.BackupRestore.keepNew(
+                                plan,
+                                db.sessions().dedupeKeys().toSet(),
+                                db.cards().dedupeKeys().toSet(),
+                            )
+                            val dup = (plan.sessions.size - kept.sessions.size) +
+                                (plan.cards.size - kept.cards.size)
+                            com.txw.ielts.data.BackupRestore.summary(kept) +
+                                if (dup > 0) "；本机已有 $dup 条将跳过" else ""
                         }.getOrElse { it.message ?: "解析失败" }
                     }
                 }
