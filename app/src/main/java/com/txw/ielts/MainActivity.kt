@@ -247,6 +247,8 @@ class MainActivity : ComponentActivity() {
         val e2eTts = intent?.getBooleanExtra("e2e_tts", false) == true
         // 诊断：只加载本地模型不生成，用于测「加载后 RSS / release 是否真释放」。
         val e2eLoadModel = intent?.getBooleanExtra("e2e_loadmodel", false) == true
+        // 本地 AI 无点击自测：e2e_ai=outline|sample|vocab，生成结果打到 E2E 日志。
+        val e2eAi = intent?.getStringExtra("e2e_ai")
 
         // 本地评分完成通知（Android 13+ 需要运行时授权；拒绝只影响通知，不影响评分）
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -270,6 +272,7 @@ class MainActivity : ComponentActivity() {
                         e2eTts,
                         freshStart,
                         e2eLoadModel,
+                        e2eAi,
                     )
                 }
             }
@@ -336,6 +339,7 @@ private fun App(
     e2eTts: Boolean = false,
     freshStart: Boolean = true,
     e2eLoadModel: Boolean = false,
+    e2eAi: String? = null,
 ) {
     val context = LocalContext.current
     val isWide = LocalConfiguration.current.screenWidthDp >= 600
@@ -398,7 +402,8 @@ private fun App(
     // 端侧推理（评分 / 提纲 / 范例 / 生词卡 / 复盘）必然中断（docs/oppo-background-scoring-findings.md §九）。
     com.txw.ielts.ui.KeepScreenOn(
         sessionsOrNull?.any { it.status == "pending_local" } == true ||
-            writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy,
+            writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy ||
+            !e2eAi.isNullOrBlank(),
     )
 
     // 恢复完成后撤掉首页提示：不再有 pending_local 就说明评分已出结果或已转可重试。
@@ -1702,6 +1707,47 @@ private fun App(
             Log.i(TAG, "LOADMODEL loaded rss=${Diag.rssMb()}MB")
         } catch (e: Exception) {
             Log.e(TAG, "LOADMODEL fail=${e.javaClass.simpleName}:${e.message}")
+        }
+    }
+
+    LaunchedEffect(e2eAi, freshStart) {
+        val mode = e2eAi?.trim()?.lowercase().orEmpty()
+        if (mode.isEmpty() || !freshStart) return@LaunchedEffect
+        val model = prefs.localModel
+        try {
+            when (mode) {
+                "outline" -> {
+                    val r = com.txw.ielts.llm.StudyAi.outline(
+                        context, model,
+                        "Some people believe university students should study whatever they like. " +
+                            "Others think they should only study subjects that will be useful. " +
+                            "Discuss both views and give your own opinion.",
+                        "task2",
+                    )
+                    Log.i(TAG, "E2E: RESULT ai outline stance=${r.stance.length} args=${r.arguments.size} " +
+                        "phrases=${r.phrases.size} raw=${r.raw.isNotBlank()}")
+                }
+                "sample" -> {
+                    val r = com.txw.ielts.llm.StudyAi.speakingSample(
+                        context, model, "Part 2",
+                        "Describe a skill you learned that was difficult at first. You should say what it was, " +
+                            "how you learned it, why it was difficult, and explain how you feel about it now.",
+                    )
+                    val words = r.answer.split(Regex("\\s+")).count { it.isNotBlank() }
+                    Log.i(TAG, "E2E: RESULT ai sample words=$words keywords=${r.keywords.size} " +
+                        "structure=${r.structure.size} raw=${r.raw.isNotBlank()}")
+                }
+                "vocab" -> {
+                    val essay = "Many people believe that universities should only offer courses that lead directly to jobs. " +
+                        "I disagree with this view. First, education is not only about employment; " +
+                        "it also helps people become responsible citizens."
+                    val r = com.txw.ielts.llm.StudyAi.vocab(context, model, essay, emptyList())
+                    Log.i(TAG, "E2E: RESULT ai vocab items=${r.items.size} raw=${r.raw.isNotBlank()}")
+                }
+                else -> Log.w(TAG, "E2E: RESULT ai unknown=$mode")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "E2E: RESULT ai mode=$mode fail=${e.javaClass.simpleName}:${e.message}")
         }
     }
 
