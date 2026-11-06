@@ -99,4 +99,52 @@ class Sm2Test {
         assertEquals(1.8, s.ease, 0.0001)
         assertTrue(s.dueAt > now)
     }
+
+    // ---- 评级按钮上的「下次什么时候再见」：说的必须就是点下去会发生的事 ----
+
+    @Test
+    fun `新卡三档答对按钮都写明天`() {
+        // 首轮 SM-2 无论难易都是 1 天，按钮如实显示「明天」，不许为了好看编一个更大的数。
+        assertEquals("明天", Sm2.previewLabel(card(), Grade.HARD, now))
+        assertEquals("明天", Sm2.previewLabel(card(), Grade.GOOD, now))
+        assertEquals("明天", Sm2.previewLabel(card(), Grade.EASY, now))
+    }
+
+    @Test
+    fun `答错按钮写本轮再问而不是明天`() {
+        assertEquals("本轮再问", Sm2.previewLabel(card(), Grade.AGAIN, now))
+    }
+
+    @Test
+    fun `按钮文案与 next 的间隔一致`() {
+        val mature = card(reps = 2, interval = 3)
+        listOf(Grade.HARD, Grade.GOOD, Grade.EASY).forEach { grade ->
+            val days = Sm2.next(mature, grade, now).intervalDays
+            assertEquals("$days 天后", Sm2.previewLabel(mature, grade, now))
+        }
+    }
+
+    @Test
+    fun `已学卡按各自间隔显示天数`() {
+        val mature = card(reps = 2, interval = 3)
+        // 第三次起按 ease 增长：3*2.5=8，困难再打 0.8 折 → 6，简单再放大 1.3 → 10。
+        assertEquals("6 天后", Sm2.previewLabel(mature, Grade.HARD, now))
+        assertEquals("8 天后", Sm2.previewLabel(mature, Grade.GOOD, now))
+        assertEquals("10 天后", Sm2.previewLabel(mature, Grade.EASY, now))
+    }
+
+    @Test
+    fun `间隔上限同样体现在按钮上`() {
+        val long = card(ease = 2.5, reps = 5, interval = 170)
+        assertEquals("180 天后", Sm2.previewLabel(long, Grade.GOOD, now))
+    }
+
+    @Test
+    fun `预览只读卡上的调度状态 不写回`() {
+        val c = card(reps = 1, interval = 1, ease = 2.5)
+        Sm2.previewLabel(c, Grade.EASY, now)
+        assertEquals(2.5, c.ease, 0.0001)
+        assertEquals(1, c.intervalDays)
+        assertEquals(1, c.reps)
+    }
 }

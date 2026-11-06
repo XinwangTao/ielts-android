@@ -50,4 +50,21 @@ object Sm2 {
             dueAt = now + interval * DAY,
         )
     }
+
+    /**
+     * 评级按钮上的「下次什么时候再见」小字。
+     *
+     * 四档按钮原来只有「认识/模糊/太简单」，用户点之前不知道代价：
+     * 同一张卡点「认识」和点「太简单」到底差几天，只能点完才发现。
+     * 这里直接把 [next] 算出的间隔说在前面。
+     *
+     * Again 不是「明天再见」这么简单：本轮队列还会隔几张再问一次
+     * （[ReviewQueue.RELEARN_GAP]），所以按钮上写「本轮再问」，
+     * 调度落到明天这件事由结果文案和队列共同保证，不必在按钮上再挤一行。
+     */
+    fun previewLabel(card: Card, grade: Grade, now: Long = System.currentTimeMillis()): String {
+        if (grade == Grade.AGAIN) return "本轮再问"
+        val days = next(card, grade, now).intervalDays
+        return if (days <= 1) "明天" else "$days 天后"
+    }
 }

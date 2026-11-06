@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.txw.ielts.data.Card
 import com.txw.ielts.data.Grade
 import com.txw.ielts.data.ModuleTrend
+import com.txw.ielts.data.Sm2
 import com.txw.ielts.data.WrongTrend
 
 private fun typeLabel(t: String) = when (t) {
@@ -198,6 +199,20 @@ private fun TrendRow(m: ModuleTrend) {
     }
 }
 
+/**
+ * 评级按钮的两行文字：档位 + 下次出现时间。
+ *
+ * 第二行用 labelSmall，字号比档位小一档；按钮宽度固定为四等分，
+ * 「180 天后」这类最长文案也在正常字号下一行放得下（短屏会换行，按钮高度由 Column 撑开）。
+ */
+@Composable
+private fun GradeButtonText(label: String, next: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label)
+        Text(next, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
 @Composable
 private fun MiniStat(label: String, value: String, modifier: Modifier) {
     BookCard(modifier) {
@@ -294,28 +309,28 @@ fun StudyScreen(
                             enabled = !busy,
                             onClick = { onGrade(Grade.AGAIN) },
                             modifier = Modifier.weight(1f),
-                        ) { Text("不认识") }
+                        ) { GradeButtonText("不认识", Sm2.previewLabel(card, Grade.AGAIN)) }
                         OutlinedButton(
                             enabled = !busy,
                             onClick = { onGrade(Grade.HARD) },
                             modifier = Modifier.weight(1f),
-                        ) { Text("模糊") }
+                        ) { GradeButtonText("模糊", Sm2.previewLabel(card, Grade.HARD)) }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                         Button(
                             enabled = !busy,
                             onClick = { onGrade(Grade.GOOD) },
                             modifier = Modifier.weight(1f),
-                        ) { Text("认识") }
+                        ) { GradeButtonText("认识", Sm2.previewLabel(card, Grade.GOOD)) }
                         OutlinedButton(
                             enabled = !busy,
                             onClick = { onGrade(Grade.EASY) },
                             modifier = Modifier.weight(1f),
-                        ) { Text("太简单") }
+                        ) { GradeButtonText("太简单", Sm2.previewLabel(card, Grade.EASY)) }
                     }
-                    // Again 既有「本轮立刻重问」，也把间隔打回 1 天，两个都写清楚，避免以为答错就白练。
+                    // 按钮第二行就是评级后这张卡的间隔；Again 另有「本轮重问」，两件事分开说清。
                     Text(
-                        "不认识：本轮隔几张再问一次，明天再练；认识按 1→3→7 天递进",
+                        "按 SM-2 调度：按钮下方是这张卡下次出现的时间；「不认识」本轮还会隔几张再问一次。",
                         style = MaterialTheme.typography.labelSmall,
                     )
                 }
