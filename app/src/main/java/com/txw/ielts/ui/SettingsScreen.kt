@@ -414,7 +414,7 @@ fun SettingsScreen(
                 val r = com.txw.ielts.Backup.export(context)
                 exportMsg = if (r != null) {
                     "已导出 ${r.sessions} 条练习 / ${r.cards} 张卡片：${r.file.absolutePath}"
-                } else "导出失败（存储不可写）"
+                } else "导出失败（存储不可写或自检未通过）"
                 backupRefresh++
             }
         }) { Text("导出数据备份（JSON）") }

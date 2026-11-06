@@ -91,6 +91,12 @@ object Backup {
             val existing = dir.list()?.toSet().orEmpty()
             val out = File(dir, com.txw.ielts.data.BackupFiles.uniqueName(existing, name))
             out.writeText(o.toString())
+            // 自检：能导出不一定能导入。回读一遍用导入解析器验，坏文件当场删掉，不留「看起来成功」的坏备份。
+            val check = runCatching { com.txw.ielts.data.BackupRestore.parse(out.readText()) }.getOrNull()
+            if (check == null || check.sessions.size != sessions.size || check.cards.size != cards.size) {
+                runCatching { out.delete() }
+                throw java.io.IOException("导出校验失败：备份无法被解析或条目数不符")
+            }
             Result(out, sessions.size, cards.size)
         }.getOrNull()
     }
