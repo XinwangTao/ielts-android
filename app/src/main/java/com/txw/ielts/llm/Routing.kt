@@ -22,7 +22,8 @@ suspend fun <T> routeLlm(
 ): T {
     return when (channel) {
     "local" -> local()
-    "cloud" -> cloud()
+    // 显式「仅云端」也要扛住模型偶发写坏 JSON：格式类失败重发一次，HTTP 失败原样抛给界面。
+    "cloud" -> retryOnceOnFormat { cloud() }
     else -> try {
         cloud()
     } catch (e: CancellationException) {

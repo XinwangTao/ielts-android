@@ -138,4 +138,17 @@ class RoutingTest {
             assertEquals(1, calls)
         }
     }
+
+    @Test
+    fun `cloud 通道格式失败也重试一次`() = runBlocking {
+        var calls = 0
+        val out = routeLlm<String>(
+            channel = "cloud",
+            label = "测试",
+            cloud = { calls++; if (calls == 1) throw IOException("坏 JSON"); "ok" },
+            local = { "local" },
+        )
+        assertEquals("ok", out)
+        assertEquals(2, calls)
+    }
 }
