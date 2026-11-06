@@ -44,5 +44,5 @@ python tools/ai_probe.py --only listening_generation_8
 ## 真机状态（OPPO PKJ110）
 
 - 本地 4B **AI 复盘**：加载后 30.9 秒生成 375 tokens，页面显示总结 + 3 条行动 + 缓存提示，通过。
-- `e2e_ai` 无点击自测：`vocab` 6 条通过；`outline` / `sample` 需要 App 在前台且手机空闲，用户切到其他 App 时会被系统冻结，留待下次补跑。
+- `e2e_ai` 无点击自测（`14c7352` 补 IO/取消处理后）：`outline` 3 论点 / 5 短语、`sample` 195 词 / 5 关键词 / 3 结构、`vocab` 6 条，三项均解析成功。
 - 测试副产物 `card 170` / `session 22` 已按授权清理，现有 169 张卡 / 15 条记录。
