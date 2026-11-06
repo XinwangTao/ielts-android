@@ -75,6 +75,10 @@
 
 建议（未实施）：把 11200 这类「配额死亡」与「瞬时失败」分开，记粘性标记后本轮直接走本地。
 
+> **2026-11-06 更正：已实施。** `ChannelPick.isQuotaFailure()` + `Prefs.cloudDownUntil`（1 小时冷却）
+> 已在 `markCloudDown` 中接好，写作/口语/出题/精讲四条链路都会读取 `cloudDown` 直接走本地；
+> 设置页与首页有对应提示文案。本节「未实施」结论作废。
+
 ## 七、部署链路（已交付的部分）
 
 - 无线调试方法：Obsidian `Codex专区/安卓工具链.md` §51「OPPO 无线调试部署（2026-11-04 实测通过）」。
@@ -268,3 +272,13 @@ OPPO 真机（session 21）本地口语评分完成一次模型生成后，通�
 - 熄屏（非 HOME）场景本次未测：Guard 带 `ACQUIRE_CAUSES_WAKEUP`，预期会点亮屏幕并继续。
 
 
+
+## 12.5 云端评分同样纳入保活（2026-11-06 `ebfba53`）
+
+`evaluateWriting` / `evaluateSpeaking` 的云端分支（auto 默认云端优先）原先只在 Activity 协程里发 HTTP，
+窗口不可见约 7 秒后进程被冻、请求等不到返回。现在这两条路径也用 `Guard` 包住（finally 释放），
+与本地推理、whisper 转写一致；Guard 通知文案改为「评分 / AI 生成进行中」。
+
+实测限制：并行会话重装 APK（系统 `killDueToPackageUpdate`）会杀掉正在跑的后台评分，
+设备实测必须单执行者；悬浮窗权限在 ColorOS 无法用 `adb shell appops set` 授予
+（shell uid 2000 无 `MANAGE_APP_OPS_MODES`），只能走设置页手动授权。
