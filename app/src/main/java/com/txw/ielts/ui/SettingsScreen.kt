@@ -442,7 +442,9 @@ fun SettingsScreen(
                 val model = size(java.io.File(context.filesDir, "models"))
                 val db = size(context.getDatabasePath("ielts.db"))
                 fun mb(v: Long) = "%.1f MB".format(v / 1024.0 / 1024.0)
-                "存储：录音 ${mb(rec)} · 模型 ${mb(model)} · 数据库 ${mb(db)}"
+                // AI 缓存条数：清缓存前后能看出有没有真的清掉。
+                val cacheCount = runCatching { org.json.JSONObject(prefs.studyAiCache).length() }.getOrDefault(0)
+                "存储：录音 ${mb(rec)} · 模型 ${mb(model)} · 数据库 ${mb(db)} · AI 缓存 $cacheCount 条"
             }
         }
         storageText?.let {
