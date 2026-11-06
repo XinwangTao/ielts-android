@@ -62,6 +62,10 @@
 - **Stage C（targetSdk 35）**：需真机回归 edge-to-edge、前台服务、安装与 MNN/Whisper 加载。
 - **真机验收 28 项**：`docs/acceptance-checklist.md` 第八节。
 
+## 复盘
+
+- 固定流程见 `docs/retro-routine.md`（六步：归零 / 回归 / 盘点 / 沉淀 / 更新计划 / 归档）。
+
 ## 判断标准
 
 - 每一步落地后跑 `bash tools/verify_all.sh`（单测 + lint + AI 探针），全绿才算完成。
