@@ -330,13 +330,13 @@ def validate(case: dict, text: str) -> list[str]:
     v = case["validate"]
     if v == "topic":
         t = text.strip()
-        words = t.split()
+        twords = t.split()
         if re.search(r"[{}]", t):
             issues.append("新题里出现 JSON/花括号")
-        if len(words) < 15:
-            issues.append(f"题目过短（{len(words)} 词）")
-        if len(words) > 80:
-            issues.append(f"题目过长（{len(words)} 词）")
+        if len(twords) < 15:
+            issues.append(f"题目过短（{len(twords)} 词）")
+        if len(twords) > 80:
+            issues.append(f"题目过长（{len(twords)} 词）")
         if "university students should study" in t.lower():
             issues.append("新题复用了原题内容")
         if not re.search(r"[.?！？]$", t):
