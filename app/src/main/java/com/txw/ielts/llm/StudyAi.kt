@@ -217,6 +217,15 @@ object StudyAi {
 
     /** 题目只留第一段纯文本：模型偶尔带 Prompt:/Question: 前缀、引号或「Here is the prompt:」引导语。 */
     fun cleanPrompt(raw: String): String {
+        // 本地 4B 有把任何输出包成 JSON 的习惯（追问已经实测到），先认 prompt/question/topic 字段。
+        val json = runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
+        if (json != null) {
+            val fromJson = runCatching {
+                val o = org.json.JSONObject(json)
+                o.optString("prompt").ifBlank { o.optString("question") }.ifBlank { o.optString("topic") }
+            }.getOrNull()
+            if (!fromJson.isNullOrBlank()) return fromJson.trim().trim('"', '\'', '*', '`').trim()
+        }
         val lines = raw.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
         if (lines.isEmpty()) return ""
         // 第一行只是「Here is the new prompt:」这类引导语时取下一行。

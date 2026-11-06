@@ -247,6 +247,12 @@ class StudyAiTest {
             "The chart below shows the number of visitors to three museums.",
             StudyAi.cleanPrompt("Here is the new prompt:\nThe chart below shows the number of visitors to three museums."),
         )
+        assertEquals(
+            "Some people believe that advertising makes consumers buy things they do not need.",
+            StudyAi.cleanPrompt(
+                """{"prompt": "Some people believe that advertising makes consumers buy things they do not need."}"""
+            ),
+        )
         assertEquals("", StudyAi.cleanPrompt("   "))
     }
 }
