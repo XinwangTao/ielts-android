@@ -63,6 +63,10 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE source IN ('bank','shadow') AND (dueAt = 0 OR dueAt <= :now)")
     suspend fun countWrong(now: Long): Int
 
+    /** 全部听读/跟读错题（不限是否到期）：错题本趋势看的是存量与遗忘次数。 */
+    @Query("SELECT * FROM cards WHERE source IN ('bank','shadow')")
+    suspend fun wrongBook(): List<Card>
+
     /** 可淘汰池：排除内置卡（seed）、练习批注改正卡（error）与逐句改法卡（fix）——改正卡还没练就被删等于反馈丢失。 */
     @Query("SELECT COUNT(*) FROM cards WHERE source NOT IN ('seed','error','fix')")
     suspend fun countGenerated(): Int

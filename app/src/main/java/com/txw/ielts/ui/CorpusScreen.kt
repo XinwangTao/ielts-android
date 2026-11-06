@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.txw.ielts.data.Card
 import com.txw.ielts.data.Grade
+import com.txw.ielts.data.ModuleTrend
+import com.txw.ielts.data.WrongTrend
 
 private fun typeLabel(t: String) = when (t) {
     "word" -> "词汇"
@@ -55,6 +57,7 @@ fun CorpusHomeScreen(
     typeCounts: List<Pair<String, Int>>,
     wrongCount: Int,
     reviewedToday: Int = 0,
+    wrongTrend: WrongTrend? = null,
     onStart: () -> Unit,
     onWrongStart: () -> Unit,
     onBack: () -> Unit,
@@ -108,6 +111,36 @@ fun CorpusHomeScreen(
             MiniStat("待复习", "$due", Modifier.weight(1f))
         }
 
+        Text("错题趋势", style = MaterialTheme.typography.titleMedium)
+        BookCard {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (wrongTrend == null || wrongTrend.isEmpty) {
+                    Text(
+                        "做完一套听读题或跟读后，这里会显示近 7 天正确率变化和错题构成。",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                } else {
+                    wrongTrend.activeModules.forEach { TrendRow(it) }
+                    Text(
+                        "错题存量 ${wrongTrend.cardTotal} 张 · 待重刷 ${wrongTrend.repeatCards} 张 · 未练 ${wrongTrend.freshCards} 张",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    Text(
+                        "听力 ${wrongTrend.listeningCards} · 阅读 ${wrongTrend.readingCards} · 跟读 ${wrongTrend.shadowCards}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (wrongTrend.diagnosis.isNotBlank()) {
+                        Text(
+                            wrongTrend.diagnosis,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                }
+            }
+        }
+
         Text("内容构成", style = MaterialTheme.typography.titleMedium)
         BookCard {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -127,6 +160,41 @@ fun CorpusHomeScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun TrendRow(m: ModuleTrend) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(m.label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text(
+                m.recentPercent?.let { "近 7 天 $it%" } ?: "近 7 天未练",
+                style = MaterialTheme.typography.labelLarge,
+            )
+            val delta = m.deltaPoints
+            if (delta != null) {
+                Text(
+                    "  较上期 ${if (delta > 0) "+" else ""}$delta",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = when {
+                        delta > 0 -> MaterialTheme.colorScheme.primary
+                        delta < 0 -> MaterialTheme.colorScheme.error
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+        }
+        val previous = m.previousPercent
+        Text(
+            when {
+                previous != null -> "上期 $previous% · 近 7 天练了 ${m.recent.attempts} 次"
+                m.recent.attempts > 0 -> "首次统计 · 近 7 天练了 ${m.recent.attempts} 次"
+                else -> "上期无记录"
+            },
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

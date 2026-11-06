@@ -50,6 +50,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
 
     suspend fun wrongCount(): Int = db.cards().countWrong(System.currentTimeMillis())
 
+    /** 错题本全量（含已到期与未到期），供趋势分析统计存量、遗忘与未重刷张数。 */
+    suspend fun wrongBook(): List<Card> = db.cards().wrongBook()
+
     /** 今日已复习的卡片数（含错题、改正卡）。 */
     suspend fun reviewedToday(): Int {
         val start = java.util.Calendar.getInstance().apply {
