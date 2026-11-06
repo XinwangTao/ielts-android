@@ -372,12 +372,25 @@ fun SettingsScreen(
 
         var exportMsg by remember { mutableStateOf<String?>(null) }
         val exportScope = rememberCoroutineScope()
+        // 备份文件列表：确认「上次导出成功没有」，也能按需删单个。
+        var backupFiles by remember { mutableStateOf<List<java.io.File>>(emptyList()) }
+        var backupRefresh by remember { mutableStateOf(0) }
+        var pendingDeleteBackup by remember { mutableStateOf<java.io.File?>(null) }
+        LaunchedEffect(backupRefresh) {
+            backupFiles = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                java.io.File(context.getExternalFilesDir(null), "backup").listFiles()
+                    ?.filter { it.isFile && it.name.endsWith(".json", ignoreCase = true) }
+                    ?.sortedByDescending { it.lastModified() }
+                    .orEmpty()
+            }
+        }
         TextButton(onClick = {
             exportScope.launch {
                 val r = com.txw.ielts.Backup.export(context)
                 exportMsg = if (r != null) {
                     "已导出 ${r.sessions} 条练习 / ${r.cards} 张卡片：${r.file.absolutePath}"
                 } else "导出失败（存储不可写）"
+                backupRefresh++
             }
         }) { Text("导出数据备份（JSON）") }
         exportMsg?.let {
@@ -445,11 +458,50 @@ fun SettingsScreen(
                                     "已删除 $count 个旧备份，释放 ${freed / 1024} KB"
                                 }.getOrElse { "清理失败：${it.message}" }
                             }
+                            backupRefresh++
                         }
                     }) { Text("确认清理") }
                 },
                 dismissButton = {
                     TextButton(onClick = { confirmCleanBackups = false }) { Text("取消") }
+                },
+            )
+        }
+
+        // 备份列表：最多显示 10 个，逐个可删（删除前确认）。
+        if (backupFiles.isNotEmpty()) {
+            Text("备份文件（${backupFiles.size}）", style = MaterialTheme.typography.labelLarge)
+            backupFiles.take(10).forEach { f ->
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "${f.name} · ${f.length() / 1024} KB",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextButton(onClick = { pendingDeleteBackup = f }) { Text("删除") }
+                }
+            }
+        }
+        pendingDeleteBackup?.let { f ->
+            AlertDialog(
+                onDismissRequest = { pendingDeleteBackup = null },
+                title = { Text("删除这个备份？") },
+                text = { Text("${f.name}（${f.length() / 1024} KB），删除后无法恢复。") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        pendingDeleteBackup = null
+                        exportScope.launch {
+                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                runCatching { f.delete() }
+                            }
+                            exportMsg = if (!f.exists()) "已删除 ${f.name}" else "删除失败：${f.name}"
+                            backupRefresh++
+                        }
+                    }) { Text("删除") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingDeleteBackup = null }) { Text("取消") }
                 },
             )
         }
