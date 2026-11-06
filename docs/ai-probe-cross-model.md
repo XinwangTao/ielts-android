@@ -4,10 +4,12 @@
 
 | 模型 | token 预算 | 结果 | 夹具 |
 |---|---|---|---|
-| DeepSeek V4.1 Flash（`ccs-claude-openai--deepseek-v4.1-flash[1m]`） | 4000（出题 6000） | **20/20** | `app/src/test/resources/ai_probe/` |
-| GLM-5.3-Flash（`ccs-claude-openai--glm-5.3-flash`） | 3500（出题 6000） | **20/20** | `app/src/test/resources/ai_probe_glm/` |
+| DeepSeek V4.1 Flash（`ccs-claude-openai--deepseek-v4.1-flash[1m]`） | 4000（出题 6000） | **21/21** | `app/src/test/resources/ai_probe/` |
+| GLM-5.3-Flash（`ccs-claude-openai--glm-5.3-flash`） | 3500（出题 6000） | **21/21**¹ | `app/src/test/resources/ai_probe_glm/` |
 
-覆盖 20 项：写作 Task2/Task1 评分、弱作文区分度、口语评分、提纲 Task2/Task1、口语范例 Part1/2/3、生词卡、AI 复盘、阅读出题 6/8 题、听力出题 6/8 题、错题精讲、口语追问、错题变式题（选择/填空两形态）、图表题干润色。
+覆盖 21 项：写作 Task2/Task1 评分、弱作文区分度、口语评分、提纲 Task2/Task1、口语范例 Part1/2/3、生词卡、AI 复盘、阅读出题 6/8 题、听力出题 6/8 题、错题精讲、口语追问、错题变式题（选择/填空两形态）、写作换题、图表题干润色。
+
+¹ GLM 的 8 题阅读偶发 JSON 语法坏（多次复跑在 20–21 之间波动）；App 在 auto 通道会自动重试一次。
 
 强/弱作文区分度：DeepSeek 7.0 vs 4.5-5.0；GLM 7.0 vs 5.5。
 
