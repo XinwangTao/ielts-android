@@ -13,7 +13,7 @@ bash tools/e2e_local_ai.sh <设备> <模式> [--force]
 # 设备优先用 mDNS 名（IP 会随 DHCP 变）：
 # adb-afa99023-q6q7Cb._adb-tls-connect._tcp
 # 模式：
-#   outline | sample | vocab | review | followup
+#   outline | sample | vocab | review | followup | variant | newtopic
 #   gen_reading | gen_listening
 #   score_writing | score_speaking
 ```
@@ -31,8 +31,11 @@ bash tools/e2e_local_ai.sh <设备> <模式> [--force]
 | `score_writing` | overall 7.5（TR8/CC7/LR8/GRA7.5），fixes 3 / 逐句 2 | ~100s | 299 词强作文 |
 | `score_speaking` | overall 7.5（FC8/LR7.5/GRA7/P7.5），fixes 3 / 逐句 2 | ~90s | 149 词 Part 2 |
 | `gen_reading` | 4 题 / 文章 180 词 / JSON 可解析 | ~55s | 4 题档 |
-| `gen_listening` | **待补** | — | 被前台 App 抢占未跑完 |
-| `review` / `followup` | 由并行会话验证（提交 `6071a7e`） | — | |
+| `gen_listening` | **待补** | — | 被前台 App 抢占未跑完；目前由 PC 探针覆盖 |
+| `review` | tasks=3 / summary / encouragement 均非空 | ~30s | 2026-11-06 真机 |
+| `followup` | 83 字符单句追问 | ~15s | 2026-11-06 真机 |
+| `variant` | **待补** | — | 入口已就绪；设备阶段禁止实测，先由 PC `bank_variant` 覆盖 |
+| `newtopic` | **待补** | — | 同上，PC `writing_new_topic` 覆盖 |
 
 ## 前置条件
 
