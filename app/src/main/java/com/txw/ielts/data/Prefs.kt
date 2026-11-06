@@ -141,6 +141,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_MUTED_FIXES, "{}") ?: "{}"
         set(v) = sp.edit().putString(KEY_MUTED_FIXES, v).apply()
 
+    /** 结果页「手动改过的 AI 生词卡」（JSON：sessionId → 搭配键 → 改后内容），重新打开结果页仍然生效。 */
+    var vocabEdits: String
+        get() = sp.getString(KEY_VOCAB_EDITS, "{}") ?: "{}"
+        set(v) = sp.edit().putString(KEY_VOCAB_EDITS, v).apply()
+
     /**
      * 首启引导是否已看完/跳过。
      *
@@ -197,6 +202,7 @@ class Prefs(context: Context) {
         private const val KEY_CLOUD_DOWN = "cloud_down_until"
         private const val KEY_AI_REVIEW_CACHE = "ai_review_cache"
         private const val KEY_MUTED_FIXES = "ai_muted_fixes"
+        private const val KEY_VOCAB_EDITS = "ai_vocab_edits"
         private const val KEY_FIRST_RUN_DONE = "first_run_done"
         private const val KEY_TARGET_BAND = "target_band"
         private const val KEY_EXAM_DATE = "exam_date"

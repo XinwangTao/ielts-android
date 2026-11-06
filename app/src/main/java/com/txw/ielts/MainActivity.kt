@@ -1985,6 +1985,15 @@ private fun App(
                                 prefs.mutedFixes, session.id, mutedFixes,
                             )
                         }
+                        // 生词卡手动修改同样按会话存盘：改完再入 SRS，重新打开结果页仍是改过的内容。
+                        var vocabEdits by remember(session.id) {
+                            mutableStateOf(com.txw.ielts.llm.VocabEdits.load(prefs.vocabEdits, session.id))
+                        }
+                        val applyVocabEdits: (Map<String, com.txw.ielts.llm.VocabDraft>) -> Unit = { next ->
+                            vocabEdits = next
+                            prefs.vocabEdits =
+                                com.txw.ielts.llm.VocabEdits.save(prefs.vocabEdits, session.id, next)
+                        }
                         ResultScreen(
                             session = session, busy = stage, error = error,
                             staleLocal = session.status == "pending_local" &&
@@ -2058,10 +2067,20 @@ private fun App(
                                 scope.launch { requestVocab(session.id, text, fixes) }
                             },
                             onAddVocab = { items ->
-                                scope.launch { repo.addVocabCards(items) }
+                                // 入库前套用用户的修改：模型释义/例句未必合身，改过就以改的为准。
+                                val resolved = com.txw.ielts.llm.VocabEdits.resolve(items, vocabEdits)
+                                scope.launch { repo.addVocabCards(resolved) }
                             },
                             mutedFixes = mutedFixes,
                             onToggleMute = toggleMute,
+                            vocabEdits = vocabEdits,
+                            onEditVocab = { item, draft ->
+                                applyVocabEdits(com.txw.ielts.llm.VocabEdits.edit(vocabEdits, item, draft))
+                            },
+                            onRevertVocab = { item ->
+                                applyVocabEdits(com.txw.ielts.llm.VocabEdits.revert(vocabEdits, item))
+                            },
+                            onRevertAllVocab = { applyVocabEdits(emptyMap()) },
                             onBack = { route = Route.Home },
                         )
                     }

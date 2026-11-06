@@ -68,6 +68,11 @@ fun ResultScreen(
     // AI 批注逐条「忽略 / 恢复」：只影响本会话的背诵与生词输入，按会话存盘由调用方负责。
     mutedFixes: Set<String> = emptySet(),
     onToggleMute: (String) -> Unit = {},
+    // AI 生词卡手动编辑：模型给错释义/例句时入库前改掉，可逐条或全部恢复原文。
+    vocabEdits: Map<String, com.txw.ielts.llm.VocabDraft> = emptyMap(),
+    onEditVocab: (com.txw.ielts.llm.VocabItem, com.txw.ielts.llm.VocabDraft) -> Unit = { _, _ -> },
+    onRevertVocab: (com.txw.ielts.llm.VocabItem) -> Unit = {},
+    onRevertAllVocab: () -> Unit = {},
 ) {
     val speaking = session.module == "speaking"
     val context = LocalContext.current
@@ -126,6 +131,8 @@ fun ResultScreen(
     }
     // 忽略/恢复后允许再次「加入背诵」：库里按 CardText.key 判重，重复点击不会重复建卡。
     LaunchedEffect(mutedFixes) { addedToCorpus = false }
+    // 改了生词卡内容也允许重新入库：搭配改过之后是一张新卡，按钮不该一直停在「已加入」。
+    LaunchedEffect(vocabEdits) { vocabAdded = false }
 
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -465,23 +472,94 @@ fun ResultScreen(
                                     Text(if (vocabChecked.size == result.items.size) "取消全选" else "全选")
                                 }
                             }
+                            val editedCount = com.txw.ielts.llm.VocabEdits.editedCount(result.items, vocabEdits)
+                            if (editedCount > 0) {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        "已手动修改 $editedCount 条",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    TextButton(onClick = onRevertAllVocab) {
+                                        Text("全部恢复原文", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                            val duplicateAt = com.txw.ielts.llm.VocabEdits.duplicates(result.items, vocabEdits)
                             result.items.forEachIndexed { i, item ->
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                val editKey = com.txw.ielts.llm.VocabEdits.key(item)
+                                val draft = com.txw.ielts.llm.VocabEdits.draftOf(item, vocabEdits)
+                                var editing by remember(session.id, editKey) { mutableStateOf(false) }
+                                Row(verticalAlignment = Alignment.Top) {
                                     Checkbox(
                                         checked = i in vocabChecked,
                                         onCheckedChange = { on ->
                                             vocabChecked = if (on) vocabChecked + i else vocabChecked - i
                                         },
                                     )
-                                    Column(Modifier.weight(1f)) {
-                                        Text(item.phrase, style = MaterialTheme.typography.titleSmall)
-                                        Text(item.meaning, style = MaterialTheme.typography.bodySmall)
-                                        if (item.example.isNotBlank()) {
+                                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        if (editing) {
+                                            IosTextField(
+                                                value = draft.phrase,
+                                                onValueChange = { onEditVocab(item, draft.copy(phrase = it)) },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                label = "搭配",
+                                                singleLine = true,
+                                            )
+                                            IosTextField(
+                                                value = draft.meaning,
+                                                onValueChange = { onEditVocab(item, draft.copy(meaning = it)) },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                label = "中文释义",
+                                            )
+                                            IosTextField(
+                                                value = draft.example,
+                                                onValueChange = { onEditVocab(item, draft.copy(example = it)) },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                label = "例句",
+                                            )
                                             Text(
-                                                item.example,
+                                                "搭配/释义留空会保留模型原文；例句留空表示不要例句。",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             )
+                                        } else {
+                                            Text(draft.phrase, style = MaterialTheme.typography.titleSmall)
+                                            Text(
+                                                draft.meaning.ifBlank { "（无释义）" },
+                                                style = MaterialTheme.typography.bodySmall,
+                                            )
+                                            if (draft.example.isNotBlank()) {
+                                                Text(
+                                                    draft.example,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                        duplicateAt[i]?.let { first ->
+                                            Text(
+                                                "与第 ${first + 1} 条重复，入库时只保留一条",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.error,
+                                            )
+                                        }
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            TextButton(onClick = { editing = !editing }) {
+                                                Text(
+                                                    if (editing) "完成" else "编辑",
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                )
+                                            }
+                                            if (editKey in vocabEdits) {
+                                                TextButton(onClick = {
+                                                    onRevertVocab(item)
+                                                    editing = false
+                                                }) {
+                                                    Text("恢复原文", style = MaterialTheme.typography.labelSmall)
+                                                }
+                                            }
                                         }
                                     }
                                 }
