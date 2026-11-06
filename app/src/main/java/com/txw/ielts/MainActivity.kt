@@ -411,6 +411,8 @@ private fun App(
     var speakingSampleError by remember { mutableStateOf<String?>(null) }
     var vocabResult by remember { mutableStateOf<com.txw.ielts.llm.VocabResult?>(null) }
     var vocabSessionId by remember { mutableStateOf<Long?>(null) }
+    // 「加入背诵」的实际入库账目（按会话存内存）：结果页据此说清加了几张、几条重复。
+    var corpusAdd by remember { mutableStateOf<Pair<Long, com.txw.ielts.data.IngestResult>?>(null) }
     var vocabBusy by remember { mutableStateOf(false) }
     var vocabError by remember { mutableStateOf<String?>(null) }
     // Part 3 追问：真实考试 Part 2 之后考官会追着问，这里让本地模型扮演考官。
@@ -2465,12 +2467,18 @@ private fun App(
                                 }
                             },
                             onAddToCorpus = { fixes, sentences ->
+                                // 先清掉上一次的账目：新一轮点击期间不显示旧结果。
+                                corpusAdd = null
                                 scope.launch {
-                                    repo.addFixesAsCards(fixes, session.module)
-                                    // 逐句改法也进 SRS：下次复习的是「改这句」，不是只读批评。
-                                    repo.addSentenceFixesAsCards(sentences, session.module)
+                                    // 批注与逐句改法分开入库（后者要等前者的卡先落库才能跨类型判重），
+                                    // 两笔账合并后再告诉结果页，别让界面只看到其中一半。
+                                    val result = repo.addFixesAsCards(fixes, session.module) +
+                                        repo.addSentenceFixesAsCards(sentences, session.module)
+                                    corpusAdd = session.id to result
+                                    refreshCorpus()
                                 }
                             },
+                            corpusAdd = corpusAdd?.takeIf { it.first == session.id }?.second,
                             onPracticeAgain = {
                                 val rawFixes = runCatching {
                                     val o = JSONObject(session.fixesJson)

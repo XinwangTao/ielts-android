@@ -98,56 +98,60 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     /** 手动删除一张卡；返回后调用方负责把它从当前学习队列移除。 */
     suspend fun delete(card: Card) = db.cards().deleteById(card.id)
 
-    /** 把一次练习的批注转成复习卡，不调用模型；去重后写入 AI 池，超上限自动淘汰。 */
-    suspend fun addFixesAsCards(fixes: List<String>, module: String): Int {
-        if (fixes.isEmpty()) return 0
+    /**
+     * 把一次练习的批注转成复习卡，不调用模型；去重后写入 AI 池，超上限自动淘汰。
+     *
+     * 返回新增/重复/无效的账目，供结果页说清楚「到底加了几张」——之前只返回新增数，
+     * 调用方一律显示「已加入背诵」，全是重复时用户会以为反馈已进队列。
+     */
+    suspend fun addFixesAsCards(fixes: List<String>, module: String): IngestResult {
+        if (fixes.isEmpty()) return IngestResult()
         // 跨会话判重：库里的正面也按 CardText.key 归一化，标点/空白不同的旧卡同样算重复。
-        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
-        val cards = fixes.mapNotNull { raw ->
-            val text = raw.trim()
-            val head = CardText.front(raw, CardText.FIX_MAX)
-            if (head.isBlank()) return@mapNotNull null
-            if (!seen.add(CardText.key(head))) return@mapNotNull null
+        val plan = FeedbackIngest.planFixes(
+            fixes,
+            db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) },
+        )
+        if (plan.accepted.isEmpty()) return plan.ingest
+        db.cards().insertAll(plan.accepted.map {
             Card(
                 type = "error",
-                front = head,
-                back = text,
+                front = it.front,
+                back = it.back,
                 example = "",
                 exampleCn = "",
                 tags = "review,练习批注",
                 source = "error",
             )
-        }
-        if (cards.isEmpty()) return 0
-        db.cards().insertAll(cards)
+        })
         enforceGeneratedCap()
         enforceFeedbackCap()
-        return cards.size
+        return plan.ingest
     }
 
     /** 逐句改法 → 改错卡（type=cloze, source=fix）：正面原句，背面改写与中文问题。 */
-    suspend fun addSentenceFixesAsCards(items: List<Triple<String, String, String>>, module: String): Int {
-        if (items.isEmpty()) return 0
-        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
-        val cards = items.mapNotNull { (sentence, issue, better) ->
-            if (sentence.isBlank() || better.isBlank()) return@mapNotNull null
-            // 「改写」和原句只差大小写/空白/句末标点时，卡片正面与背面相同，练了也学不到东西；
-            // 旧会话里已存盘的这类条目也要在入库时挡掉。
-            if (CardText.key(sentence) == CardText.key(better)) return@mapNotNull null
-            val front = "改错：" + CardText.front(sentence, 160)
-            if (!seen.add(CardText.key(front))) return@mapNotNull null
+    suspend fun addSentenceFixesAsCards(
+        items: List<Triple<String, String, String>>,
+        module: String,
+    ): IngestResult {
+        if (items.isEmpty()) return IngestResult()
+        // 「改写」和原句只差大小写/空白/句末标点时，卡片正反面相同：这属于内容不可用，
+        // 在 FeedbackIngest 里与重复分开计数，结果页才能分清「没东西可加」和「已经加过了」。
+        val plan = FeedbackIngest.planSentences(
+            items,
+            db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) },
+        )
+        if (plan.accepted.isEmpty()) return plan.ingest
+        db.cards().insertAll(plan.accepted.map {
             Card(
                 type = "cloze",
-                front = front,
-                back = better.trim() + if (issue.isNotBlank()) "\n\n（${issue.trim()}）" else "",
+                front = it.front,
+                back = it.back,
                 tags = "review,逐句改法",
                 source = "fix",
             )
-        }
-        if (cards.isEmpty()) return 0
-        db.cards().insertAll(cards)
+        })
         enforceFeedbackCap()
-        return cards.size
+        return plan.ingest
     }
 
     /** AI 生成卡上限：超出时按「未复习优先、最旧优先」淘汰。 */

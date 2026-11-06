@@ -39,6 +39,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.txw.ielts.data.FeedbackIngest
 import com.txw.ielts.data.LocalWait
 import com.txw.ielts.data.ModelEssay
 import com.txw.ielts.data.ModelEssayStore
@@ -58,6 +59,8 @@ fun ResultScreen(
     sameTopicHistory: List<Session> = emptyList(),
     onRetry: () -> Unit,
     onAddToCorpus: (List<String>, List<Triple<String, String, String>>) -> Unit,
+    // 入库账目：新增几张、几张重复、几张内容不可用。null 表示还没点过或还在写库。
+    corpusAdd: com.txw.ielts.data.IngestResult? = null,
     onPracticeAgain: () -> Unit,
     onBack: () -> Unit,
     // 本地 AI 生词卡：从本次正文 + 逐句改法里提搭配，勾选后进 SRS。
@@ -402,7 +405,28 @@ fun ResultScreen(
                     TextButton(
                         enabled = !addedToCorpus && (fixes.isNotEmpty() || sentenceFixes.isNotEmpty()),
                         onClick = { onAddToCorpus(fixes, sentenceFixes); addedToCorpus = true },
-                    ) { Text(if (addedToCorpus) "已加入背诵" else "把这几点加入背诵") }
+                    ) {
+                        // 一张都没进库时不能还写「已加入」：重复/不可用由下面的账目说清。
+                        Text(
+                            when {
+                                addedToCorpus && corpusAdd != null && corpusAdd.added == 0 ->
+                                    "这些已在背诵里"
+                                addedToCorpus -> "已加入背诵"
+                                else -> "把这几点加入背诵"
+                            }
+                        )
+                    }
+                    // 点了之后才显示：加了几张、几条重复、几条不可用。
+                    // 之前一律显示「已加入背诵」，全是重复时用户会去复习队列里找根本不存在的卡。
+                    if (addedToCorpus) {
+                        FeedbackIngest.summary(corpusAdd ?: com.txw.ielts.data.IngestResult())?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                     Button(
                         onClick = onPracticeAgain,
                         modifier = Modifier.fillMaxWidth(),
