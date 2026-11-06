@@ -18,10 +18,19 @@ data class StudyRound(
     val revealed: Boolean = false,
     /** 正在写库的那张卡；为 null 表示空闲。 */
     val busyCardId: Long? = null,
+    /**
+     * 评级流水（按发生顺序，含 Again 后的本轮重问），只用来生成收尾小结。
+     * 单独记一份而不是回头读队列：队列里的卡片是**评级前**的快照，
+     * 算不出「这张卡重问了没有」；也不能读库，写库与状态机是解耦的。
+     */
+    val events: List<Pair<Long, Grade>> = emptyList(),
 ) {
     val card: Card? get() = queue.getOrNull(index)
     val total: Int get() = queue.size
     val finished: Boolean get() = card == null
+
+    /** 这一轮做了什么：结束时由调用方展示一次，别让人莫名其妙被送回语料页。 */
+    fun summary(): RoundSummary = RoundSummary.of(events)
 
     /** 评级按钮是否可点：没有卡，或这张卡正在写库，都不能点。 */
     val canGrade: Boolean get() = card != null && busyCardId != card?.id
@@ -46,7 +55,13 @@ data class StudyRound(
         val c = card ?: return copy(busyCardId = null)
         if (busyCardId != c.id) return this
         val step = ReviewQueue.afterGrade(queue, index, grade)
-        return copy(queue = step.queue, index = step.index, revealed = false, busyCardId = null)
+        return copy(
+            queue = step.queue,
+            index = step.index,
+            revealed = false,
+            busyCardId = null,
+            events = events + (c.id to grade),
+        )
     }
 
     /** 写库失败等异常路径：只解锁、不推进，让用户能对同一张卡重评。 */
@@ -56,7 +71,8 @@ data class StudyRound(
     fun discard(): StudyRound {
         val c = card ?: return copy(busyCardId = null)
         val rest = queue.filterNot { it.id == c.id }
-        if (rest.isEmpty()) return EMPTY
+        // 删空也要带着评级流水结束，否则「删掉最后一张」会把本轮小结抹成空。
+        if (rest.isEmpty()) return copy(queue = emptyList(), index = 0, revealed = false, busyCardId = null)
         return copy(
             queue = rest,
             index = index.coerceAtMost(rest.lastIndex),

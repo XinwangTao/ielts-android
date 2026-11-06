@@ -36,6 +36,7 @@ import com.txw.ielts.data.Card
 import com.txw.ielts.data.CardType
 import com.txw.ielts.data.Grade
 import com.txw.ielts.data.ModuleTrend
+import com.txw.ielts.data.RoundSummary
 import com.txw.ielts.data.Sm2
 import com.txw.ielts.data.WrongTrend
 
@@ -52,6 +53,9 @@ fun CorpusHomeScreen(
     wrongCount: Int,
     reviewedToday: Int = 0,
     wrongTrend: WrongTrend? = null,
+    /** 上一轮复习的小结；评完最后一张卡回到这里时给个交代，点「知道了」后消失。 */
+    roundSummary: RoundSummary? = null,
+    onDismissRound: () -> Unit = {},
     onStart: () -> Unit,
     onWrongStart: () -> Unit,
     onBack: () -> Unit,
@@ -65,6 +69,25 @@ fun CorpusHomeScreen(
         IosNavBar("语料积累", onBack = onBack)
         if (!error.isNullOrBlank()) {
             Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
+
+        // 一轮复习刚结束：先说清「刚才做了什么」，再谈今天还剩多少。
+        if (roundSummary != null && !roundSummary.empty) {
+            BookCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("上一轮小结", style = MaterialTheme.typography.labelLarge)
+                    Text(
+                        roundSummary.headline,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    if (roundSummary.detail.isNotBlank()) {
+                        Text(roundSummary.detail, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    Text(roundSummary.note, style = MaterialTheme.typography.bodySmall)
+                    TextButton(onClick = onDismissRound) { Text("知道了") }
+                }
+            }
         }
 
         BookCard(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {

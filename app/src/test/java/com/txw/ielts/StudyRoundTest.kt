@@ -147,4 +147,50 @@ class StudyRoundTest {
         assertTrue(r.finished)
         assertEquals(StudyRound.EMPTY, r)
     }
+
+    @Test
+    fun `评级流水按发生顺序记录`() {
+        val r = StudyRound.start(cards(1, 2)).grade(Grade.GOOD).grade(Grade.EASY)
+        assertEquals(listOf(1L to Grade.GOOD, 2L to Grade.EASY), r.events)
+        val s = r.summary()
+        assertEquals(2, s.cards)
+        assertEquals(2, s.ratings)
+        assertEquals(2, s.solid)
+    }
+
+    @Test
+    fun `Again 重问会再记一条且小结按最后结果算`() {
+        val r = StudyRound.start(cards(1, 2)).grade(Grade.AGAIN)
+        // 单张卡队列之外的情况：Again 的卡留在本轮靠后的位置，本轮没结束。
+        assertFalse(r.finished)
+        assertEquals(listOf(1L to Grade.AGAIN), r.events)
+        // 隔几张再问，最后答对。
+        val after = r.grade(Grade.GOOD).grade(Grade.GOOD)
+        assertEquals(3, after.events.size)
+        val s = after.summary()
+        assertEquals(2, s.cards)
+        assertEquals(3, s.ratings)
+        assertEquals(2, s.solid)
+        assertEquals(1, s.relearned)
+        // 已经答对的卡不该被算成「停在 Again」。
+        assertEquals(0, s.unfinished)
+    }
+
+    @Test
+    fun `写库失败解锁时不记流水`() {
+        val r = StudyRound.start(cards(1)).beginGrade().unlock()
+        assertTrue(r.events.isEmpty())
+        assertTrue(r.summary().empty)
+    }
+
+    @Test
+    fun `删除到空仍保留已发生的评级`() {
+        val r = StudyRound.start(cards(1, 2)).grade(Grade.GOOD)
+        val deleted = r.discard().discard()
+        assertTrue(deleted.finished)
+        val s = deleted.summary()
+        assertEquals(1, s.cards)
+        assertEquals(1, s.solid)
+        assertEquals("本轮 1 张卡 · 评级 1 次", s.headline)
+    }
 }

@@ -764,12 +764,18 @@ private fun App(
     // 一轮复习的状态（当前卡 / 翻面 / 哪张卡正在写库）统一交给 StudyRound，
     // 评级按钮的置灰跟着它走：换卡或 Again 就地重问都会解锁，不会只评得动第一张。
     var round by remember { mutableStateOf(StudyRound()) }
+    // 上一轮复习的小结：评完（或中途退出）后回到语料页先给一句交代，开新一轮时清掉。
+    var lastRoundSummary by remember { mutableStateOf<com.txw.ielts.data.RoundSummary?>(null) }
+    fun beginRound(cards: List<com.txw.ielts.data.Card>): StudyRound {
+        lastRoundSummary = null
+        return StudyRound.start(cards)
+    }
 
     // 今日任务：点一下就直接开始，不再先跳语料首页再点第二轮。
     fun startWrongQueue() {
         scope.launch {
             val cards = repo.buildWrongQueue()
-            round = StudyRound.start(cards)
+            round = beginRound(cards)
             error = if (cards.isEmpty()) "暂无到期错题" else null
             if (cards.isNotEmpty()) route = Route.Study
         }
@@ -777,7 +783,7 @@ private fun App(
     fun startDueQueue() {
         scope.launch {
             val cards = repo.buildQueue(prefs.dailyNewCards)
-            round = StudyRound.start(cards)
+            round = beginRound(cards)
             error = if (cards.isEmpty()) "今天没有待学卡片" else null
             if (cards.isNotEmpty()) route = Route.Study
         }
@@ -2524,11 +2530,13 @@ private fun App(
                     wrongCount = wrongCount,
                     reviewedToday = reviewedToday,
                     wrongTrend = wrongTrend,
+                    roundSummary = lastRoundSummary,
+                    onDismissRound = { lastRoundSummary = null },
                     error = error,
                     onStart = {
                         scope.launch {
                             val cards = repo.buildQueue(prefs.dailyNewCards)
-                            round = StudyRound.start(cards)
+                            round = beginRound(cards)
                             error = if (cards.isEmpty()) "今天没有待学卡片" else null
                             if (cards.isNotEmpty()) route = Route.Study
                         }
@@ -2536,7 +2544,7 @@ private fun App(
                     onWrongStart = {
                         scope.launch {
                             val cards = repo.buildWrongQueue()
-                            round = StudyRound.start(cards)
+                            round = beginRound(cards)
                             error = if (cards.isEmpty()) "暂无错题" else null
                             if (cards.isNotEmpty()) route = Route.Study
                         }
@@ -2575,6 +2583,8 @@ private fun App(
                                     // Again 不丢到明天：留在本轮隔几张再问，答对才前进。
                                     round = round.applyGrade(grade)
                                     if (round.finished) {
+                                        // 收尾小结先取出来再清状态：否则语料页只会看到「今天没有待学卡片」。
+                                        lastRoundSummary = round.summary()
                                         round = StudyRound.EMPTY
                                         refreshCorpus()
                                         route = Route.Corpus
@@ -2586,13 +2596,19 @@ private fun App(
                                     repo.delete(card)
                                     round = round.discard()
                                     if (round.finished) {
+                                        lastRoundSummary = round.summary()
                                         round = StudyRound.EMPTY
                                         refreshCorpus()
                                         route = Route.Corpus
                                     }
                                 }
                             },
-                            onExit = { round = StudyRound.EMPTY; route = Route.Corpus },
+                            onExit = {
+                                // 中途退出也留一份小结：用户已经评过的卡不该被无声丢掉。
+                                round.summary().takeIf { !it.empty }?.let { lastRoundSummary = it }
+                                round = StudyRound.EMPTY
+                                route = Route.Corpus
+                            },
                         )
                     }
                 }
