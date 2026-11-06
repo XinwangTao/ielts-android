@@ -2065,6 +2065,17 @@ private fun App(
                     Log.i(TAG, "E2E: RESULT ai variant empty=${v.isEmpty} options=${v.options.size} " +
                         "answerOk=$answerOk q=${v.question.take(60)}")
                 }
+                "newtopic" -> {
+                    val t = com.txw.ielts.llm.StudyAi.writingTopic(
+                        context, model,
+                        "Some people believe university students should study whatever they like. " +
+                            "Others think they should only study subjects that will be useful. " +
+                            "Discuss both views and give your own opinion.",
+                        "task2",
+                    )
+                    val words = t.split(Regex("\\s+")).count { it.isNotBlank() }
+                    Log.i(TAG, "E2E: RESULT ai newtopic words=$words t=${t.take(80)}")
+                }
                 "score_writing" -> {
                     val topic = "Some people believe university students should study whatever they like. " +
                         "Others think they should only study subjects that will be useful. " +
