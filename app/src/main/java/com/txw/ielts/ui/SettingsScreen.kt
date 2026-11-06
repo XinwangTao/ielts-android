@@ -251,6 +251,49 @@ fun SettingsScreen(
             )
         }
 
+        // —— 后台运行（ColorOS 自家冻结层） ——
+        Text("后台评分", style = MaterialTheme.typography.titleMedium)
+        val power = remember {
+            context.getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+        }
+        var ignoringBattery by remember {
+            mutableStateOf(power.isIgnoringBatteryOptimizations(context.packageName))
+        }
+        Text(
+            if (ignoringBattery) "当前：已允许后台运行"
+            else "当前：未允许后台运行（长评分在熄屏/切后台时可能被系统冻结）",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (ignoringBattery) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.error,
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = {
+                val direct = android.content.Intent(
+                    android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                    android.net.Uri.parse("package:${context.packageName}"),
+                )
+                runCatching { context.startActivity(direct) }.onFailure {
+                    runCatching {
+                        context.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                        )
+                    }
+                }
+                ignoringBattery = power.isIgnoringBatteryOptimizations(context.packageName)
+            }) {
+                Text(if (ignoringBattery) "已允许（可再检查）" else "允许后台运行（电池优化白名单）")
+            }
+            TextButton(onClick = {
+                ignoringBattery = power.isIgnoringBatteryOptimizations(context.packageName)
+            }) { Text("刷新状态") }
+        }
+        Text(
+            "ColorOS 还有一层自己的冻结：设置 → 电池 → 应用耗电管理 → 雅思随身练 → 允许后台运行 / 允许自启动 / 允许关联启动。" +
+                "开启后长评分在后台更稳；未开启时请在评分期间保持 App 在前台。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         TextButton(onClick = onReplayGuide) { Text("重新查看新手引导") }
 
         var exportMsg by remember { mutableStateOf<String?>(null) }

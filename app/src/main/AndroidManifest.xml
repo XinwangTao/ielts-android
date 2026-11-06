@@ -7,7 +7,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- 后台评分：ColorOS 自家冻结层需要用户在电池优化白名单里放行 -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <!-- Android 11+ 包可见性：声明查询 TTS 引擎服务，否则 MIUI 的 AppsFilter 会拦截系统 TTS 绑定 -->
     <queries>
@@ -35,6 +38,11 @@
             android:name=".ScoreService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <!-- 媒体播放型前台服务：静音音频把进程钉在前台，避免 ColorOS 在后台冻结推理 -->
+        <service
+            android:name=".GuardService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
     </application>
 
 </manifest>

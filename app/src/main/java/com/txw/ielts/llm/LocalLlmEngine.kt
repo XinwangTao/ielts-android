@@ -294,38 +294,50 @@ object LocalLlmEngine {
 
     /** 仅预加载模型而不生成（诊断用：验证加载后的 RSS 与 release 是否真的释放）。 */
     suspend fun preload(context: Context, model: String) {
-        loaded(context, model)
+        // 加载也是阻塞 native 调用：同样用前台媒体服务兜住，避免切后台时停在半途。
+        com.txw.ielts.Guard.start(context)
+        try {
+            loaded(context, model)
+        } finally {
+            com.txw.ielts.Guard.stop(context)
+        }
     }
 
     /** 阻塞生成一整段文本；native 回调是流式的，这里拼成完整输出。串行执行避免并发调用 native。 */
     private suspend fun generate(context: Context, model: String, system: String, user: String): String {
-        val s = loaded(context, model)
-        val prompt = "$system\n\n$user\n\n" +
-            "IMPORTANT: Begin your reply with the JSON object immediately. " +
-            "Do not write any thinking, analysis, or commentary before or after the JSON."
-        acquireEngine("生成")
+        // ColorOS 在窗口不可见时会冻结进程；媒体前台服务 + 静音轨把进程钉在前台（见 Guard）。
+        com.txw.ielts.Guard.start(context)
         try {
-            val out = StringBuilder()
-            val startedAt = System.currentTimeMillis()
-            state = "generating"
-            lastBeatAt = startedAt
-            val stats = s.submit(prompt, object : GenerateProgressListener {
-                override fun onProgress(progress: String?): Boolean {
-                    if (progress == null) return false
-                    out.append(progress)
-                    // 每个 token 都算一次进展：看门狗据此区分「慢」和「卡死」。
-                    lastBeatAt = System.currentTimeMillis()
-                    return System.currentTimeMillis() - startedAt > GENERATE_TIMEOUT_MS
-                }
-            })
-            Log.i(TAG, "local gen done ($model): ${stats["decode_len"]} tokens, ${stats["decode_time"]}us, text=${out.length} chars")
-            if (out.isBlank()) throw IOException("本地模型没有输出内容")
-            Log.d(TAG, "raw output: ${out.take(1500)}")
-            return out.toString()
+            val s = loaded(context, model)
+            val prompt = "$system\n\n$user\n\n" +
+                "IMPORTANT: Begin your reply with the JSON object immediately. " +
+                "Do not write any thinking, analysis, or commentary before or after the JSON."
+            acquireEngine("生成")
+            try {
+                val out = StringBuilder()
+                val startedAt = System.currentTimeMillis()
+                state = "generating"
+                lastBeatAt = startedAt
+                val stats = s.submit(prompt, object : GenerateProgressListener {
+                    override fun onProgress(progress: String?): Boolean {
+                        if (progress == null) return false
+                        out.append(progress)
+                        // 每个 token 都算一次进展：看门狗据此区分「慢」和「卡死」。
+                        lastBeatAt = System.currentTimeMillis()
+                        return System.currentTimeMillis() - startedAt > GENERATE_TIMEOUT_MS
+                    }
+                })
+                Log.i(TAG, "local gen done ($model): ${stats["decode_len"]} tokens, ${stats["decode_time"]}us, text=${out.length} chars")
+                if (out.isBlank()) throw IOException("本地模型没有输出内容")
+                Log.d(TAG, "raw output: ${out.take(1500)}")
+                return out.toString()
+            } finally {
+                state = "idle"
+                lastBeatAt = System.currentTimeMillis()
+                releaseEngine()
+            }
         } finally {
-            state = "idle"
-            lastBeatAt = System.currentTimeMillis()
-            releaseEngine()
+            com.txw.ielts.Guard.stop(context)
         }
     }
 

@@ -177,3 +177,49 @@ OPPO 真机（session 21）本地口语评分完成一次模型生成后，通�
 `Band 7.0 / FC 7.0 / LR 7.0 / GRA 6.5 / P 7.5`，通知与结果页正常。
 说明提示词约束 + 缺项兜底生效；P 本次由模型给出，不是估算值。
 
+---
+
+# 十一、2026-11-06：后台推理不再中断——mediaPlayback Guard（已验证）
+
+## 11.1 机制
+
+`Guard.kt` 新增 `GuardService`：`mediaPlayback` 类型前台服务 + 8kHz 静音 AudioTrack 循环，
+用引用计数包住 `LocalLlmEngine.generate` / `preload`（模型加载 + 推理整段）。ColorOS 对媒体型
+前台服务的优先级高于 dataSync FGS，窗口不可见时不再把进程降到 background cgroup。
+
+## 11.2 真机验证（OPPO PKJ110）
+
+- 13:35:21 启动 `e2e_ai=outline`，模型开始加载；
+- 8 秒后 `input keyevent 3` 回桌面（App 窗口不可见）；
+- 13:35:55 日志 `local gen done: 354 tokens, 23763489us`，`E2E: RESULT ai outline stance=153 args=3 phrases=5 raw=false`；
+- 全程未回前台，生成完整完成。
+
+这修正了 §9 的绝对结论：加上 Guard 后，**AI 生成链路可以在后台完成**。
+评分链路共用 `LocalLlmEngine.generate`，并额外有 ScoreService 的 dataSync FGS，预期同样受益；
+`score_writing` 后台 e2e 待补。
+
+## 11.3 边界
+
+- `Guard.start` 走 `startForegroundService`；Android 12+ 后台启动受限，生成由前台用户操作触发时可以正常启动。
+  启动失败会静默回退到「评分时保持 App 可见」。
+- `GuardService` 自带 15 分钟兜底超时；引擎单次生成上限 8 分钟，正常不会撞上。
+- 静音 AudioTrack 构建失败时静默降级，不阻塞主流程。
+
+## 11.4 边界修正：OPPO 自家 power analyzer 仍会冻结长任务（2026-11-06 13:38 实测）
+
+紧接着做 `score_writing` 后台测试（同样的 Guard）：
+- 13:38:39 启动，模型开始加载；8 秒后 HOME；
+- 100 秒后仍停在 `loading local model`，RSS 2.2GB；
+- cgroup 是 **`/foreground`**（Guard 生效），但 `/proc/PID/stat` 的 utime+stime 5 秒内 **完全不变**；
+- logcat：`OGuardManager_AppPowerAnalyzer: read abnormal_task pid:3079 uid:10309`。
+
+结论：**mediaPlayback Guard 只能保住 cgroup，保不住 OPPO 自己的冻结层**。短任务（提纲 23.8s）在被标记前能跑完；
+长评分（加载 + 1-3 分钟生成）会被 `OGuardManager` 识别为 abnormal task 并停 CPU。应用代码无法覆盖这一层。
+
+可落地对策（已在设置页加入入口）：
+1. 系统「电池优化」白名单：`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`（设置 → 后台评分 → 允许后台运行）。
+2. ColorOS 自家白名单：设置 → 电池 → 应用耗电管理 → 雅思随身练 → **允许后台运行 / 允许自启动 / 允许关联启动**。
+3. 未开白名单时，长评分请保持 App 在前台（KeepScreenOn 已生效）；后台被中断后由看门狗退 `pending_eval`，回前台可重试。
+
+因此产品文案不能承诺「任何情况下后台不中断」；准确说法是：**短 AI 任务后台通常可完成，长评分建议前台或开启系统白名单**。
+
