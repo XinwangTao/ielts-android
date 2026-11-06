@@ -88,12 +88,16 @@
 
 ## 八、待办
 
-- [ ] `ScoreService` 给每次生成加 `withTimeoutOrNull`（建议 5 分钟/次），超时退 `pending_eval` 而非静默卡住。
+- [x] `ScoreService` 给每次生成加 `withTimeoutOrNull`（建议 5 分钟/次），超时退 `pending_eval` 而非静默卡住。
+      → **不采用，改用看门狗。** `withTimeoutOrNull` 取消的是协程，打断不了阻塞的 native `submit/load`；
+      实测冻结时协程停在 native 里永不返回。改成心跳 `lastBeatAt` + `watchdogLoop`（§9.2），
+      并按状态分阈值：`loading` 8 分钟、`generating` 3 分钟（§12.3）。
 - [x] 结果页计时基准改用「评分开始时间」持久化字段，并对 `pending_local` 超过阈值给出明确「已中断，重新评分」。
       → 2026-11-06 修复：`ScoreService.start` 统一幂等写入 `localScoreStarted`（覆盖 onResume 续跑路径）；
       结果页不再回退到 `session.startedAt`（录音起点），缺失时从进入页开始计时。
 - [x] 验证后台评分（唯一成功样例是前台跑的）。→ 2026-11-06 §12：后台 74 秒完成，session 26 落库。
-- [ ] `pending_local` 的自愈不要在启动时静默重排，应显式提示。
+- [x] `pending_local` 的自愈不要在启动时静默重排，应显式提示。
+      → 已做（`e4eb382`）：启动自动重排时首页显示「正在恢复评分」卡片，出分或转可重试后自动撤掉。
 
 ---
 
