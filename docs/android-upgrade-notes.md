@@ -25,8 +25,8 @@
 
 - `compileSdk = 35`，`targetSdk` 保持 34；已通过 `sdkmanager` 安装 `platforms;android-35`。
 - 验证：`assembleDebug` 通过、456 例单测全绿、lint 仍 0 error / 4 warning。
-- 编译期新增若干 deprecation 警告（`SCREEN_DIM_WAKE_LOCK`、`LocalLifecycleOwner`、`statusBarColor` 等），
-  属 API 35 的弃用提示，不影响运行；后续可逐步迁移。
+- 编译期新增若干 deprecation 警告；其中 `LocalLifecycleOwner` 已迁移到 `lifecycle-runtime-compose`（已消除），
+  其余（`SCREEN_DIM_WAKE_LOCK`、`statusBarColor`/`navigationBarColor`）属 API 35 提示，逐步处理。
 - 收益：为 core-ktx / lifecycle 更新铺路；**运行时行为不变**（targetSdk 未动）。
 
 ### Stage C（升 targetSdk 35，需真机回归）

@@ -914,7 +914,7 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
         }
     }
     // 切后台/锁屏要停：组合不会销毁，不暂停就一直在后台放。
-    val lifecycleOwner = androidx.compose.ui.platform.LocalLifecycleOwner.current
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     androidx.compose.runtime.DisposableEffect(lifecycleOwner, path) {
         val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
             if (event == androidx.lifecycle.Lifecycle.Event.ON_STOP) {
