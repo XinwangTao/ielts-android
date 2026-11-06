@@ -17,7 +17,7 @@ class RouteCodecTest {
     fun `单例页面编解码可还原`() {
         val pages = listOf(
             Route.Home, Route.FirstRun, Route.Writing, Route.Speaking, Route.Settings, Route.Review,
-            Route.Corpus, Route.Study, Route.Bank, Route.AiGen, Route.Shadow,
+            Route.Corpus, Route.Study, Route.Bank, Route.AiGen, Route.Shadow, Route.Plan,
             Route.Topics, Route.Arguments, Route.ModelEssays, Route.WritingMock,
             Route.ChartGen, Route.SpeakingPartner, Route.SpeakingMock,
         )

@@ -146,6 +146,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_VOCAB_EDITS, "{}") ?: "{}"
         set(v) = sp.edit().putString(KEY_VOCAB_EDITS, v).apply()
 
+    /** 7 天课表里用户手动换过的日子（JSON：日期 → 科目），跨天、重启后仍然生效。 */
+    var studyPlanOverrides: String
+        get() = sp.getString(KEY_STUDY_PLAN, "{}") ?: "{}"
+        set(v) = sp.edit().putString(KEY_STUDY_PLAN, v).apply()
+
     /**
      * 首启引导是否已看完/跳过。
      *
@@ -203,6 +208,7 @@ class Prefs(context: Context) {
         private const val KEY_AI_REVIEW_CACHE = "ai_review_cache"
         private const val KEY_MUTED_FIXES = "ai_muted_fixes"
         private const val KEY_VOCAB_EDITS = "ai_vocab_edits"
+        private const val KEY_STUDY_PLAN = "study_plan_overrides"
         private const val KEY_FIRST_RUN_DONE = "first_run_done"
         private const val KEY_TARGET_BAND = "target_band"
         private const val KEY_EXAM_DATE = "exam_date"

@@ -73,6 +73,7 @@ fun HomeScreen(
     onOpen: (Long) -> Unit,
     onSettings: () -> Unit,
     onModelEssays: () -> Unit = {},
+    onOpenPlan: () -> Unit = {},
     aiGenBusy: Boolean = false,
     aiGenStage: String? = null,
     aiGenReadyId: String? = null,
@@ -240,6 +241,8 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                // 单日任务旁边直接给课表入口：想按周规划的人不用先翻到附录
+                TextButton(onClick = onOpenPlan) { Text("7 天计划 ›") }
             }
             plan.forEach { entry ->
                 Row(

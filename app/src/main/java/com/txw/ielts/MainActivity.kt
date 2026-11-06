@@ -83,6 +83,8 @@ import com.txw.ielts.ui.ShadowHomeScreen
 import com.txw.ielts.ui.ShadowResultItem
 import com.txw.ielts.ui.ShadowResultScreen
 import com.txw.ielts.ui.ShadowStudyScreen
+import com.txw.ielts.ui.StudyPlanCalc
+import com.txw.ielts.ui.StudyPlanScreen
 import com.txw.ielts.ui.StudyScreen
 import com.txw.ielts.ui.TopicScreen
 import com.txw.ielts.ui.ResultScreen
@@ -118,6 +120,8 @@ sealed interface Route {
     data object Review : Route
     data object Corpus : Route
     data object Study : Route
+    /** 7 天备考课表：按考期倒排、可逐日换科目。 */
+    data object Plan : Route
     data object Bank : Route
     data class Quiz(val setId: String) : Route
     data class BankResult(val sessionId: Long, val setId: String) : Route
@@ -150,6 +154,7 @@ internal fun Route.encode(): String = when (this) {
     Route.Review -> "review"
     Route.Corpus -> "corpus"
     Route.Study -> "study"
+    Route.Plan -> "plan"
     Route.Bank -> "bank"
     Route.AiGen -> "aigen"
     Route.Shadow -> "shadow"
@@ -179,6 +184,7 @@ internal fun decodeRoute(s: String): Route {
             "review" -> Route.Review
             "corpus" -> Route.Corpus
             "study" -> Route.Study
+            "plan" -> Route.Plan
             "bank" -> Route.Bank
             "aigen" -> Route.AiGen
             "shadow" -> Route.Shadow
@@ -699,6 +705,35 @@ private fun App(
             }
         }
     }
+    // 7 天课表：与今日任务共用考期/目标/四科估值，但回答的是「这周怎么排」。
+    // 手动换过的日子按日期存 SharedPreferences，跨天重算后旧日期的修改自然失效；
+    // 换科目只是覆盖一层，课表本体仍然随练习数据每天重算。
+    var planOverrides by remember {
+        mutableStateOf(com.txw.ielts.ui.PlanOverrides.decode(prefs.studyPlanOverrides))
+    }
+    fun savePlanOverrides(next: Map<String, String>) {
+        planOverrides = next
+        prefs.studyPlanOverrides = com.txw.ielts.ui.PlanOverrides.encode(next)
+    }
+    val studyPlan = StudyPlanCalc.build(
+        now = nowMs,
+        examDate = prefs.examDate,
+        targets = skillTargets,
+        profile = skillProfile,
+        dueCards = due,
+        wrongCount = wrongCount,
+        overrides = planOverrides,
+    )
+    // 未加手动覆盖的课表：换科目轮回到这一天的原科目时用它判定「已经等于原样」，
+    // 免得 SharedPreferences 里留下一条看起来没生效、过几天却突然生效的旧修改。
+    val baseStudyPlan = StudyPlanCalc.build(
+        now = nowMs,
+        examDate = prefs.examDate,
+        targets = skillTargets,
+        profile = skillProfile,
+        dueCards = due,
+        wrongCount = wrongCount,
+    )
     // 首启引导：把「目标 / AI 通道 / 第一道题」三步算成可渲染状态，缺哪步给按钮。
     // remember 的 key 用 route：从设置页回到首页时就地重算，用户配完不用重启 App。
     val firstRunPlan = remember(route, networkOnline, sessions, prefs.targetBand, prefs.examDate, prefs.localModel, prefs.apiKey) {
@@ -1749,6 +1784,7 @@ private fun App(
                     onOpen = { route = Route.Result(it) },
                     onSettings = { route = Route.Settings },
                     onModelEssays = { route = Route.ModelEssays },
+                    onOpenPlan = { route = Route.Plan },
                     aiGenBusy = aiGenBusy,
                     aiGenStage = aiGenStage,
                     aiGenReadyId = aiGenReady,
@@ -1766,6 +1802,44 @@ private fun App(
                         hasNetwork = networkOnline,
                         remainingCalls = prefs.remainingCalls(),
                     ),
+                )
+
+                is Route.Plan -> StudyPlanScreen(
+                    plan = studyPlan,
+                    // 「换一科」在当天现有的科目上往后轮一科：连续点几次就能走完四科，
+                    // 比弹一层科目选择器轻，且不会误改到别的日子。
+                    onSwapDay = { date ->
+                        val day = studyPlan.days.firstOrNull { it.date == date }
+                        if (day != null && day.editable) {
+                            val next = com.txw.ielts.ui.PlanOverrides.cycle(day.module)
+                            val original = baseStudyPlan.days.firstOrNull { it.date == date }?.module
+                            savePlanOverrides(
+                                if (next == original) planOverrides - date
+                                else planOverrides + (date to next)
+                            )
+                        }
+                    },
+                    onResetDay = { date -> savePlanOverrides(planOverrides - date) },
+                    onResetAll = { savePlanOverrides(emptyMap()) },
+                    onOpenModule = { module ->
+                        when (module) {
+                            "writing" -> route = Route.Writing
+                            "speaking" -> route = Route.Speaking
+                            "mock" -> {
+                                // 整套模考就是听读连做：进题库不预筛模块
+                                bankFilter = "all"
+                                route = Route.Bank
+                            }
+                            "listening", "reading" -> {
+                                bankFilter = module
+                                route = Route.Bank
+                            }
+                            // 休息/考前/考试日不跳转，留在课表页看说明
+                            else -> Unit
+                        }
+                    },
+                    onOpenSettings = { route = Route.Settings },
+                    onBack = { route = Route.Home },
                 )
 
                 is Route.Writing -> WritingScreen(
