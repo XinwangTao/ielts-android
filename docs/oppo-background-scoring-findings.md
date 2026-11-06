@@ -220,6 +220,7 @@ OPPO 真机（session 21）本地口语评分完成一次模型生成后，通�
 1. 系统「电池优化」白名单：`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`（设置 → 后台评分 → 允许后台运行）。
 2. ColorOS 自家白名单：设置 → 电池 → 应用耗电管理 → 雅思随身练 → **允许后台运行 / 允许自启动 / 允许关联启动**。
 3. 未开白名单时，长评分请保持 App 在前台（KeepScreenOn 已生效）；后台被中断后由看门狗退 `pending_eval`，回前台可重试。
+4. 回前台自动续跑：`MainActivity.onResume` 在「有 `pending_local` + 引擎 idle + `ScoreService` 未存活」时自动重启评分；`ScoreService.active` 防止重复启动（`0c1ff5b` 后续）。
 
 因此产品文案不能承诺「任何情况下后台不中断」；准确说法是：**短 AI 任务后台通常可完成，长评分建议前台或开启系统白名单**。
 

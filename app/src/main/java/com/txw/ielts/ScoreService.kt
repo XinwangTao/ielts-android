@@ -41,7 +41,13 @@ class ScoreService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    override fun onDestroy() {
+        active = false
+        super.onDestroy()
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        active = true
         if (intent == null) {
             // START_STICKY 重启：系统回收进程后重新创建服务（intent 为空），从数据库恢复未完成的评分。
             startForeground(NOTIF_ID, buildNotification("恢复本地评分…"))
@@ -311,6 +317,10 @@ class ScoreService : Service() {
     companion object {
         private const val CHANNEL = "score_service"
         private const val NOTIF_ID = 2001
+
+        /** 是否有评分服务实例存活：回前台自动续跑时避免重复启动。 */
+        @Volatile
+        var active: Boolean = false
 
         /** 心跳断多久算卡死。留得比一次「加载+一个 token 批次」的长尾大，避免误判正常慢评分。 */
         private const val STALL_AFTER_MS = 180_000L

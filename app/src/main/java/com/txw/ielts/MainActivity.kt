@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -275,6 +276,26 @@ class MainActivity : ComponentActivity() {
                         e2eAi,
                     )
                 }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 后台长评分被 ColorOS 冻结/杀死后，回前台自动续跑；服务还在跑或引擎忙时不重复启动。
+        if (ScoreService.active || LocalLlmEngine.state != "idle") return
+        lifecycleScope.launch(Dispatchers.IO) {
+            val db = AppDb.get(this@MainActivity)
+            val s = db.sessions().recent(20).firstOrNull {
+                it.status == "pending_local" &&
+                    (it.transcript.isNotBlank() || it.essayText.isNotBlank())
+            } ?: return@launch
+            val text = s.transcript.ifBlank { s.essayText }
+            if (s.module == "speaking") {
+                ScoreService.start(this@MainActivity, s.id, "speaking", text)
+            } else {
+                val task = s.task.ifBlank { guessTask(s.topic) }
+                ScoreService.start(this@MainActivity, s.id, "writing", text, task)
             }
         }
     }
