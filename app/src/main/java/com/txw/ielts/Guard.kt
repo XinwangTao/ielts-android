@@ -73,7 +73,9 @@ object Guard {
                 Intent(context, GuardService::class.java).putExtra("mic", mic),
             )
         }.onFailure {
-            refs.set(0)
+            // 只撤销本次引用；直接置 0 会把另一个仍在跑的任务的保活一起算丢，
+            // 它结束时 stop() 就会把服务停掉。
+            refs.updateAndGet { if (it > 0) it - 1 else 0 }
         }
     }
 }
@@ -89,7 +91,17 @@ class GuardService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val mic = intent?.getBooleanExtra("mic", false) == true || Guard.micActive()
-        startForegroundCompat(mic)
+        // Android 14 起，从后台启动 microphone 类型前台服务会抛异常；录音由 UI 触发时
+        // 正常都在前台，但口语对练的准备倒计时可能在用户切走后自动开录，必须兜住。
+        try {
+            startForegroundCompat(mic)
+        } catch (e: Exception) {
+            android.util.Log.w("Guard", "startForeground(mic=$mic) failed: ${e.message}")
+            runCatching { startForegroundCompat(mic = false) }.onFailure {
+                stopSelf()
+                return START_NOT_STICKY
+            }
+        }
         startSilence()
         addOverlay()
         // 屏幕熄灭时 ColorOS 仍会限制后台 App 的 CPU（实测 cgroup 已是 foreground，MNN 仍 0 token）。
