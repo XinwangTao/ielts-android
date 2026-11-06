@@ -411,6 +411,46 @@ fun SettingsScreen(
             }
         }) { Text("分享最近备份") }
 
+        // 备份只增不减：保留最近 5 个，其余删掉。删除属不可逆，先确认。
+        var confirmCleanBackups by remember { mutableStateOf(false) }
+        TextButton(onClick = { confirmCleanBackups = true }) { Text("清理旧备份（保留最近 5 个）") }
+        if (confirmCleanBackups) {
+            AlertDialog(
+                onDismissRequest = { confirmCleanBackups = false },
+                title = { Text("清理旧备份？") },
+                text = { Text("将删除 backup 目录中除最近 5 个之外的所有 JSON 备份，无法恢复。") },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmCleanBackups = false
+                        exportScope.launch {
+                            exportMsg = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                runCatching {
+                                    val dir = java.io.File(context.getExternalFilesDir(null), "backup")
+                                    val files = dir.listFiles()
+                                        ?.filter { it.isFile && it.name.endsWith(".json", ignoreCase = true) }
+                                        ?.sortedByDescending { it.lastModified() }
+                                        .orEmpty()
+                                    var freed = 0L
+                                    var count = 0
+                                    files.drop(5).forEach { f ->
+                                        val len = f.length()
+                                        if (f.delete()) {
+                                            freed += len
+                                            count++
+                                        }
+                                    }
+                                    "已删除 $count 个旧备份，释放 ${freed / 1024} KB"
+                                }.getOrElse { "清理失败：${it.message}" }
+                            }
+                        }
+                    }) { Text("确认清理") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmCleanBackups = false }) { Text("取消") }
+                },
+            )
+        }
+
         var confirmClear by remember { mutableStateOf(false) }
         var clearMsg by remember { mutableStateOf<String?>(null) }
         // 只清 AI 派生缓存：练习记录、词汇卡、课表都保留，适合「想换一份提纲/复盘」但不想丢数据。
