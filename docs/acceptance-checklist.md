@@ -33,6 +33,7 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 | AI 生成时按 HOME | `E2E: RESULT ai ...` 出现 | ✅ 提纲 23.8 秒完成 |
 | 转写时按 HOME | `asr load_ms/transcribe_ms` 正常 | ✅ |
 | 云端评分时按 HOME | 请求不中断 | ✅ 已包 Guard（`ebfba53`） |
+| 练习页预热 | 进写作/口语页 5 秒后通知显示「正在准备本地模型…」 | 代码已提交（`0bf5784`），待真机确认 |
 
 边界：ColorOS 的 `OplusHansManager` 对**冷加载 + 长生成**仍可能限速到 5 分钟量级（会完成，不是死锁）。
 想看更稳可在设置页授权悬浮窗 + 系统「允许后台运行」。
