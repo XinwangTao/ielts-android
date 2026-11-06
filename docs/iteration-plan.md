@@ -15,7 +15,7 @@
        整次导出失败并误报「存储不可写」。现在非有限值归零，其余照常导出。
 3. [~] **备份导入/恢复**：图已出（`docs/archify/ielts-backup-restore_workflow.{html,json}`），
        按 Archify 协议**待确认**后才可实现；确认点：冲突策略、设置是否覆盖、单事务还是分批。
-4. [~] **依赖与 targetSdk 评估**（2026-11-06）：结论在 `docs/android-upgrade-notes.md`——
+4. [x] **依赖与 targetSdk 评估 + Stage A**（2026-11-06）：lifecycle 已升 2.8.7 并通过构建；结论在 `docs/android-upgrade-notes.md`——
        可先做 lifecycle patch；compileSdk 35 无 AGP 阻碍；**16KB 页对齐静态验证通过**（8 个 .so 全 16384）；
        targetSdk 35 仍待真机回归（edge-to-edge、FGS、安装加载）。
 5. [ ] **真机验收**：见 `docs/acceptance-checklist.md` 第八节（约 25 项）。

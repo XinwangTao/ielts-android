@@ -16,10 +16,10 @@
 
 ## 分阶段建议
 
-### Stage A（安全，随时可做）
+### Stage A（安全，已完成 2026-11-06）
 
 - `lifecycle-runtime-ktx` 2.8.6 → 2.8.7：patch 级，无 API 变化。
-- 验证：`bash tools/verify_all.sh` 全绿 + `assembleDebug`。
+- 验证：单测 + `assembleDebug` 通过；lint 的对应 GradleDependency 告警消失。
 
 ### Stage B（只升 compileSdk，不动 targetSdk）
 
