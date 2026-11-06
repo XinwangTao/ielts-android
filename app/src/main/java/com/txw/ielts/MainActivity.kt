@@ -431,6 +431,9 @@ private fun App(
     }
     var stage by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
+    // stage/error 是 Activity 级：记录它们属于哪一场。结果页只显示自己的，
+    // 否则 A 篇评分时打开 B 篇会看到 A 的「评分中/转写中」，按钮还被禁用。
+    var activeSessionId by remember { mutableStateOf<Long?>(null) }
     var practiceFocus by remember { mutableStateOf<PracticeFocus?>(null) }
     var speakingPresetQuestion by remember { mutableStateOf<String?>(null) }
     // 预设题目的所属 Part：追问生成的是 Part 3 问题，不能当 Part 2 练。为空时按原来的 Part 2 处理。
@@ -1397,6 +1400,7 @@ private fun App(
 
     /** 后台本地写作评分（不阻塞继续练习）。 */
     suspend fun startLocalWriting(session: Session, text: String, task: String) {
+        activeSessionId = session.id
         // 已出分的记录不能被迟到的重试降级成待评分。
         if (db.sessions().byId(session.id)?.status == "done") return
         stage = null
@@ -1421,6 +1425,7 @@ private fun App(
 
     /** 后台本地口语评分（不阻塞继续练习）。 */
     suspend fun startLocalSpeaking(session: Session, text: String) {
+        activeSessionId = session.id
         if (db.sessions().byId(session.id)?.status == "done") return
         stage = null
         error = null
@@ -1447,6 +1452,7 @@ private fun App(
      * 本地评分转后台：立刻进结果页（pending_local），完成通知 + Room 自动刷新。
      */
     suspend fun evaluateWriting(session: Session, text: String, task: String = "task2") {
+        activeSessionId = session.id
         val mode = prefs.scoreChannel
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
         val online = hasNetwork(context)
@@ -1538,6 +1544,7 @@ private fun App(
     }
 
     suspend fun evaluateSpeaking(session: Session, text: String) {
+        activeSessionId = session.id
         val mode = prefs.scoreChannel
         val part = when {
             session.topic.startsWith("Mock Test") -> "Part 1-3"
@@ -2734,7 +2741,9 @@ private fun App(
                             }
                         }
                         ResultScreen(
-                            session = session, busy = stage, error = error,
+                            session = session,
+                            busy = stage.takeIf { activeSessionId == session.id },
+                            error = error.takeIf { activeSessionId == session.id },
                             // 失败原因按会话存盘：通知被划掉/App 重启后，结果页仍能说清上次为什么没出分。
                             lastFailure = com.txw.ielts.llm.ScoreFailures.reasonFor(
                                 prefs.localScoreErrors, session.id, System.currentTimeMillis(),

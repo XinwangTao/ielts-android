@@ -33,10 +33,11 @@
 
 ## 长尾离线池
 
-- **AI 任务状态未按会话/生命周期归属**：`stage`、`error`、各 AI busy/结果都是 Activity 级 `remember`，
-  ①A 篇评分时打开 B 篇结果页会看到 A 的「评分中/转写中」；②旋转/进程重建时在跑的本地生成被取消，
-  几分钟推理白跑（云端还可能重复点击扣额度）。正确做法是把进行中任务移到 ViewModel 或
-  SessionScoped 状态容器；解除条件：允许较大改动的重构窗口（需真机验证配置变更行为）。
+- **AI 任务状态未按会话/生命周期归属**：`stage`、`error`、各 AI busy/结果都是 Activity 级 `remember`。
+  ①已修：新增 `activeSessionId`，结果页只显示属于本场的 busy/error（A 评分时 B 页不再显示 A 的文案）。
+  ②未修：旋转/进程重建时在跑的本地生成随组合取消，几分钟推理白跑（云端还可能重复点击扣额度）。
+  正确做法是把进行中任务移到 ViewModel 或 SessionScoped 状态容器；解除条件：允许较大改动的重构窗口
+  （需真机验证配置变更行为）。
 
 - **今日新卡额度计数不准**：`countFirstLearnedSince` 用 `reps=1 AND lastReviewed>=今天` 代理，
   会把「昨天忘掉、今天重新评」的旧卡算成新卡，也漏掉「今天新学但评了 Again」的卡。
