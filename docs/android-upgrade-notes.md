@@ -19,7 +19,7 @@
 ### Stage A（安全，已完成 2026-11-06）
 
 - `lifecycle-runtime-ktx` 2.8.6 → 2.8.7：patch 级，无 API 变化。
-- 验证：单测 + `assembleDebug` 通过；lint 的对应 GradleDependency 告警消失。
+- 验证：单测 + `assembleDebug` 通过；lint 由 **5 warning 降到 4**（lifecycle 的 GradleDependency 告警消失）。
 
 ### Stage B（只升 compileSdk，不动 targetSdk）
 
