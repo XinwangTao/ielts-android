@@ -439,6 +439,16 @@ private fun App(
         if (recoveryNotice != null && sessions.none { it.status == "pending_local" }) recoveryNotice = null
     }
 
+    // 进练习页停留 5 秒后预热本地模型：用户写完/说完提交时少等一次 60 秒冷加载。
+    // 只是路过（5 秒内离开）不会触发，避免白占 2.7GB；模型未投递时静默跳过。
+    LaunchedEffect(route) {
+        if (route !is Route.Writing && route !is Route.Speaking) return@LaunchedEffect
+        kotlinx.coroutines.delay(5_000)
+        if (LocalLlmEngine.isReady(context, prefs.localModel)) return@LaunchedEffect
+        if (!LocalLlmEngine.hasExternalCopy(context, prefs.localModel)) return@LaunchedEffect
+        runCatching { LocalLlmEngine.preload(context, prefs.localModel) }
+    }
+
     // 三个入口共用本地引擎闸门；生成期间界面显示「约 30-60 秒」，失败只影响当前卡片。
     fun localModelMissing(): Boolean =
         !LocalLlmEngine.isReady(context, prefs.localModel) &&
