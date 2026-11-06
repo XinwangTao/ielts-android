@@ -1,6 +1,7 @@
 package com.txw.ielts
 
 import com.txw.ielts.llm.GeneratedParser
+import com.txw.ielts.llm.GeneratedQuestion
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -343,5 +344,22 @@ class GeneratedParserTest {
         } catch (e: Exception) {
             assertTrue(e.message!!.isNotBlank())
         }
+    }
+
+    @Test
+    fun `重发生成时优先保留更完整的一份`() {
+        fun q(i: Int, answers: Boolean = true, en: Boolean = true) = GeneratedQuestion(
+            type = "gap", prompt = "p$i", options = emptyList(),
+            answers = if (answers) listOf("a") else emptyList(),
+            explain = "e", explainEn = if (en) "en" else "", keys = emptyList(),
+        )
+        val eightMissingOne = (1..8).map { q(it, en = it != 8) }
+        val sevenComplete = (1..7).map { q(it) }
+        // 题数优先：8 题缺一个解析，仍好于 7 题齐全（用户要的是 8 题）。
+        assertTrue(GeneratedParser.completeness(eightMissingOne) > GeneratedParser.completeness(sevenComplete))
+        assertEquals(8, GeneratedParser.pickMoreComplete(sevenComplete, eightMissingOne).size)
+        // 题数相同则比「答案 + 解析齐全」的题数。
+        val eightMissingTwo = (1..8).map { q(it, answers = it <= 6) }
+        assertEquals(eightMissingOne, GeneratedParser.pickMoreComplete(eightMissingOne, eightMissingTwo))
     }
 }

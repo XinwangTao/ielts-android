@@ -678,6 +678,8 @@ private fun App(
 
     /** 口语 Part 3 追问：把本场题目与转写交给本地模型，扮演考官问一个更抽象的问题。 */
     suspend fun requestFollowUp(sessionId: Long, question: String, answer: String) {
+        // 已有请求在跑：再点会把 sessionId 改写成另一场，旧请求的结果被静默丢弃、新请求还得排队。
+        if (followUpBusy) return
         followUpQuestion = null
         followUpBusy = true
         followUpError = null
@@ -709,6 +711,7 @@ private fun App(
 
     /** 写作换题：让本地模型出一道同类型新题，生成完直接进写作页预填。 */
     suspend fun requestNewWritingTopic(session: Session, task: String) {
+        if (newTopicBusy) return
         newTopicBusy = true
         newTopicError = null
         newTopicSessionId = session.id
@@ -1087,6 +1090,8 @@ private fun App(
     // 精讲按「作用域#题号」存，跨套题不串。
     var aiExplains by remember { mutableStateOf<Map<String, BankExplain>>(emptyMap()) }
     var explainingIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // 精讲失败按「作用域#题号」展示：写进全局 error 会跑到无关作文结果页上，题库页又看不到。
+    var explainErrors by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
     // 键是「结果页作用域#题号」：不同套题/不同会话的同号题不能共用变式。
     var bankVariants by remember { mutableStateOf<Map<String, com.txw.ielts.llm.BankVariant>>(emptyMap()) }
     var variantBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
@@ -2035,7 +2040,7 @@ private fun App(
         val mode = prefs.scoreChannel
         val online = hasNetwork(context)
         ChannelPick.cloudOfflineError(mode, online, localAiAvailable())?.let {
-            error = it
+            explainErrors = explainErrors + (ek to it)
             return
         }
         // 与评分/出题共用选路：auto 在断网/冷却/无额度时直接走本地，不再先白试一次云端。
@@ -2045,6 +2050,7 @@ private fun App(
             online,
             prefs.remainingCalls(),
         )
+        explainErrors = explainErrors - ek
         explainingIds = explainingIds + ek
         Guard.start(context)
         try {
@@ -2066,7 +2072,7 @@ private fun App(
             aiExplains = aiExplains.toMutableMap().apply { put(ek, exp) }
         } catch (e: Exception) {
             Log.e(TAG, "ai explain fail: ${e.message}")
-            error = "精讲失败：${e.message}"
+            explainErrors = explainErrors + (ek to "精讲失败：${e.message}")
         } finally {
             explainingIds = explainingIds - ek
             Guard.stop(context)
@@ -2687,7 +2693,7 @@ private fun App(
                             total = sum?.optInt("total") ?: items.size,
                             items = items,
                             transcript = "",
-                            aiExplains = aiExplains, explainingIds = explainingIds,
+                            aiExplains = aiExplains, explainingIds = explainingIds, explainErrors = explainErrors,
                             onAiExplain = { item -> scope.launch { runAiExplain(item, "s${session.id}") } },
                             variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                             variantScope = "s${session.id}",
@@ -2805,7 +2811,8 @@ private fun App(
                                 )
                                 route = if (isSpeaking) Route.Speaking else Route.Writing
                             },
-                            newTopicBusy = newTopicBusy && newTopicSessionId == session.id,
+                            newTopicBusy = newTopicBusy,
+                            newTopicHere = newTopicSessionId == session.id,
                             newTopicError = newTopicError.takeIf { newTopicSessionId == session.id },
                             onRequestNewTopic = {
                                 scope.launch { requestNewWritingTopic(session, session.resolvedTask()) }
@@ -2813,12 +2820,14 @@ private fun App(
                             vocabResult = vocabResult,
                             vocabSessionId = vocabSessionId,
                             vocabBusy = vocabBusy,
+                            vocabHere = vocabSessionId == session.id,
                             vocabError = vocabError,
                             onRequestVocab = { text, fixes ->
                                 scope.launch { requestVocab(session.id, text, fixes) }
                             },
                             followUpQuestion = followUpQuestion.takeIf { followUpSessionId == session.id },
-                            followUpBusy = followUpBusy && followUpSessionId == session.id,
+                            followUpBusy = followUpBusy,
+                            followUpHere = followUpSessionId == session.id,
                             followUpError = followUpError.takeIf { followUpSessionId == session.id },
                             onRequestFollowUp = {
                                 scope.launch {
@@ -3127,7 +3136,7 @@ private fun App(
                                                 items = data.items, passage = data.passage,
                                                 transcript = data.transcript,
                                                 readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
-                                                aiExplains = aiExplains, explainingIds = explainingIds,
+                                                aiExplains = aiExplains, explainingIds = explainingIds, explainErrors = explainErrors,
                                                 onAiExplain = { item -> scope.launch { runAiExplain(item, data.setId) } },
                                                 variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                                                 variantScope = data.setId,
@@ -3178,9 +3187,23 @@ private fun App(
                                 }
                             }
                             is Route.BankResult -> {
-                                val data = bankResult
-                                if (data == null || data.setId != r.setId) {
+                                // 与宽屏同一套恢复逻辑：旋转/进程重建后 Route 还在、载荷只在内存，
+                                // 窄屏不能把「载荷丢失」当成「记录不存在」直接踢回题库。
+                                val live = bankResult?.takeIf { it.setId == r.setId }
+                                var restored by remember(r.sessionId, r.setId) {
+                                    mutableStateOf<BankResultData?>(null)
+                                }
+                                LaunchedEffect(r.sessionId, r.setId, live) {
+                                    if (live == null && sessionsOrNull != null) {
+                                        restored = db.sessions().byId(r.sessionId)
+                                            ?.let { bankResultFromSession(it, r.setId) }
+                                    }
+                                }
+                                val data = live ?: restored
+                                if (data == null && sessionsOrNull != null) {
                                     LaunchedEffect(r.sessionId) { route = Route.Bank }
+                                } else if (data == null) {
+                                    Text("载入中…", style = MaterialTheme.typography.bodyMedium)
                                 } else {
                                     BankResultScreen(
                                         title = data.title, module = data.module,
@@ -3188,7 +3211,7 @@ private fun App(
                                         items = data.items, passage = data.passage,
                                         transcript = data.transcript,
                                         readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
-                                        aiExplains = aiExplains, explainingIds = explainingIds,
+                                        aiExplains = aiExplains, explainingIds = explainingIds, explainErrors = explainErrors,
                                         onAiExplain = { item -> scope.launch { runAiExplain(item, data.setId) } },
                                         variants = bankVariants, variantBusyIds = variantBusyIds,
                                         variantErrors = variantErrors,

@@ -64,6 +64,7 @@ fun ResultScreen(
     onPracticeAgain: () -> Unit,
     // 写作：换一个同类型新题（本地模型生成题干后直接进写作页）。
     newTopicBusy: Boolean = false,
+    newTopicHere: Boolean = true,
     newTopicError: String? = null,
     // 必填：漏接线时按钮会变成「点了没反应」，让编译器拦住。
     onRequestNewTopic: () -> Unit,
@@ -72,12 +73,15 @@ fun ResultScreen(
     vocabResult: com.txw.ielts.llm.VocabResult? = null,
     vocabSessionId: Long? = null,
     vocabBusy: Boolean = false,
+    vocabHere: Boolean = true,
     vocabError: String? = null,
     onRequestVocab: (text: String, fixes: List<Triple<String, String, String>>) -> Unit,
     onAddVocab: (List<com.txw.ielts.llm.VocabItem>) -> Unit,
     // 口语 Part 3 追问：基于本场转写，让本地模型扮演考官追问一句。
     followUpQuestion: String? = null,
     followUpBusy: Boolean = false,
+    /** 这个 busy 是否属于当前场次：否则只显示「本地模型正忙」，不冒充本场生成中。 */
+    followUpHere: Boolean = true,
     followUpError: String? = null,
     // 同上：必填。
     onRequestFollowUp: () -> Unit,
@@ -98,7 +102,8 @@ fun ResultScreen(
     var vocabChecked by remember(session.id, vocabResult) {
         mutableStateOf(vocabResult?.items?.indices?.toSet() ?: emptySet())
     }
-    var vocabAdded by remember(session.id) { mutableStateOf(false) }
+    // 换一批生词后必须复位：否则新列表出来按钮仍是「已加入」且禁用，第二批永远加不进去。
+    var vocabAdded by remember(session.id, vocabResult) { mutableStateOf(false) }
     // 展示真实已等待时间：本地评分 1-4 分钟，用户需要知道还要等多久。
     var waitedSec by remember { mutableLongStateOf(0L) }
     // 开始时间缺失（旧数据 / 进程重启 / 调用方没写）时从进入结果页开始数，
@@ -319,13 +324,21 @@ fun ResultScreen(
                         OutlinedButton(enabled = !followUpBusy, onClick = onRequestFollowUp) {
                             Text(
                                 when {
-                                    followUpBusy -> "生成中…"
+                                    followUpBusy && followUpHere -> "生成中…"
+                                    followUpBusy -> "本地模型正忙…"
                                     q != null -> "换一个问题"
                                     else -> "生成追问"
                                 }
                             )
                         }
-                        if (followUpBusy) LocalAiBusy("本地模型扮演考官中（请留在 App 内）")
+                        if (followUpBusy && followUpHere) LocalAiBusy("本地模型扮演考官中（请留在 App 内）")
+                        else if (followUpBusy) {
+                            Text(
+                                "本地模型正忙（另一场生成中），请稍后再试",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -448,9 +461,22 @@ fun ResultScreen(
         // 写作：换一个考同样能力的新题，避免反复重写同一道题（口语对应「回答这题」）。
         if (!speaking && session.status == "done") {
             TextButton(enabled = !newTopicBusy, onClick = onRequestNewTopic) {
-                Text(if (newTopicBusy) "出新题中…" else "换一个同类型题目")
+                Text(
+                    when {
+                        newTopicBusy && newTopicHere -> "出新题中…"
+                        newTopicBusy -> "本地模型正忙…"
+                        else -> "换一个同类型题目"
+                    }
+                )
             }
-            if (newTopicBusy) LocalAiBusy("本地模型出新题中（请留在 App 内）")
+            if (newTopicBusy && newTopicHere) LocalAiBusy("本地模型出新题中（请留在 App 内）")
+            else if (newTopicBusy) {
+                Text(
+                    "本地模型正忙（另一场生成中），请稍后再试",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             newTopicError?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
@@ -523,7 +549,6 @@ fun ResultScreen(
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("AI 生词卡（本地模型）", style = MaterialTheme.typography.titleSmall)
                     // 状态按 session 隔离：切到另一条结果时，不要把上一条的「提取中/失败」带过来。
-                    val vocabHere = vocabSessionId == session.id
                     val busyHere = vocabBusy && vocabHere
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -542,6 +567,7 @@ fun ResultScreen(
                             Text(
                                 when {
                                     busyHere -> "提取中…"
+                                    vocabBusy -> "本地模型正忙…"
                                     vocabResult != null && vocabSessionId == session.id -> "换一批生词"
                                     else -> "提取生词 / 搭配"
                                 }
@@ -550,6 +576,12 @@ fun ResultScreen(
                     }
                     if (busyHere) {
                         LocalAiBusy("本地模型提取生词中（请留在 App 内）")
+                    } else if (vocabBusy) {
+                        Text(
+                            "本地模型正忙（另一场生成中），请稍后再试",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     if (vocabHere) {
                         vocabError?.let {

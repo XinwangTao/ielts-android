@@ -61,6 +61,7 @@ fun BankResultScreen(
     // 精讲同样按「结果页作用域 + 题号」存：不同套题的同号题不能串讲。
     aiExplains: Map<String, BankExplain> = emptyMap(),
     explainingIds: Set<String> = emptySet(),
+    explainErrors: Map<String, String?> = emptyMap(),
     onAiExplain: (BankResultItem) -> Unit,
     // 变式题：同考点换新内容，防止重做原题变成「记住答案」。
     variants: Map<String, com.txw.ielts.llm.BankVariant> = emptyMap(),
@@ -184,6 +185,10 @@ fun BankResultScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
+                        }
+                        // 首次失败时 exp 仍为 null：错误必须渲染在 if/else 之外，否则就是「点了没反应」。
+                        explainErrors[ek]?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                         }
                         // 变式题：同一考点换新内容。先只看题面，答案放在「查看答案」后面，留出自测空间。
                         val vk = "$variantScope#${item.id}"

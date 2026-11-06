@@ -20,6 +20,18 @@ import kotlin.math.floor
  */
 object GeneratedParser {
 
+    /**
+     * 生成完整性打分：题数优先，其次「答案 + 双语解析」齐全的题数。
+     * 8 题档模型偶发漏 answers/explain_en：重发一次时用它决定保留哪一份。
+     */
+    fun completeness(questions: List<GeneratedQuestion>): Int =
+        questions.size * 100 + questions.count { it.answers.isNotEmpty() && it.explainEn.isNotBlank() }
+
+    fun pickMoreComplete(
+        a: List<GeneratedQuestion>,
+        b: List<GeneratedQuestion>,
+    ): List<GeneratedQuestion> = if (completeness(b) > completeness(a)) b else a
+
     fun reading(content: String, count: Int): GeneratedReading {
         val o = JSONObject(ScoreSanitizer.extractJson(content))
         val passage = o.optString("passage").ifBlank { o.optString("article") }

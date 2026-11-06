@@ -173,28 +173,33 @@ class LlmClient(
     }
 
     /** 生成一套原创阅读题：文章 + 题目 + 中英双语解析 + 关键短语。 */
-    fun generateReading(difficulty: String, types: List<String>, count: Int): GeneratedReading =
-        GeneratedParser.reading(
-            // 8 题 + 双语解析很容易超过 4000 token：截断会让后几题缺 explain_en。
-            chat(
-                READING_GEN_SYSTEM,
-                "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
-                // 8 题档更长：再放宽一档，减少后几题被截断成缺 explain_en。
-                maxTokens = if (count >= 8) 8000 else 6000,
-            ),
-            count,
-        )
+    fun generateReading(difficulty: String, types: List<String>, count: Int): GeneratedReading {
+        val prompt = "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count"
+        val maxTokens = if (count >= 8) 8000 else 6000
+        val first = GeneratedParser.reading(chat(READING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
+        if (isComplete(first.questions, count)) return first
+        // 模型漏题/漏 answers/漏 explain_en：重发一次（同一 client，不重复扣额度），取更完整的一份。
+        val second = runCatching {
+            GeneratedParser.reading(chat(READING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
+        }.getOrNull() ?: return first
+        return first.copy(questions = GeneratedParser.pickMoreComplete(first.questions, second.questions))
+    }
 
     /** 生成一套原创听力题：对话/独白稿 + 题目 + 双语解析（音频由端侧 TTS 合成）。 */
-    fun generateListening(difficulty: String, types: List<String>, count: Int): GeneratedListening =
-        GeneratedParser.listening(
-            chat(
-                LISTENING_GEN_SYSTEM,
-                "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
-                maxTokens = if (count >= 8) 8000 else 6000,
-            ),
-            count,
-        )
+    fun generateListening(difficulty: String, types: List<String>, count: Int): GeneratedListening {
+        val prompt = "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count"
+        val maxTokens = if (count >= 8) 8000 else 6000
+        val first = GeneratedParser.listening(chat(LISTENING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
+        if (isComplete(first.questions, count)) return first
+        val second = runCatching {
+            GeneratedParser.listening(chat(LISTENING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
+        }.getOrNull() ?: return first
+        return first.copy(questions = GeneratedParser.pickMoreComplete(first.questions, second.questions))
+    }
+
+    /** 题数够且每题都有答案与双语解析，才算一次合格的 8 题档输出。 */
+    private fun isComplete(questions: List<GeneratedQuestion>, count: Int): Boolean =
+        questions.size >= count && questions.all { it.answers.isNotEmpty() && it.explainEn.isNotBlank() }
 
     /** 对一道错题生成中英双语精讲与关键点。 */
     fun explainBankWrong(prompt: String, right: String, yours: String, hint: String): BankExplain =
