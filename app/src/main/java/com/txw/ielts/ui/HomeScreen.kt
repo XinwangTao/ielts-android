@@ -44,6 +44,14 @@ import java.time.LocalDate
 import java.util.Date
 import java.util.Locale
 
+/** 今日任务的一行：标题 + 依据 + 预计时长，点击即开始。 */
+data class PlanEntry(
+    val title: String,
+    val detail: String = "",
+    val minutes: Int = 0,
+    val onClick: () -> Unit,
+)
+
 /** 书目录的一章。 */
 private data class Chapter(
     val num: String,
@@ -71,7 +79,7 @@ fun HomeScreen(
     aiGenError: String? = null,
     onOpenReadySet: (String) -> Unit = {},
     onDismissAiGenError: () -> Unit = {},
-    plan: List<Pair<String, () -> Unit>> = emptyList(),
+    plan: List<PlanEntry> = emptyList(),
     targetBand: Float = 6.5f,
     examDate: String = "",
     skillTargets: SkillTargets? = null,
@@ -216,17 +224,28 @@ fun HomeScreen(
 
         // —— 今日任务：基于数据的推荐，碎片时间不用自己想练什么 ——
         if (plan.isNotEmpty()) {
-            Text(
-                "今日任务",
-                style = MaterialTheme.typography.titleMedium,
-                fontFamily = FontFamily.Serif,
-                modifier = Modifier.padding(bottom = 2.dp),
-            )
-            plan.forEach { (label, go) ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "今日任务",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontFamily = FontFamily.Serif,
+                    modifier = Modifier.padding(bottom = 2.dp),
+                )
+                Spacer(Modifier.weight(1f))
+                val minutes = plan.sumOf { it.minutes }
+                if (minutes > 0) {
+                    Text(
+                        "约 $minutes 分钟",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+            plan.forEach { entry ->
                 Row(
                     Modifier.fillMaxWidth()
                         .heightIn(min = 48.dp)
-                        .clickable { go() }
+                        .clickable { entry.onClick() }
                         .padding(vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -238,7 +257,16 @@ fun HomeScreen(
                             .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(1.dp))
                     )
                     Spacer(Modifier.width(12.dp))
-                    Text(label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    Column(Modifier.weight(1f)) {
+                        Text(entry.title, style = MaterialTheme.typography.bodyLarge)
+                        if (entry.detail.isNotBlank()) {
+                            Text(
+                                entry.detail,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(20.dp))

@@ -615,8 +615,6 @@ private fun App(
 
     // —— 今日任务：基于数据的推荐（错题/到期卡/未练模块），碎片时间不用自己想练什么 ——
     val dayMs = 86_400_000L
-    val lastSpeaking = sessions.filter { it.module == "speaking" }.maxOfOrNull { it.startedAt }
-    val lastWriting = sessions.filter { it.module == "writing" }.maxOfOrNull { it.startedAt }
     val nowMs = System.currentTimeMillis()
     var queue by remember { mutableStateOf<List<com.txw.ielts.data.Card>>(emptyList()) }
     var cardIndex by remember { mutableIntStateOf(0) }
@@ -640,10 +638,8 @@ private fun App(
         }
     }
     // 临考收紧：考前两周口语/写作的复练间隔自动缩短（14 天内减半、7 天内每天），
-    // 平时不必天天练的项目，临近考试就不能再等 3 天了。
+    // 平时不必天天练的项目，临近考试就不能再等 3 天了。间隔判断统一在 DailyPlanCalc 里做。
     val daysLeft = remember(prefs.examDate) { com.txw.ielts.data.ExamTarget.daysUntil(prefs.examDate, nowMs) }
-    val speakEvery = com.txw.ielts.data.ExamTarget.reviewInterval(2, daysLeft)
-    val writeEvery = com.txw.ielts.data.ExamTarget.reviewInterval(3, daysLeft)
     // 四科目标与最弱科：目标和首页共用一份，今日任务按「差得最多」排，而不是只看隔了几天。
     val skillTargets = SkillTargets(
         listening = prefs.targetListening.toDouble(),
@@ -651,9 +647,6 @@ private fun App(
         writing = prefs.targetWriting.toDouble(),
         speaking = prefs.targetSpeaking.toDouble(),
     )
-    val skillGap = remember(sessions, prefs.targetBand, skillTargets) {
-        com.txw.ielts.ui.weakestGap(com.txw.ielts.ui.skillProfile(sessions), skillTargets)
-    }
     // 错题趋势只用已有数据（练习正确率 + 错题卡），进语料页时随 refreshCorpus 更新；
     // 按天做 key，App 跨天常驻时窗口也会跟着滚动。
     val wrongTrend = remember(sessions, wrongCards, nowMs / dayMs) {
@@ -665,32 +658,36 @@ private fun App(
         "speaking" -> Route.Speaking
         else -> Route.Bank // 听力/阅读共用题库页，进去再按模块筛
     }
-    val speakingDue = lastSpeaking == null || nowMs - lastSpeaking >= speakEvery * dayMs
-    val writingDue = lastWriting == null || nowMs - lastWriting >= writeEvery * dayMs
-    val dailyPlan: List<Pair<String, () -> Unit>> = buildList {
-        if (wrongCount > 0) add("错题专项 · 重刷 $wrongCount 张" to { startWrongQueue() })
-        // 最弱科单列一条；如果它正好也到点该练了，就把差距写进那条，别占两个位置。
-        if (skillGap != null && !(skillGap.module == "speaking" && speakingDue) &&
-            !(skillGap.module == "writing" && writingDue)
-        ) {
-            val g = skillGap
-            add("${g.label}差 %.1f 分 · 优先补".format(g.gap) to {
-                if (g.module == "listening" || g.module == "reading") bankFilter = g.module
-                route = routeFor(g.module)
-            })
+    // 只把 status=done 的练习算作「练过」，最弱科与到点复练合并，按优先级截断；
+    // 首页每行显示推荐依据和预计时长，点一下直接开始。
+    val skillProfile = remember(sessions) { com.txw.ielts.ui.skillProfile(sessions) }
+    val dailyTasks = com.txw.ielts.ui.DailyPlanCalc.build(
+        sessions = sessions,
+        wrongCount = wrongCount,
+        dueCards = due,
+        targets = skillTargets,
+        now = nowMs,
+        daysLeft = daysLeft,
+        profile = skillProfile,
+    )
+    val dailyPlan: List<com.txw.ielts.ui.PlanEntry> = dailyTasks.map { t ->
+        com.txw.ielts.ui.PlanEntry(t.title, t.detail, t.minutes) {
+            when (t.kind) {
+                com.txw.ielts.ui.DailyTaskKind.WRONG -> startWrongQueue()
+                com.txw.ielts.ui.DailyTaskKind.CARDS -> startDueQueue()
+                com.txw.ielts.ui.DailyTaskKind.FREE -> {
+                    bankFilter = "all"
+                    route = Route.Bank
+                }
+                com.txw.ielts.ui.DailyTaskKind.GAP,
+                com.txw.ielts.ui.DailyTaskKind.SPEAKING,
+                com.txw.ielts.ui.DailyTaskKind.WRITING -> {
+                    if (t.module == "listening" || t.module == "reading") bankFilter = t.module
+                    route = routeFor(t.module)
+                }
+            }
         }
-        if (speakingDue) {
-            val ago = if (lastSpeaking == null) "还没开口过" else "距上次 ${(nowMs - lastSpeaking) / dayMs} 天"
-            val note = if (skillGap?.module == "speaking") "，差 %.1f".format(skillGap.gap) else ""
-            add("口语该练了 · $ago$note" to { route = Route.Speaking })
-        }
-        if (due > 0) add("复习 $due 张到期卡片" to { startDueQueue() })
-        if (writingDue) {
-            val ago = if (lastWriting == null) "还没写过" else "距上次 ${(nowMs - lastWriting) / dayMs} 天"
-            val note = if (skillGap?.module == "writing") "，差 %.1f".format(skillGap.gap) else ""
-            add("写作该练了 · $ago$note" to { route = Route.Writing })
-        }
-    }.take(3)
+    }
     val (ttsAvailable, speak) = com.txw.ielts.ui.rememberTts()
 
     // ---- 听力/阅读题库（全离线，判分不调用任何接口）----
