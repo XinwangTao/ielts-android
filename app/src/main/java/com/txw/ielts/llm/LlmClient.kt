@@ -168,9 +168,11 @@ class LlmClient(
     /** 生成一套原创阅读题：文章 + 题目 + 中英双语解析 + 关键短语。 */
     fun generateReading(difficulty: String, types: List<String>, count: Int): GeneratedReading =
         GeneratedParser.reading(
+            // 8 题 + 双语解析很容易超过 4000 token：截断会让后几题缺 explain_en。
             chat(
                 READING_GEN_SYSTEM,
                 "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
+                maxTokens = 6000,
             ),
             count,
         )
@@ -181,6 +183,7 @@ class LlmClient(
             chat(
                 LISTENING_GEN_SYSTEM,
                 "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count",
+                maxTokens = 6000,
             ),
             count,
         )
@@ -194,11 +197,11 @@ class LlmClient(
             )
         )
 
-    private fun chat(system: String, user: String): String {
+    private fun chat(system: String, user: String, maxTokens: Int = 4000): String {
         onBeforeCall()
         val payload = JSONObject().apply {
             put("model", model)
-            put("max_tokens", 4000)
+            put("max_tokens", maxTokens)
             put("temperature", 0.2)
             put("thinking", JSONObject().put("type", "disabled"))
             put("messages", JSONArray().apply {

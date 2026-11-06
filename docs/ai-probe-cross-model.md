@@ -13,6 +13,9 @@
 
 ## 关键坑与加固
 
+000. **8 题出题容易撞输出上限**（2026-11-06）：4000 token 下后几题常缺 `explain_en`；
+   App 已把出题的 `max_tokens` 提到 6000。即便如此，模型偶尔仍会漏某题的 `answers`/`explain_en`——
+   `GeneratedParser` 会丢掉残题（不会拖垮整套），所以实际题数可能少于要求，属模型质量波动。
 00. **GLM 出 8 题阅读约 1/3 概率不稳**（2026-11-06 连测）：一次 JSON 语法坏（缺冒号），
    一次多给 1 题。多给题 App 会截断（`GeneratedParser.questions` 的 `take(count)`），探针已改为
    「多给不算错、少给才算缺口」；语法坏则由 `routeLlm` 在 auto 通道重试一次云端（HTTP/额度错误不重试），

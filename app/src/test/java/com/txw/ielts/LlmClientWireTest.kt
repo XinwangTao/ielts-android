@@ -92,7 +92,8 @@ class LlmClientWireTest {
 
             val req = JSONObject(requests.single())
             assertEquals("test-model", req.getString("model"))
-            assertEquals(4000, req.getInt("max_tokens"))
+            // 出题是长输出：8 题 + 双语解析需要 6000，否则后几题会被截断成缺 explain_en。
+            assertEquals(6000, req.getInt("max_tokens"))
             assertEquals(0.2, req.getDouble("temperature"), 0.0)
             assertEquals("disabled", req.getJSONObject("thinking").getString("type"))
             val messages = req.getJSONArray("messages")
