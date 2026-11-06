@@ -40,6 +40,16 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(KEY_RELEASE_AFTER, false)
         set(v) = sp.edit().putBoolean(KEY_RELEASE_AFTER, v).apply()
 
+    /**
+     * 进入写作 / 口语 / AI 出题页停留几秒后提前加载模型。
+     *
+     * 默认开：用户真正要用的页面提前把 60 秒冷加载消化掉；代价是模型常驻约 2.7GB。
+     * 手机上还要同时跑别的本地大模型（语音助手等）时可以关掉。
+     */
+    var preloadOnPractice: Boolean
+        get() = sp.getBoolean(KEY_PRELOAD_ON_PRACTICE, true)
+        set(v) = sp.edit().putBoolean(KEY_PRELOAD_ON_PRACTICE, v).apply()
+
     /** 目标总分（0.5 步长，4.0–9.0）。首页「离目标还差多少」与临考节奏都依赖它。 */
     var targetBand: Float
         get() = sp.getFloat(KEY_TARGET_BAND, 6.5f)
@@ -222,6 +232,7 @@ class Prefs(context: Context) {
         private const val KEY_SCORE_CHANNEL = "score_channel"
         private const val KEY_LOCAL_MODEL = "local_model"
         private const val KEY_RELEASE_AFTER = "release_model_after_score"
+        private const val KEY_PRELOAD_ON_PRACTICE = "preload_on_practice"
         private const val KEY_LIMIT = "llm_daily_limit"
         private const val KEY_NEW_CARDS = "daily_new_cards"
         private const val KEY_BANK_PROGRESS = "bank_progress"

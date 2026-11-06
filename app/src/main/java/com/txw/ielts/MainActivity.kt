@@ -51,11 +51,11 @@ import com.txw.ielts.data.CardRepo
 import com.txw.ielts.data.FirstRun
 import com.txw.ielts.data.LocalModelState
 import com.txw.ielts.data.Prefs
-import com.txw.ielts.data.ReviewQueue
 import com.txw.ielts.data.Session
 import com.txw.ielts.data.ShadowDiff
 import com.txw.ielts.data.ShadowPassage
 import com.txw.ielts.data.ShadowRepo
+import com.txw.ielts.data.StudyRound
 import com.txw.ielts.data.WrongTrendCalc
 import com.txw.ielts.llm.BankExplain
 import com.txw.ielts.llm.ChannelPick
@@ -443,7 +443,7 @@ private fun App(
     // 只是路过（5 秒内离开）不会触发，避免白占 2.7GB；模型未投递时静默跳过。
     LaunchedEffect(route) {
         val likelyNeedsAi = route is Route.Writing || route is Route.Speaking || route is Route.AiGen
-        if (!likelyNeedsAi) return@LaunchedEffect
+        if (!likelyNeedsAi || !prefs.preloadOnPractice) return@LaunchedEffect
         kotlinx.coroutines.delay(5_000)
         if (LocalLlmEngine.isReady(context, prefs.localModel)) return@LaunchedEffect
         if (!LocalLlmEngine.hasExternalCopy(context, prefs.localModel)) return@LaunchedEffect
@@ -761,25 +761,25 @@ private fun App(
     // —— 今日任务：基于数据的推荐（错题/到期卡/未练模块），碎片时间不用自己想练什么 ——
     val dayMs = 86_400_000L
     val nowMs = System.currentTimeMillis()
-    var queue by remember { mutableStateOf<List<com.txw.ielts.data.Card>>(emptyList()) }
-    var cardIndex by remember { mutableIntStateOf(0) }
-    var revealed by remember { mutableStateOf(false) }
+    // 一轮复习的状态（当前卡 / 翻面 / 哪张卡正在写库）统一交给 StudyRound，
+    // 评级按钮的置灰跟着它走：换卡或 Again 就地重问都会解锁，不会只评得动第一张。
+    var round by remember { mutableStateOf(StudyRound()) }
 
     // 今日任务：点一下就直接开始，不再先跳语料首页再点第二轮。
     fun startWrongQueue() {
         scope.launch {
-            queue = repo.buildWrongQueue()
-            cardIndex = 0
-            revealed = false
-            if (queue.isEmpty()) error = "暂无到期错题" else route = Route.Study
+            val cards = repo.buildWrongQueue()
+            round = StudyRound.start(cards)
+            error = if (cards.isEmpty()) "暂无到期错题" else null
+            if (cards.isNotEmpty()) route = Route.Study
         }
     }
     fun startDueQueue() {
         scope.launch {
-            queue = repo.buildQueue(prefs.dailyNewCards)
-            cardIndex = 0
-            revealed = false
-            if (queue.isEmpty()) error = "今天没有待学卡片" else route = Route.Study
+            val cards = repo.buildQueue(prefs.dailyNewCards)
+            round = StudyRound.start(cards)
+            error = if (cards.isEmpty()) "今天没有待学卡片" else null
+            if (cards.isNotEmpty()) route = Route.Study
         }
     }
     // 临考收紧：考前两周口语/写作的复练间隔自动缩短（14 天内减半、7 天内每天），
@@ -2495,46 +2495,55 @@ private fun App(
                     error = error,
                     onStart = {
                         scope.launch {
-                            queue = repo.buildQueue(prefs.dailyNewCards)
-                            cardIndex = 0
-                            revealed = false
-                            if (queue.isEmpty()) error = "今天没有待学卡片" else route = Route.Study
+                            val cards = repo.buildQueue(prefs.dailyNewCards)
+                            round = StudyRound.start(cards)
+                            error = if (cards.isEmpty()) "今天没有待学卡片" else null
+                            if (cards.isNotEmpty()) route = Route.Study
                         }
                     },
                     onWrongStart = {
                         scope.launch {
-                            queue = repo.buildWrongQueue()
-                            cardIndex = 0
-                            revealed = false
-                            if (queue.isEmpty()) error = "暂无错题" else route = Route.Study
+                            val cards = repo.buildWrongQueue()
+                            round = StudyRound.start(cards)
+                            error = if (cards.isEmpty()) "暂无错题" else null
+                            if (cards.isNotEmpty()) route = Route.Study
                         }
                     },
                     onBack = { route = Route.Home },
                 )
 
                 is Route.Study -> {
-                    val card = queue.getOrNull(cardIndex)
+                    val card = round.card
                     if (card == null) {
-                        LaunchedEffect(cardIndex) { route = Route.Corpus }
+                        LaunchedEffect(round) { route = Route.Corpus }
                     } else {
                         StudyScreen(
                             card = card,
-                            index = cardIndex,
-                            total = queue.size,
-                            revealed = revealed,
+                            index = round.index,
+                            total = round.total,
+                            revealed = round.revealed,
+                            // 只有「这张卡正在写库」时才置灰；换卡或 Again 重问会立刻恢复。
+                            busy = !round.canGrade,
+                            error = error,
                             ttsAvailable = ttsAvailable,
-                            onReveal = { revealed = true },
+                            onReveal = { round = round.reveal() },
                             onSpeak = { speak(card.example.ifBlank { card.front }) },
                             onGrade = { grade ->
+                                // 先上锁再写库：连点只会记一次分；写库失败就解锁，让用户重评。
+                                round = round.beginGrade()
+                                error = null
                                 scope.launch {
-                                    repo.grade(card, grade)
+                                    val target = round.card ?: return@launch
+                                    val saved = runCatching { repo.grade(target, grade) }
+                                    if (saved.isFailure) {
+                                        round = round.unlock()
+                                        error = "这张卡没存上，请再评一次"
+                                        return@launch
+                                    }
                                     // Again 不丢到明天：留在本轮隔几张再问，答对才前进。
-                                    val step = ReviewQueue.afterGrade(queue, cardIndex, grade)
-                                    queue = step.queue
-                                    cardIndex = step.index
-                                    revealed = false
-                                    if (step.done) {
-                                        queue = emptyList(); cardIndex = 0
+                                    round = round.applyGrade(grade)
+                                    if (round.finished) {
+                                        round = StudyRound.EMPTY
                                         refreshCorpus()
                                         route = Route.Corpus
                                     }
@@ -2543,19 +2552,15 @@ private fun App(
                             onDelete = {
                                 scope.launch {
                                     repo.delete(card)
-                                    val newQueue = queue.filterNot { it.id == card.id }
-                                    queue = newQueue
-                                    revealed = false
-                                    if (newQueue.isEmpty()) {
-                                        cardIndex = 0
+                                    round = round.discard()
+                                    if (round.finished) {
+                                        round = StudyRound.EMPTY
                                         refreshCorpus()
                                         route = Route.Corpus
-                                    } else if (cardIndex >= newQueue.size) {
-                                        cardIndex = newQueue.size - 1
                                     }
                                 }
                             },
-                            onExit = { queue = emptyList(); cardIndex = 0; revealed = false; route = Route.Corpus },
+                            onExit = { round = StudyRound.EMPTY; route = Route.Corpus },
                         )
                     }
                 }

@@ -239,6 +239,21 @@ fun SettingsScreen(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
+        var preloadOnPractice by remember { mutableStateOf(prefs.preloadOnPractice) }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.material3.Checkbox(
+                checked = preloadOnPractice,
+                onCheckedChange = {
+                    preloadOnPractice = it
+                    prefs.preloadOnPractice = it
+                },
+            )
+            Text(
+                "进入写作 / 口语 / AI 出题页时提前加载模型" +
+                    if (releaseAfter) "（与上一项冲突：每次评分后仍会释放）" else "（首次操作少等约 1 分钟，代价是常驻约 2.7GB）",
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
         TextButton(onClick = {
             val ok = com.txw.ielts.llm.LocalLlmEngine.release()
             releasedMsg = if (ok) "已释放模型内存，下次评分会自动重新加载" else "评分进行中，结束后再释放"
