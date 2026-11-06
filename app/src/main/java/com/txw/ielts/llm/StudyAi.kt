@@ -251,18 +251,46 @@ object StudyAi {
         val body = jsonBody(raw) ?: return BankVariant("", emptyList(), "", "", raw.trim())
         val parsed = runCatching {
             val o = JSONObject(body)
+            // 模型常把选项写成「A. xxx」：去掉标号，界面自己按 A/B/C 排。
+            val opts = cleanOptions(
+                o.optJSONArray("options")?.let { a -> (0 until a.length()).map { a.optString(it).trim() } }.orEmpty()
+            )
             BankVariant(
                 question = o.optString("question").trim(),
-                options = o.optJSONArray("options")?.let { a ->
-                    (0 until a.length()).map { a.optString(it).trim() }
-                }.orEmpty().filter { it.isNotBlank() }.take(5),
-                answer = o.optString("answer").trim(),
+                options = opts,
+                answer = normalizeVariantAnswer(o.optString("answer").trim(), opts),
                 explain = o.optString("explain").trim(),
             )
         }.getOrNull()
         return if (parsed == null || parsed.isEmpty) {
             BankVariant("", emptyList(), "", "", raw.trim())
         } else parsed
+    }
+
+    /** 去掉选项前面的「A. 」「B、」等标号：标号由界面统一生成，模型自己加会和界面重复。 */
+    private val OPTION_PREFIX = Regex("^[A-Ea-e][.、)]\\s*")
+
+    fun cleanOptions(options: List<String>): List<String> =
+        options.map { it.replace(OPTION_PREFIX, "").trim() }.filter { it.isNotBlank() }.take(5)
+
+    /**
+     * 把模型给的答案折回某个选项原文。
+     *
+     * 提示词要求「answer 必须等于选项原文」，但实测常写成 `B`、`(B)`、`B. Save money`。
+     * 不折回就会在界面上出现「答案：B」而选项里没有 B 这种对不上的情况。
+     */
+    fun normalizeVariantAnswer(answer: String, options: List<String>): String {
+        val a = answer.trim()
+        if (a.isBlank() || options.isEmpty()) return a
+        options.firstOrNull { it.equals(a, ignoreCase = true) }?.let { return it }
+        val letter = a.trim('(', ')', '.', ' ', '\t', '、', '）', '（')
+        if (letter.length == 1) {
+            val idx = letter[0].uppercaseChar() - 'A'
+            if (idx in options.indices) return options[idx]
+        }
+        // 「B. Save money」这类：用包含关系兜底，取最长匹配，避免 B 选项是 A 选项子串时误判。
+        return options.filter { a.contains(it, ignoreCase = true) || it.contains(a, ignoreCase = true) }
+            .maxByOrNull { it.length } ?: a
     }
 
     fun parseOutline(raw: String): StudyOutline {

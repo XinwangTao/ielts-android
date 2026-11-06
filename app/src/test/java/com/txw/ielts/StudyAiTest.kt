@@ -204,4 +204,36 @@ class StudyAiTest {
         assertEquals(raw, v.raw)
         assertTrue(v.isEmpty)
     }
+
+    @Test
+    fun `变式题选项去掉标号`() {
+        assertEquals(
+            listOf("Cost", "Delay", "Safety"),
+            StudyAi.cleanOptions(listOf("A. Cost", "B、Delay", "C) Safety")),
+        )
+    }
+
+    @Test
+    fun `变式题答案折回选项原文`() {
+        val opts = listOf("Cost", "Delay", "Safety", "Noise")
+        assertEquals("Delay", StudyAi.normalizeVariantAnswer("B", opts))
+        assertEquals("Safety", StudyAi.normalizeVariantAnswer("(C)", opts))
+        assertEquals("Safety", StudyAi.normalizeVariantAnswer("C. Safety", opts))
+        assertEquals("Noise", StudyAi.normalizeVariantAnswer("noise", opts))
+    }
+
+    @Test
+    fun `变式题填空题与无法匹配的答案保持原样`() {
+        assertEquals("9 am", StudyAi.normalizeVariantAnswer("9 am", emptyList()))
+        assertEquals("UNKNOWN", StudyAi.normalizeVariantAnswer("UNKNOWN", listOf("Cost", "Delay")))
+    }
+
+    @Test
+    fun `变式题解析时答案与选项对齐`() {
+        val v = StudyAi.parseVariant(
+            """{"question":"Q","options":["A. Alpha","B. Beta"],"answer":"B","explain":"解析"}"""
+        )
+        assertEquals(listOf("Alpha", "Beta"), v.options)
+        assertEquals("Beta", v.answer)
+    }
 }
