@@ -21,6 +21,18 @@ object RecordingCleanup {
      */
     const val REF_LOOKBACK = 5000
 
+    /** 对练进度存在这个 SharedPreferences 里（`SpeakingPartnerScreen`），逐轮录音不在 sessions 中。 */
+    const val PARTNER_PREFS = "ielts_partner"
+    const val PARTNER_TURNS_KEY = "turns"
+
+    /** 从对练 turns JSON 里取出每轮录音路径：不并入引用集会把「继续上次对练」的录音当无主删掉。 */
+    fun partnerRefs(turnsJson: String?): Set<String> = runCatching {
+        val arr = org.json.JSONArray(turnsJson?.takeIf { it.isNotBlank() } ?: "[]")
+        (0 until arr.length())
+            .mapNotNull { i -> arr.optJSONObject(i)?.optString("p")?.takeIf { it.isNotBlank() } }
+            .toSet()
+    }.getOrDefault(emptySet())
+
     /**
      * @param files 候选文件（绝对路径 to lastModified）
      * @param referenced 仍被任何会话引用的绝对路径

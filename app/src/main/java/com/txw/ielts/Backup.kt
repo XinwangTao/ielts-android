@@ -37,6 +37,8 @@ object Backup {
                             put("id", s.id); put("module", s.module); put("topic", s.topic)
                             put("startedAt", s.startedAt); put("durationSec", s.durationSec)
                             put("transcript", s.transcript); put("essayText", s.essayText)
+                            // task 决定 Task1/Task2 评分口径；audio 路径便于排查录音缺失。
+                            put("task", s.task); put("audioPath", s.audioPath ?: "")
                             put("scoresJson", s.scoresJson); put("fixesJson", s.fixesJson)
                             put("polished", s.polished); put("status", s.status)
                         })

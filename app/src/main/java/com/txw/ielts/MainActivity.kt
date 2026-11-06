@@ -437,7 +437,7 @@ private fun App(
     // 端侧推理（评分 / 提纲 / 范例 / 生词卡 / 复盘）必然中断（docs/oppo-background-scoring-findings.md §九）。
     com.txw.ielts.ui.KeepScreenOn(
         sessionsOrNull?.any { it.status == "pending_local" } == true ||
-            writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy || followUpBusy ||
+            writingOutlineBusy || speakingSampleBusy || vocabBusy || aiReviewBusy || followUpBusy || newTopicBusy ||
             !e2eAi.isNullOrBlank(),
     )
 
@@ -481,6 +481,8 @@ private fun App(
                 }
             }
         }
+        // 归属先写、旧载荷要清：否则上一题的提纲会被当成这一题的结果展示。
+        writingOutline = null
         writingOutlineBusy = true
         writingOutlineError = null
         writingOutlineTopic = topic
@@ -526,6 +528,7 @@ private fun App(
                 }
             }
         }
+        speakingSample = null
         speakingSampleBusy = true
         speakingSampleError = null
         speakingSampleQuestion = question
@@ -573,6 +576,7 @@ private fun App(
                 }
             }
         }
+        vocabResult = null
         vocabBusy = true
         vocabError = null
         vocabSessionId = sessionId
@@ -603,6 +607,7 @@ private fun App(
 
     /** 口语 Part 3 追问：把本场题目与转写交给本地模型，扮演考官问一个更抽象的问题。 */
     suspend fun requestFollowUp(sessionId: Long, question: String, answer: String) {
+        followUpQuestion = null
         followUpBusy = true
         followUpError = null
         followUpSessionId = sessionId
@@ -711,7 +716,7 @@ private fun App(
     }
 
     // 复盘卡的新鲜度提示：数据没变/新增了几条/已过期，都写清楚，别让用户盲目重跑模型。
-    val aiReviewHint = remember(aiReviewCache, sessions, prefs.targetBand, prefs.examDate) {
+    val aiReviewHint = remember(aiReviewCache, sessions, prefs.targetBand, prefs.examDate, prefs.localModel) {
         aiReviewCache?.hint(
             currentFingerprint = com.txw.ielts.llm.AiReviewCache.fingerprint(buildReviewSummary() + "\nmodel=" + prefs.localModel),
             currentSessionsCount = sessions.size,
@@ -789,8 +794,15 @@ private fun App(
                 .listFiles { f -> f.isFile && f.name.endsWith(".wav", ignoreCase = true) }
                 ?.map { it.absolutePath to it.lastModified() }
                 .orEmpty()
+            // 对练逐轮录音只在 ielts_partner 里，不并入引用集会被当成无主删掉。
+            val partner = com.txw.ielts.data.RecordingCleanup.partnerRefs(
+                context.getSharedPreferences(
+                    com.txw.ielts.data.RecordingCleanup.PARTNER_PREFS, Context.MODE_PRIVATE,
+                ).getString(com.txw.ielts.data.RecordingCleanup.PARTNER_TURNS_KEY, "[]")
+            )
             com.txw.ielts.data.RecordingCleanup.pickDeletable(
-                files, referenced, System.currentTimeMillis(), com.txw.ielts.data.RecordingCleanup.KEEP_STARTUP_MS,
+                files, referenced + partner, System.currentTimeMillis(),
+                com.txw.ielts.data.RecordingCleanup.KEEP_STARTUP_MS,
             ).forEach { path ->
                 if (java.io.File(path).delete()) Log.i(TAG, "cleanup recording ${java.io.File(path).name}")
             }
@@ -979,6 +991,8 @@ private fun App(
     // 键是「结果页作用域#题号」：不同套题/不同会话的同号题不能共用变式。
     var bankVariants by remember { mutableStateOf<Map<String, com.txw.ielts.llm.BankVariant>>(emptyMap()) }
     var variantBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // 变式题的失败原因按题展示在卡片里：写进全局 error 结果页根本不显示，用户只看到「点了没反应」。
+    var variantErrors by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
 
     fun openSet(setId: String, limitMin: Int = 0) {
         bankAnswers = bankRepo.savedAnswers(setId)
@@ -1919,7 +1933,7 @@ private fun App(
             }
         }
         variantBusyIds = variantBusyIds + vk
-        error = null
+        variantErrors = variantErrors - vk
         try {
             val v = withContext(Dispatchers.IO) {
                 com.txw.ielts.llm.StudyAi.variant(
@@ -1928,14 +1942,14 @@ private fun App(
                 )
             }
             if (v.isEmpty) {
-                error = "变式题生成失败，请重试"
+                variantErrors = variantErrors + (vk to "变式题生成失败，请重试")
             } else {
                 bankVariants = bankVariants + (vk to v)
                 withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, v.raw) }
             }
         } catch (e: Exception) {
             Log.e(TAG, "variant fail: ${e.message}")
-            error = "变式题生成失败：${e.message}"
+            variantErrors = variantErrors + (vk to "变式题生成失败：${e.message}")
         } finally {
             variantBusyIds = variantBusyIds - vk
         }
@@ -2500,7 +2514,7 @@ private fun App(
                             total = sum?.optInt("total") ?: items.size,
                             items = items,
                             transcript = "",
-                            variants = bankVariants, variantBusyIds = variantBusyIds,
+                            variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                             variantScope = "s${session.id}",
                             onRequestVariant = { item -> scope.launch { runVariant(item, "s${session.id}") } },
                             onAddWrong = {
@@ -2918,7 +2932,7 @@ private fun App(
                                                 readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
                                                 aiExplains = aiExplains, explainingIds = explainingIds,
                                                 onAiExplain = { item -> scope.launch { runAiExplain(item) } },
-                                                variants = bankVariants, variantBusyIds = variantBusyIds,
+                                                variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                                                 variantScope = data.setId,
                                                 onRequestVariant = { item -> scope.launch { runVariant(item, data.setId) } },
                                                 onAddWrong = {

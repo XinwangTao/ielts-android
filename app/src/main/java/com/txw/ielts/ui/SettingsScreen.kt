@@ -410,8 +410,15 @@ fun SettingsScreen(
                             ?.map { it.absolutePath to it.lastModified() }
                             .orEmpty()
                         // 与启动清理共用同一判定（RecordingCleanup），只是保留期更短。
+                        // 对练逐轮录音只在 ielts_partner 里，也要算引用。
+                        val partner = com.txw.ielts.data.RecordingCleanup.partnerRefs(
+                            context.getSharedPreferences(
+                                com.txw.ielts.data.RecordingCleanup.PARTNER_PREFS,
+                                android.content.Context.MODE_PRIVATE,
+                            ).getString(com.txw.ielts.data.RecordingCleanup.PARTNER_TURNS_KEY, "[]")
+                        )
                         val targets = com.txw.ielts.data.RecordingCleanup.pickDeletable(
-                            files, refs, System.currentTimeMillis(),
+                            files, refs + partner, System.currentTimeMillis(),
                             com.txw.ielts.data.RecordingCleanup.KEEP_MANUAL_MS,
                         )
                         var freed = 0L

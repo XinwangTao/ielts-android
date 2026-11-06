@@ -51,4 +51,16 @@ class RecordingCleanupTest {
             RecordingCleanup.pickDeletable(files, emptySet(), now, RecordingCleanup.KEEP_MANUAL_MS),
         )
     }
+
+    @Test
+    fun `对练 turns 里的录音路径并入引用`() {
+        val json = """[{"q":"Q","a":"A","p":"/f/partner_1.wav"},{"p":""},{"p":"/f/partner_2.wav"}]"""
+        assertEquals(
+            setOf("/f/partner_1.wav", "/f/partner_2.wav"),
+            RecordingCleanup.partnerRefs(json),
+        )
+        // 坏 JSON / 空值按「没有引用」处理，不抛异常。
+        assertEquals(emptySet<String>(), RecordingCleanup.partnerRefs("不是 JSON"))
+        assertEquals(emptySet<String>(), RecordingCleanup.partnerRefs(null))
+    }
 }

@@ -64,6 +64,7 @@ fun BankResultScreen(
     // 变式题：同考点换新内容，防止重做原题变成「记住答案」。
     variants: Map<String, com.txw.ielts.llm.BankVariant> = emptyMap(),
     variantBusyIds: Set<String> = emptySet(),
+    variantErrors: Map<String, String?> = emptyMap(),
     // 变式题按「结果页作用域 + 题号」存：不同套题的 1 号题不能共用一个变式。
     variantScope: String = "",
     onRequestVariant: (BankResultItem) -> Unit = {},
@@ -201,7 +202,9 @@ fun BankResultScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            if (vk in revealedVariants) {
+                            // 展开状态绑定题干：换一道后新题默认收起，不能直接带出答案。
+                            val revealKey = "$vk#${v.question.hashCode()}"
+                            if (revealKey in revealedVariants) {
                                 Text("答案：${v.answer}", style = MaterialTheme.typography.bodySmall)
                                 if (v.explain.isNotBlank()) {
                                     Text(
@@ -211,7 +214,7 @@ fun BankResultScreen(
                                     )
                                 }
                             } else {
-                                TextButton(onClick = { revealedVariants = revealedVariants + vk }) {
+                                TextButton(onClick = { revealedVariants = revealedVariants + revealKey }) {
                                     Text("查看答案")
                                 }
                             }
@@ -226,6 +229,9 @@ fun BankResultScreen(
                                 onClick = { onRequestVariant(item) },
                             ) {
                                 Text(if (vk in variantBusyIds) "换题中…" else "换一道同考点新题")
+                            }
+                            variantErrors[vk]?.let {
+                                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                             }
                         }
                     }
