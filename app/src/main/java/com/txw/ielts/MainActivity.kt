@@ -443,12 +443,16 @@ private fun App(
 
     // 进 AI 相关页面停留 5 秒后预热本地模型：用户写完/说完/点生成时少等一次 60 秒冷加载。
     // 只是路过（5 秒内离开）不会触发，避免白占 2.7GB；模型未投递时静默跳过。
+    // 判定交给 LocalWarmup：内部已就绪（文件已拷贝）同样需要加载，不能因为「已就绪」就跳过。
     LaunchedEffect(route) {
         val likelyNeedsAi = route is Route.Writing || route is Route.Speaking || route is Route.AiGen
-        if (!likelyNeedsAi || !prefs.preloadOnPractice) return@LaunchedEffect
+        if (!likelyNeedsAi) return@LaunchedEffect
         kotlinx.coroutines.delay(5_000)
-        if (LocalLlmEngine.isReady(context, prefs.localModel)) return@LaunchedEffect
-        if (!LocalLlmEngine.hasExternalCopy(context, prefs.localModel)) return@LaunchedEffect
+        val ready = LocalLlmEngine.isReady(context, prefs.localModel)
+        val delivered = LocalLlmEngine.hasExternalCopy(context, prefs.localModel)
+        if (!com.txw.ielts.llm.LocalWarmup.shouldPreload(prefs.preloadOnPractice, ready, delivered)) {
+            return@LaunchedEffect
+        }
         runCatching { LocalLlmEngine.preload(context, prefs.localModel) }
     }
 
