@@ -15,12 +15,6 @@ object RecordingCleanup {
     /** 用户手动清理：保留 1 天内。 */
     const val KEEP_MANUAL_MS = 24L * 3_600_000L
 
-    /**
-     * 查引用时要回看多少条会话。
-     * 只查最近 200 条时，练得多的用户会遇到「老会话仍引用、但不在前 200」→ 录音被误删。
-     */
-    const val REF_LOOKBACK = 5000
-
     /** 对练进度存在这个 SharedPreferences 里（`SpeakingPartnerScreen`），逐轮录音不在 sessions 中。 */
     const val PARTNER_PREFS = "ielts_partner"
     const val PARTNER_TURNS_KEY = "turns"

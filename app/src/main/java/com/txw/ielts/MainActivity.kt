@@ -798,8 +798,7 @@ private fun App(
         // 录音清理：转写/评分后的 wav 只在结果页回放时用，长期堆积会吃满空间
         // （实测 files/ 下残留 2.3MB 的 partner_*.wav 十余个）。保留 session 仍引用的文件与 7 天内新文件。
         runCatching {
-            val referenced = db.sessions().recent(com.txw.ielts.data.RecordingCleanup.REF_LOOKBACK)
-                .mapNotNull { it.audioPath }.toSet()
+            val referenced = db.sessions().audioPaths().toSet()
             val files = context.filesDir
                 .listFiles { f -> f.isFile && f.name.endsWith(".wav", ignoreCase = true) }
                 ?.map { it.absolutePath to it.lastModified() }

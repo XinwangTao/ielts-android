@@ -45,6 +45,10 @@ interface SessionDao {
     @Query("SELECT * FROM sessions ORDER BY startedAt DESC LIMIT :n")
     suspend fun recent(n: Int): List<Session>
 
+    /** 仍被会话引用的录音路径（DISTINCT）：清理时不必把整行 Session 拉进内存，也不会被条数截断。 */
+    @Query("SELECT DISTINCT audioPath FROM sessions WHERE audioPath IS NOT NULL AND audioPath <> ''")
+    suspend fun audioPaths(): List<String>
+
     @Query("SELECT * FROM sessions WHERE id = :id")
     suspend fun byId(id: Long): Session?
 
