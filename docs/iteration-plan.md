@@ -31,6 +31,13 @@
 > 已知长尾（待真机）：两个页面同时转写会并发跑两个 recognizer（约 2× 内存），是否加全局串行门
 > 需要先看真机后台内存与等待体感再定。
 
+## 长尾离线池
+
+- **今日新卡额度计数不准**：`countFirstLearnedSince` 用 `reps=1 AND lastReviewed>=今天` 代理，
+  会把「昨天忘掉、今天重新评」的旧卡算成新卡，也漏掉「今天新学但评了 Again」的卡。
+  正确做法是加 `firstLearnedAt` 列（v4 + 迁移），但迁移必须在真机/仪器测试里验证后再上；
+  解除条件：允许 androidTest 或真机跑 MigrationTestHelper。
+
 ## 阻塞（写清解除条件，不在本阶段空等）
 
 1. **备份导入写库**（L1）
@@ -85,6 +92,12 @@
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。
 
 **工程**
+- Learn/词汇/首页独立复审（2026-11-07）：8 项发现修 7 项——①同卡本轮二次评级按库里最新状态算 SM-2
+  ②淘汰池排除错题/跟读/查词卡（不再静默删用户资产）③AI 生词卡重复加入时更新释义/例句
+  ④到期时间落本地日界线（「明天」不再等于 24 小时后）⑤复练提醒按自然日
+  ⑥长批注判重用完整原文（同前缀不再误吞）⑦首页连续天数/距考天数跨午夜自动刷新
+  （首页与主界面各加每分钟日期 ticker）。未修：今日新卡计数代理（需 v4 加 `firstLearnedAt` 列 +
+  真机迁移验证，见长尾）。
 - Room 结构快照（2026-11-07）：`exportSchema=false` 改为导出到 `app/schemas/`，v3（sessions 13 列 / cards 15 列）
   入库成基线；今后改表必须配 Migration，并可用 MigrationTestHelper 做迁移测试（需 androidTest，暂不跑）。
 - lint 基线收敛（2026-11-07）：4 warning → 2。电池优化直连对话框按既有设计保留（不上架 Play，

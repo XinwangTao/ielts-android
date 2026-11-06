@@ -168,7 +168,12 @@ object DailyPlanCalc {
 
     private fun isDue(last: Long?, now: Long, intervalDays: Int): Boolean {
         if (last == null) return true
-        return now - last >= intervalDays * DAY_MS
+        // 按自然日：昨晚 22:00 练过、今天 20:00 打开首页，1 天间隔就应该提醒，
+        // 而不是等到 22:00 之后（24 小时整）。
+        val zone = java.time.ZoneId.systemDefault()
+        val a = java.time.Instant.ofEpochMilli(last).atZone(zone).toLocalDate()
+        val b = java.time.Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        return java.time.temporal.ChronoUnit.DAYS.between(a, b) >= intervalDays
     }
 
     private fun priorityOf(task: DailyTask, daysLeft: Int?): Int {

@@ -16,6 +16,15 @@ class Sm2Test {
     private val now = 1_700_000_000_000L
     private val day = 86_400_000L
 
+    private fun startOfDayPlus(ms: Long, days: Int): Long {
+        val zone = java.time.ZoneId.systemDefault()
+        return java.time.Instant.ofEpochMilli(ms).atZone(zone).toLocalDate()
+            .plusDays(days.toLong())
+            .atStartOfDay(zone)
+            .toInstant()
+            .toEpochMilli()
+    }
+
     private fun card(
         ease: Double = 2.5,
         interval: Int = 0,
@@ -30,7 +39,7 @@ class Sm2Test {
         assertEquals(1, s.intervalDays)
         assertEquals(1, s.lapses)
         assertEquals(2.3, s.ease, 0.0001)
-        assertEquals(now + day, s.dueAt)
+        assertEquals(startOfDayPlus(now, 1), s.dueAt)
     }
 
     @Test
@@ -39,7 +48,19 @@ class Sm2Test {
         assertEquals(1, s.reps)
         assertEquals(1, s.intervalDays)
         assertEquals(2.5, s.ease, 0.0001)
-        assertEquals(now + day, s.dueAt)
+        assertEquals(startOfDayPlus(now, 1), s.dueAt)
+    }
+
+    @Test
+    fun `到期时间落在本地日界线`() {
+        // 23:50 评的卡，次日 08:00 打开 App 就应该在队列里，而不是等到 23:50。
+        val late = 1_700_006_000_000L
+        val s = Sm2.next(card(), Grade.GOOD, late)
+        val zone = java.time.ZoneId.systemDefault()
+        val due = java.time.Instant.ofEpochMilli(s.dueAt).atZone(zone).toLocalDate()
+        val expected = java.time.Instant.ofEpochMilli(late).atZone(zone).toLocalDate().plusDays(1)
+        assertEquals(expected, due)
+        assertEquals(0, java.time.LocalTime.ofInstant(java.time.Instant.ofEpochMilli(s.dueAt), zone).hour)
     }
 
     @Test

@@ -1,5 +1,8 @@
 package com.txw.ielts.data
 
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -15,7 +18,6 @@ data class Schedule(
 )
 
 object Sm2 {
-    private const val DAY = 86_400_000L
     private const val MAX_INTERVAL = 180
 
     fun next(card: Card, grade: Grade, now: Long = System.currentTimeMillis()): Schedule {
@@ -47,8 +49,23 @@ object Sm2 {
             intervalDays = interval,
             reps = reps,
             lapses = lapses,
-            dueAt = now + interval * DAY,
+            dueAt = dayDue(now, interval),
         )
+    }
+
+    /**
+     * 到期时间落在「本地日界线」上，而不是 now + 24h×N。
+     *
+     * 按钮写「明天」：如果按 24 小时算，23:50 评的卡要到次日 23:50 才到期，
+     * 第二天早上打开 App 复习队列里没有它，与文案承诺不符。这里统一排到目标日的 00:00。
+     */
+    private fun dayDue(now: Long, intervalDays: Int): Long {
+        val zone = ZoneId.systemDefault()
+        return Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+            .plusDays(intervalDays.toLong())
+            .atStartOfDay(zone)
+            .toInstant()
+            .toEpochMilli()
     }
 
     /**

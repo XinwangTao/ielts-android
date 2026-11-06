@@ -95,16 +95,21 @@ interface CardDao {
     @Query("SELECT * FROM cards WHERE source IN ('bank','shadow')")
     suspend fun wrongBook(): List<Card>
 
-    /** 可淘汰池：排除内置卡（seed）、练习批注改正卡（error）与逐句改法卡（fix）——改正卡还没练就被删等于反馈丢失。 */
-    @Query("SELECT COUNT(*) FROM cards WHERE source NOT IN ('seed','error','fix')")
+    /**
+     * 可淘汰池：只算 AI 生词/搭配卡。
+     *
+     * 排除 seed（内置）、error/fix（练习反馈还没练就被删等于反馈丢失）、
+     * bank/shadow（错题本）、lookup（用户主动查词）——这些是用户资产，不能因 AI 池超额被静默清掉。
+     */
+    @Query("SELECT COUNT(*) FROM cards WHERE source NOT IN ('seed','error','fix','bank','shadow','lookup')")
     suspend fun countGenerated(): Int
 
     /** 全部正面：AI 批注/错题入库时用 CardText.key 归一化后做跨会话判重（标点、空白差异也不重复建卡）。 */
     @Query("SELECT front FROM cards")
     suspend fun allFronts(): List<String>
 
-    /** 淘汰：先删从未复习的，再删复习次数最少的；内置卡、练习批注与逐句改法卡永不删除。 */
-    @Query("DELETE FROM cards WHERE id IN (SELECT id FROM cards WHERE source NOT IN ('seed','error','fix') ORDER BY reps ASC, createdAt ASC LIMIT :n)")
+    /** 淘汰：先删从未复习的，再删复习次数最少的；只淘汰 AI 生词/搭配卡（见 [countGenerated]）。 */
+    @Query("DELETE FROM cards WHERE id IN (SELECT id FROM cards WHERE source NOT IN ('seed','error','fix','bank','shadow','lookup') ORDER BY reps ASC, createdAt ASC LIMIT :n)")
     suspend fun evictGenerated(n: Int)
 
     /** 反馈卡（练习批注 error + 逐句改法 fix）：数量上限单独管理，见 FeedbackCap。 */
@@ -113,6 +118,14 @@ interface CardDao {
 
     @Query("DELETE FROM cards WHERE id IN (:ids)")
     suspend fun deleteByIds(ids: List<Long>)
+
+    /** 评级时按 id 重读：同一张卡本轮二次评级必须基于最新 SRS 状态，不能用队列里的旧快照。 */
+    @Query("SELECT * FROM cards WHERE id = :id")
+    suspend fun byId(id: Long): Card?
+
+    /** 重复加入 AI 生词卡时更新文本，SRS 进度（ease/interval/reps/lapses/dueAt）保持不变。 */
+    @Query("UPDATE cards SET back=:back, example=:example WHERE id=:id")
+    suspend fun updateText(id: Long, back: String, example: String)
 
     @Query("SELECT type, COUNT(*) AS n FROM cards GROUP BY type")
     suspend fun countByType(): List<TypeCount>

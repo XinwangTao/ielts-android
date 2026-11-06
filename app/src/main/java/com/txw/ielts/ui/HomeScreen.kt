@@ -27,7 +27,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,7 +95,17 @@ fun HomeScreen(
     onDismissQueueNotice: () -> Unit = {},
     channelNotice: com.txw.ielts.llm.ChannelNotice? = null,
 ) {
-    val streak = remember(sessions) { StreakCalc.currentStreak(sessions) }
+    // 连续天数依赖「今天」：进程跨午夜常驻时 sessions 不变，只 remember(sessions) 会一直显示旧值。
+    // Compose 可能会跳过参数未变的子组合，所以首页自己每分钟对一次日期，不能指望父级重组。
+    var today by remember { mutableStateOf(java.time.LocalDate.now().toString()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(60_000)
+            val d = java.time.LocalDate.now().toString()
+            if (d != today) today = d
+        }
+    }
+    val streak = remember(sessions, today) { StreakCalc.currentStreak(sessions) }
 
     Column(
         // 页边距与其余 19 个屏保持一致（原来首页是 28dp，切到章节页会横跳 18px）
@@ -166,7 +180,7 @@ fun HomeScreen(
 
         // 目标差距：让用户每次打开都知道离目标还有多远（目标分与考试日期在设置里改）
         val target = targetBand.toDouble()
-        val daysLeft = remember(examDate) {
+        val daysLeft = remember(examDate, today) {
             if (examDate.isBlank()) null
             else com.txw.ielts.data.ExamTarget.daysUntil(examDate, System.currentTimeMillis())
         }

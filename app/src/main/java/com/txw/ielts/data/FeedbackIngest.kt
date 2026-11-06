@@ -64,9 +64,12 @@ object FeedbackIngest {
         val accepted = ArrayList<FixCard>(raw.size)
         raw.forEach { rawText ->
             val head = CardText.front(rawText, CardText.FIX_MAX)
+            // 判重键取完整原文：正面为展示会截断，两条长批注若只差前缀之后的半句，
+            // 用截断后的 front 判重会把后一条静默丢掉（跨会话只靠 front 匹配时可能重复，但不丢内容）。
+            val key = CardText.key(rawText)
             when {
                 head.isBlank() -> invalid++
-                !seen.add(CardText.key(head)) -> duplicate++
+                !seen.add(key) -> duplicate++
                 else -> accepted.add(FixCard(front = head, back = rawText.trim()))
             }
         }
@@ -95,7 +98,7 @@ object FeedbackIngest {
                 CardText.key(s) == CardText.key(b) -> invalid++
                 else -> {
                     val front = SENTENCE_PREFIX + CardText.front(s, SENTENCE_MAX)
-                    if (!seen.add(CardText.key(front))) {
+                    if (!seen.add(CardText.key(SENTENCE_PREFIX + s))) {
                         duplicate++
                     } else {
                         val back = b + if (issue.isNotBlank()) "\n\n（${issue.trim()}）" else ""

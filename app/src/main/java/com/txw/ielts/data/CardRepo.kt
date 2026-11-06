@@ -91,7 +91,10 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     }.timeInMillis
 
     suspend fun grade(card: Card, grade: Grade) {
-        val s = Sm2.next(card, grade)
+        // 队列里的 Card 是评级前快照：同一张卡本轮被 Again 重问后再评一次时，
+        // 必须用库里的最新状态算 SM-2，否则第一次的 lapses/ease/间隔会被旧值覆盖。
+        val fresh = db.cards().byId(card.id) ?: card
+        val s = Sm2.next(fresh, grade)
         db.cards().updateSrs(card.id, s.ease, s.intervalDays, s.reps, s.lapses, s.dueAt, System.currentTimeMillis())
     }
 
@@ -246,11 +249,22 @@ class CardRepo(private val context: Context, private val db: AppDb) {
     /** AI 生词/搭配卡：正面=搭配，背面=中文释义，例句单独存；按 front 去重后进入 AI 池。 */
     suspend fun addVocabCards(items: List<com.txw.ielts.llm.VocabItem>): Int {
         if (items.isEmpty()) return 0
-        val seen = db.cards().allFronts().mapTo(HashSet()) { CardText.key(it) }
+        // 已存在的同 front 卡：AI 生词卡以「本次（套用用户修改后）的释义/例句」为准更新，SRS 进度不动。
+        val existing = db.cards().all().associateBy { CardText.key(it.front) }
+        val seen = existing.keys.toMutableSet()
+        val updates = ArrayList<Triple<Long, String, String>>()
         val cards = items.mapNotNull { v ->
             val front = CardText.front(v.phrase, CardText.SHORT_MAX).lowercase()
             if (front.isBlank()) return@mapNotNull null
-            if (!seen.add(CardText.key(front))) return@mapNotNull null
+            val key = CardText.key(front)
+            val old = existing[key]
+            if (old != null) {
+                if (old.source == "ai_vocab") {
+                    updates.add(Triple(old.id, v.meaning.trim(), v.example.trim()))
+                }
+                return@mapNotNull null
+            }
+            if (!seen.add(key)) return@mapNotNull null
             Card(
                 type = "collocation",
                 front = front,
@@ -260,6 +274,9 @@ class CardRepo(private val context: Context, private val db: AppDb) {
                 tags = "ai,生词卡",
                 source = "ai_vocab",
             )
+        }
+        if (updates.isNotEmpty()) {
+            updates.forEach { (id, back, example) -> db.cards().updateText(id, back, example) }
         }
         if (cards.isEmpty()) return 0
         db.cards().insertAll(cards)

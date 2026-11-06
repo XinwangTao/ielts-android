@@ -54,6 +54,30 @@ class DailyPlanTest {
     )
 
     @Test
+    fun `复练间隔按自然日 昨晚练过今天下午就该提醒`() {
+        val zone = java.time.ZoneId.systemDefault()
+        val today = java.time.LocalDate.of(2027, 1, 15)
+        val nowLocal = today.atTime(20, 0).atZone(zone).toInstant().toEpochMilli()
+        val lastNight = today.minusDays(1).atTime(22, 0).atZone(zone).toInstant().toEpochMilli()
+        val sessions = listOf(
+            done("speaking", lastNight),
+            done("writing", nowLocal - 60_000),
+        )
+        // 距考试 5 天 → 口语间隔收紧到 1 天；按 24 小时算 22h 还没到，旧逻辑会漏掉提醒。
+        val tasks = DailyPlanCalc.build(
+            sessions = sessions,
+            wrongCount = 0,
+            dueCards = 0,
+            targets = targets,
+            now = nowLocal,
+            daysLeft = 5,
+            maxTasks = DailyPlanCalc.DEFAULT_MAX_TASKS,
+            profile = emptyProfile,
+        )
+        assertTrue(tasks.any { it.key == "due:speaking" })
+    }
+
+    @Test
     fun `没有到期任务时给一条自由练习，首页不会空白`() {
         val tasks = build(target = null)
         assertEquals(1, tasks.size)

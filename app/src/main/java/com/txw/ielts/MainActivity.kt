@@ -904,8 +904,18 @@ private fun App(
     var feedbackPending by remember { mutableIntStateOf(0) }
 
     // —— 今日任务：基于数据的推荐（错题/到期卡/未练模块），碎片时间不用自己想练什么 ——
-    val dayMs = 86_400_000L
     val nowMs = System.currentTimeMillis()
+    // App 跨午夜常驻时，依赖「今天」的首页任务/倒计时需要一次重组才会更新；
+    // 每分钟对一次日期，跨天时 +1 触发重组（nowMs 在同一帧重新取）。
+    var dayTick by remember { mutableStateOf(0) }
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        var last = java.time.LocalDate.now().toString()
+        while (true) {
+            kotlinx.coroutines.delay(60_000)
+            val d = java.time.LocalDate.now().toString()
+            if (d != last) { last = d; dayTick++ }
+        }
+    }
     // 一轮复习的状态（当前卡 / 翻面 / 哪张卡正在写库）统一交给 StudyRound，
     // 评级按钮的置灰跟着它走：换卡或 Again 就地重问都会解锁，不会只评得动第一张。
     // 整轮复习快照 saveable：旋转/进程重建后接着评，不退回语料页也不从头开始。
@@ -956,7 +966,9 @@ private fun App(
     }
     // 临考收紧：考前两周口语/写作的复练间隔自动缩短（14 天内减半、7 天内每天），
     // 平时不必天天练的项目，临近考试就不能再等 3 天了。间隔判断统一在 DailyPlanCalc 里做。
-    val daysLeft = remember(prefs.examDate) { com.txw.ielts.data.ExamTarget.daysUntil(prefs.examDate, nowMs) }
+    val daysLeft = remember(prefs.examDate, dayTick) {
+        com.txw.ielts.data.ExamTarget.daysUntil(prefs.examDate, nowMs)
+    }
     // 四科目标与最弱科：目标和首页共用一份，今日任务按「差得最多」排，而不是只看隔了几天。
     val skillTargets = SkillTargets(
         listening = prefs.targetListening.toDouble(),
@@ -966,7 +978,7 @@ private fun App(
     )
     // 错题趋势只用已有数据（练习正确率 + 错题卡），进语料页时随 refreshCorpus 更新；
     // 按天做 key，App 跨天常驻时窗口也会跟着滚动。
-    val wrongTrend = remember(sessions, wrongCards, nowMs / dayMs) {
+    val wrongTrend = remember(sessions, wrongCards, dayTick) {
         WrongTrendCalc.build(sessions, wrongCards, nowMs)
     }
     var bankFilter by remember { mutableStateOf("all") }

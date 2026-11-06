@@ -46,6 +46,19 @@ class FeedbackIngestTest {
     }
 
     @Test
+    fun `长批注同前缀但后半句不同 不应被当成重复`() {
+        val prefix = "Your second body paragraph lacks a clear topic sentence, and the example"
+        val a = "$prefix is unrelated to the claim."
+        val b = "$prefix is too detailed for the word limit."
+        // 正面截断到 FIX_MAX 后两条完全相同；判重键若也截断，就会把 b 静默丢掉。
+        assertEquals(CardText.front(a, com.txw.ielts.data.CardText.FIX_MAX),
+            CardText.front(b, com.txw.ielts.data.CardText.FIX_MAX))
+        val plan = FeedbackIngest.planFixes(listOf(a, b), emptySet())
+        assertEquals(2, plan.ingest.added)
+        assertEquals(0, plan.ingest.duplicate)
+    }
+
+    @Test
     fun `同批内重复的批注只收第一条`() {
         val plan = FeedbackIngest.planFixes(
             listOf("Vary the sentence structure.", "vary the sentence structure!"),
