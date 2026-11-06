@@ -27,7 +27,8 @@
    `Guard.kt` 的 `SCREEN_DIM_WAKE_LOCK` 属保活关键路径，同样等真机。
 2. **导入预览（只读）**：纯逻辑部分已完成（`BackupRestore.summary`，返回「将新增 N 条练习、M 张卡片…」，
    1 例单测）；剩余是选文件与展示的 UI，属 L1 流程的一部分，待确认后再接。
-4. [x] **备份保留策略**（2026-11-06）：设置页「清理旧备份（保留最近 5 个）」，二次确认后按修改时间删除更早的 JSON。
+4. [x] **备份保留策略**（2026-11-06）：设置页「清理旧备份（保留最近 5 个）」，二次确认后按修改时间删除更早的 JSON；
+   判定抽成纯函数 `BackupFiles.selectDeletionCandidates`（3 例单测，含 keep=0/数量不足边界）。
 3. [x] **导出体验**（2026-11-06）：设置页新增「分享最近备份」——FileProvider（`${applicationId}.fileprovider`
    + `res/xml/backup_paths.xml`，只暴露 external-files/backup）把最新 JSON 交给系统分享；真机行为记入验收清单。
 

@@ -428,11 +428,14 @@ fun SettingsScreen(
                                     val dir = java.io.File(context.getExternalFilesDir(null), "backup")
                                     val files = dir.listFiles()
                                         ?.filter { it.isFile && it.name.endsWith(".json", ignoreCase = true) }
-                                        ?.sortedByDescending { it.lastModified() }
+                                        ?.map { it.absolutePath to it.lastModified() }
                                         .orEmpty()
+                                    // 保留策略是纯函数（BackupFiles），这里只负责删。
+                                    val targets = com.txw.ielts.data.BackupFiles.selectDeletionCandidates(files)
                                     var freed = 0L
                                     var count = 0
-                                    files.drop(5).forEach { f ->
+                                    targets.forEach { path ->
+                                        val f = java.io.File(path)
                                         val len = f.length()
                                         if (f.delete()) {
                                             freed += len
