@@ -34,7 +34,7 @@ data class AiReviewCache(
             !reusable && ageMs(now) >= DEFAULT_TTL_MS -> "上次复盘已超过 24 小时，建议重新生成"
             !reusable && currentSessionsCount > sessionsCount ->
                 "上次复盘后有 ${currentSessionsCount - sessionsCount} 条新练习，建议重新生成"
-            !reusable -> "练习内容、目标或考试日期有更新，建议重新生成"
+            !reusable -> "练习内容、目标分、考试日期或本地模型有更新，建议重新生成"
             else -> "练习数据没变，这份复盘仍然适用"
         }
         return ReviewCacheHint(ageLabel(now), note, reusable)

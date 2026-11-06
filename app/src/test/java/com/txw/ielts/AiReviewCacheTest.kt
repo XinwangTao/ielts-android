@@ -94,7 +94,7 @@ class AiReviewCacheTest {
     fun `练习数没变但输入变了时提示目标或日期变更`() {
         val hint = cache().hint("changed-fingerprint", currentSessionsCount = 3, now = now)
         assertFalse(hint.reusable)
-        assertTrue(hint.note, hint.note.contains("目标或考试日期"))
+        assertTrue(hint.note, hint.note.contains("考试日期或本地模型"))
     }
 
     @Test
