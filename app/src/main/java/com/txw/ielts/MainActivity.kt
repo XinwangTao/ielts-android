@@ -1914,6 +1914,22 @@ private fun App(
                         "lr=${ev.lexical} gra=${ev.grammar} p=${ev.pronunciation} fixes=${ev.fixes.size} " +
                         "sentences=${ev.sentenceFixes.size} raw=${ev.rawJson.length}")
                 }
+                "gen_reading" -> {
+                    val r = com.txw.ielts.llm.LocalLlmEngine.generateReading(
+                        context, model, "7.0", listOf("choice", "tfng"), 4,
+                    )
+                    val words = r.passage.split(Regex("\\s+")).count { it.isNotBlank() }
+                    Log.i(TAG, "E2E: RESULT ai gen_reading questions=${r.questions.size} " +
+                        "passage_words=$words title_chars=${r.title.length}")
+                }
+                "gen_listening" -> {
+                    val r = com.txw.ielts.llm.LocalLlmEngine.generateListening(
+                        context, model, "6.5", listOf("choice", "gap"), 4,
+                    )
+                    val words = r.transcript.split(Regex("\\s+")).count { it.isNotBlank() }
+                    Log.i(TAG, "E2E: RESULT ai gen_listening questions=${r.questions.size} " +
+                        "transcript_words=$words title_chars=${r.title.length}")
+                }
                 else -> Log.w(TAG, "E2E: RESULT ai unknown=$mode")
             }
             }
@@ -2502,6 +2518,15 @@ private fun App(
                     aiBusy = aiReviewBusy,
                     aiError = aiReviewError,
                     onRequestReview = { scope.launch { requestAiReview() } },
+                    onOpenAction = { action ->
+                        route = when (action) {
+                            "writing" -> Route.Writing
+                            "speaking" -> Route.Speaking
+                            "vocab" -> Route.Corpus
+                            "listening", "reading" -> Route.Bank
+                            else -> Route.Home
+                        }
+                    },
                 )
 
                 is Route.Shadow -> ShadowHomeScreen(

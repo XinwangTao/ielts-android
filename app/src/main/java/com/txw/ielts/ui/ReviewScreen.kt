@@ -67,6 +67,8 @@ fun ReviewScreen(
     aiBusy: Boolean = false,
     aiError: String? = null,
     onRequestReview: () -> Unit = {},
+    /** 复盘建议一键跳到对应练习页（writing / speaking / vocab / listening / reading）。 */
+    onOpenAction: (String) -> Unit = {},
 ) {
     val done = sessions.filter { it.status == "done" && it.scoresJson.isNotBlank() }
     val bands = done.mapNotNull { s ->
@@ -146,7 +148,7 @@ fun ReviewScreen(
         IosNavBar("复盘看板", onBack = onBack)
 
         if (done.isNotEmpty()) {
-            AiReviewSection(aiReview, aiReviewHint, aiBusy, aiError, onRequestReview)
+            AiReviewSection(aiReview, aiReviewHint, aiBusy, aiError, onRequestReview, onOpenAction)
         } else {
             Text(
                 "完成一次写作 / 口语 / 听读练习后，AI 复盘会基于真实成绩给出建议。",
@@ -324,6 +326,7 @@ private fun AiReviewSection(
     busy: Boolean,
     error: String?,
     onRequest: () -> Unit,
+    onOpenAction: (String) -> Unit = {},
 ) {
     val context = LocalContext.current
     BookCard(Modifier.fillMaxWidth()) {
@@ -349,6 +352,21 @@ private fun AiReviewSection(
                     }
                     if (t.how.isNotBlank()) {
                         Text("怎么做：${t.how}", style = MaterialTheme.typography.bodySmall)
+                    }
+                    // 建议落到具体入口：看得出该去哪页才有点击价值；判不准就不显示，避免误导。
+                    com.txw.ielts.llm.ReviewAction.forTask(t.title, t.why, t.how)?.let { action ->
+                        TextButton(onClick = { onOpenAction(action) }) {
+                            Text(
+                                when (action) {
+                                    "writing" -> "去写作 →"
+                                    "speaking" -> "去口语 →"
+                                    "vocab" -> "去词汇 →"
+                                    "listening" -> "去听力 →"
+                                    "reading" -> "去阅读 →"
+                                    else -> "去练习 →"
+                                }
+                            )
+                        }
                     }
                 }
                 if (review.encouragement.isNotBlank()) {
