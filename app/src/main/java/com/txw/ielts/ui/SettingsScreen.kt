@@ -287,6 +287,16 @@ fun SettingsScreen(
                 ignoringBattery = power.isIgnoringBatteryOptimizations(context.packageName)
             }) { Text("刷新状态") }
         }
+        TextButton(onClick = {
+            runCatching {
+                context.startActivity(
+                    android.content.Intent(
+                        android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.parse("package:${context.packageName}"),
+                    )
+                )
+            }
+        }) { Text("打开应用信息（电池 / 后台设置）") }
         Text(
             "ColorOS 还有一层自己的冻结：设置 → 电池 → 应用耗电管理 → 雅思随身练 → 允许后台运行 / 允许自启动 / 允许关联启动。" +
                 "开启后长评分在后台更稳；未开启时请在评分期间保持 App 在前台。",

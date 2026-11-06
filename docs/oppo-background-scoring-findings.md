@@ -221,6 +221,7 @@ OPPO 真机（session 21）本地口语评分完成一次模型生成后，通�
 2. ColorOS 自家白名单：设置 → 电池 → 应用耗电管理 → 雅思随身练 → **允许后台运行 / 允许自启动 / 允许关联启动**。
 3. 未开白名单时，长评分请保持 App 在前台（KeepScreenOn 已生效）；后台被中断后由看门狗退 `pending_eval`，回前台可重试。
 4. 回前台自动续跑：`MainActivity.onResume` 在「有 `pending_local` + 引擎 idle + `ScoreService` 未存活」时自动重启评分；`ScoreService.active` 防止重复启动（`0c1ff5b` 后续）。
+5. **加系统 Doze 白名单后仍冻结（2026-11-06 14:16 复测）**：`cmd deviceidle whitelist +com.txw.ielts` 成功后重跑 `score_writing` + HOME，120 秒仍停在模型加载；cgroup 仍是 `/foreground`、RSS 2.7GB，但 `/sys/fs/cgroup/apps/uid_10309/pid_XXX/cgroup.freeze = 1`，utime 5 秒不变。结论：冻结来自 ColorOS 的 Hans 冻结器，mediaPlayback FGS + Doze 白名单都挡不住；必须走 ColorOS 自己的「应用耗电管理 → 允许后台运行」或保持前台。设置页另加「打开应用信息（电池 / 后台设置）」入口便于跳转。
 
 因此产品文案不能承诺「任何情况下后台不中断」；准确说法是：**短 AI 任务后台通常可完成，长评分建议前台或开启系统白名单**。
 
