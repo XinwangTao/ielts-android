@@ -893,7 +893,7 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
             player = null
         }
     }
-    // 播放中每 300ms 刷新进度：用来定位「这句话想重听」的位置。
+    // 播放中每 300ms 刷新进度；拖动后也要立刻反映到进度条上。
     LaunchedEffect(playing, player) {
         while (playing) {
             positionMs = (player?.currentPosition ?: 0).toLong()
@@ -904,68 +904,81 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
         runCatching { p.playbackParams = p.playbackParams.setSpeed(s) }
     }
     fun clock(ms: Long): String = "%d:%02d".format(ms / 1000 / 60, (ms / 1000) % 60)
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        TextButton(onClick = {
-            val p = player
-            if (playing) {
-                runCatching { p?.pause() }
-                playing = false
-                return@TextButton
-            }
-            if (p == null) {
-                val np = android.media.MediaPlayer()
-                val ok = runCatching {
-                    np.setDataSource(path)
-                    np.prepare()
-                    applySpeed(np, speed)
-                    np.start()
-                }.isSuccess
-                if (ok) {
-                    durationMs = np.duration.toLong().coerceAtLeast(0L)
-                    np.setOnCompletionListener {
-                        playing = false
-                        positionMs = 0L
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            TextButton(onClick = {
+                val p = player
+                if (playing) {
+                    runCatching { p?.pause() }
+                    playing = false
+                    return@TextButton
+                }
+                if (p == null) {
+                    val np = android.media.MediaPlayer()
+                    val ok = runCatching {
+                        np.setDataSource(path)
+                        np.prepare()
+                        applySpeed(np, speed)
+                        np.start()
+                    }.isSuccess
+                    if (ok) {
+                        durationMs = np.duration.toLong().coerceAtLeast(0L)
+                        np.setOnCompletionListener {
+                            playing = false
+                            positionMs = 0L
+                        }
+                        player = np
+                        playing = true
+                    } else {
+                        runCatching { np.release() }
                     }
-                    player = np
-                    playing = true
                 } else {
-                    runCatching { np.release() }
+                    runCatching { p.start() }
+                    playing = true
                 }
-            } else {
-                runCatching { p.start() }
-                playing = true
-            }
-        }) { Text(if (playing) "暂停录音" else "播放我的录音") }
-        TextButton(onClick = {
-            speed = when (speed) {
-                1f -> 0.75f
-                0.75f -> 1.25f
-                else -> 1f
-            }
-            player?.let { applySpeed(it, speed) }
-        }) {
-            Text(
-                when (speed) {
-                    0.75f -> "0.75x"
-                    1.25f -> "1.25x"
-                    else -> "1x"
+            }) { Text(if (playing) "暂停录音" else "播放我的录音") }
+            TextButton(onClick = {
+                speed = when (speed) {
+                    1f -> 0.75f
+                    0.75f -> 1.25f
+                    else -> 1f
                 }
-            )
+                player?.let { applySpeed(it, speed) }
+            }) {
+                Text(
+                    when (speed) {
+                        0.75f -> "0.75x"
+                        1.25f -> "1.25x"
+                        else -> "1x"
+                    }
+                )
+            }
+            if (durationMs > 0L) {
+                Text(
+                    "${clock(positionMs)} / ${clock(durationMs)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (!compact) {
+                Text(
+                    "听停顿与语速（转写看不出这些）",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
-        if (durationMs > 0L) {
-            Text(
-                "${clock(positionMs)} / ${clock(durationMs)}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        } else if (!compact) {
-            Text(
-                "听停顿与语速（转写看不出这些）",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        // 拖动定位：反复听某一句时不用从头播；尺寸紧凑处（对练逐轮）不给。
+        if (!compact && durationMs > 0L) {
+            androidx.compose.material3.Slider(
+                value = positionMs.coerceIn(0L, durationMs).toFloat(),
+                onValueChange = { v ->
+                    positionMs = v.toLong()
+                    runCatching { player?.seekTo(positionMs.toInt()) }
+                },
+                valueRange = 0f..durationMs.toFloat(),
             )
         }
     }
