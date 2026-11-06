@@ -254,7 +254,7 @@ fun WritingScreen(
     fun startRecording() {
         val f = File(context.filesDir, "writing_${System.currentTimeMillis()}.wav")
         runCatching {
-            WavRecorder(f).also { it.start() }
+            WavRecorder(f, context).also { it.start() }
         }.onSuccess {
             recorder = it; audioFile = f; recording = true; elapsed = 0; localError = null
         }.onFailure { localError = "录音启动失败：${it.message}" }

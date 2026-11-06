@@ -13,8 +13,14 @@ import kotlin.concurrent.thread
 /**
  * 16 kHz / 单声道 / PCM 16-bit WAV 录音器。
  * 直接产出 ASR 需要的裸 PCM，避免 MediaRecorder 出 AAC 后再解码。
+ *
+ * 带 context 时，录音期间会启动 microphone 类型前台服务：Android 9+ 普通后台 App
+ * 拿不到麦克风，切到后台后 AudioRecord 会读到静音（2026-11-06 补）。
  */
-class WavRecorder(private val outFile: File) {
+class WavRecorder(
+    private val outFile: File,
+    private val context: android.content.Context? = null,
+) {
 
     companion object {
         const val SAMPLE_RATE = 16_000
@@ -29,6 +35,7 @@ class WavRecorder(private val outFile: File) {
     private var record: AudioRecord? = null
     private var worker: Thread? = null
     @Volatile private var running = false
+    private var micGuarded = false
     var bytesWritten: Long = 0
         private set
 
@@ -43,6 +50,11 @@ class WavRecorder(private val outFile: File) {
         )
         check(rec.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord 初始化失败" }
         record = rec
+        // AudioRecord 初始化成功后再开前台服务；失败不会留下未释放的保活引用。
+        context?.let {
+            Guard.startMic(it)
+            micGuarded = true
+        }
         val raf = RandomAccessFile(outFile, "rw")
         raf.setLength(0)
         raf.write(ByteArray(44)) // WAV 头占位，停止时回填
@@ -75,6 +87,11 @@ class WavRecorder(private val outFile: File) {
             release()
         }
         record = null
+        // 先停采集再撤前台服务，避免系统在麦克风仍被占用时回收类型。
+        if (micGuarded) {
+            micGuarded = false
+            context?.let { Guard.stopMic(it) }
+        }
     }
 
     private fun wavHeader(dataLen: Long): ByteArray {

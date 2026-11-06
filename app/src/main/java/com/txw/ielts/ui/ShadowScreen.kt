@@ -125,7 +125,7 @@ fun ShadowStudyScreen(
 
     fun startRecording() {
         val f = File(context.filesDir, "shadow_${System.currentTimeMillis()}.wav")
-        runCatching { WavRecorder(f).also { it.start() } }
+        runCatching { WavRecorder(f, context).also { it.start() } }
             .onSuccess { recorder = it; audioFile = f; recording = true; seconds = 0; localError = null }
             .onFailure { localError = "录音启动失败：${it.message}" }
     }

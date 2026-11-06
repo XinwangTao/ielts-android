@@ -81,7 +81,7 @@ fun SpeakingMockScreen(
     var pendingPart by remember { mutableIntStateOf(-1) }
     fun startPart(i: Int) {
         val f = File(context.filesDir, "mock_${i}_${System.currentTimeMillis()}.wav")
-        runCatching { WavRecorder(f).also { it.start() } }
+        runCatching { WavRecorder(f, context).also { it.start() } }
             .onSuccess {
                 recorder = it
                 files = files.toMutableList().also { l -> l[i] = f }

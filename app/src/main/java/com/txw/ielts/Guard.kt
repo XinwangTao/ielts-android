@@ -28,20 +28,53 @@ import java.util.concurrent.atomic.AtomicInteger
  */
 object Guard {
     private val refs = AtomicInteger(0)
+    private val micRefs = AtomicInteger(0)
 
     fun start(context: Context) {
         if (refs.incrementAndGet() != 1) return
-        runCatching {
-            ContextCompat.startForegroundService(context, Intent(context, GuardService::class.java))
-        }.onFailure {
-            refs.set(0)
+        ensureService(context, mic = micRefs.get() > 0)
+    }
+
+    /**
+     * 录音期间额外声明 microphone 类型：Android 9+ 普通后台 App 拿不到麦克风，
+     * 切到后台后 AudioRecord 会读到静音；带 microphone 类型的前台服务才允许后台采集。
+     */
+    fun startMic(context: Context) {
+        val micNow = micRefs.incrementAndGet()
+        if (refs.incrementAndGet() == 1) {
+            ensureService(context, mic = true)
+        } else if (micNow == 1) {
+            // 服务已在跑（比如评分后台保活）：再投递一次 intent，把前台类型补上 microphone。
+            ensureService(context, mic = true)
         }
     }
 
-    fun stop(context: Context) {
+    fun stop(context: Context) = release(context)
+
+    fun stopMic(context: Context) {
+        micRefs.updateAndGet { if (it > 0) it - 1 else 0 }
+        release(context)
+    }
+
+    fun micActive(): Boolean = micRefs.get() > 0
+
+    private fun release(context: Context) {
         if (refs.decrementAndGet() > 0) return
         refs.set(0)
+        // 录音还在就继续保活，不能因为评分结束把麦克风保护一起停掉。
+        if (micRefs.get() > 0) return
         runCatching { context.stopService(Intent(context, GuardService::class.java)) }
+    }
+
+    private fun ensureService(context: Context, mic: Boolean) {
+        runCatching {
+            ContextCompat.startForegroundService(
+                context,
+                Intent(context, GuardService::class.java).putExtra("mic", mic),
+            )
+        }.onFailure {
+            refs.set(0)
+        }
     }
 }
 
@@ -55,7 +88,8 @@ class GuardService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        startForegroundCompat()
+        val mic = intent?.getBooleanExtra("mic", false) == true || Guard.micActive()
+        startForegroundCompat(mic)
         startSilence()
         addOverlay()
         // 屏幕熄灭时 ColorOS 仍会限制后台 App 的 CPU（实测 cgroup 已是 foreground，MNN 仍 0 token）。
@@ -79,7 +113,7 @@ class GuardService : Service() {
         return START_STICKY
     }
 
-    private fun startForegroundCompat() {
+    private fun startForegroundCompat(mic: Boolean) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(
@@ -89,11 +123,18 @@ class GuardService : Service() {
         val n = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("雅思随身练")
-            .setContentText("评分 / AI 生成进行中")
+            .setContentText(if (mic) "录音中（后台保活）" else "评分 / AI 生成进行中")
             .setOngoing(true)
             .setShowWhen(false)
             .build()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && mic) {
+            // microphone 类型仅 API 30+ 存在；30 以下仍以 mediaPlayback 保活。
+            startForeground(
+                NOTIF_ID, n,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE,
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(NOTIF_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
         } else {
             startForeground(NOTIF_ID, n)

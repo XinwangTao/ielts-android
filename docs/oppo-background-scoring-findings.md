@@ -299,3 +299,11 @@ OPPO 真机（session 21）本地口语评分完成一次模型生成后，通�
 | 错题精讲 | `runAiExplain` | ✅ 本次补：同上 |
 
 引用计数保证本地分支的 Guard 不会因外层再包一次而提前 stop。
+
+## 12.6 录音也进保活（2026-11-06）
+
+Android 9+ 普通后台 App 拿不到麦克风：录音中切走，`AudioRecord` 会读到静音。
+`WavRecorder` 现在接收 `Context`，录音期间调用 `Guard.startMic`，`GuardService` 以
+`mediaPlayback|microphone` 双类型前台服务运行（API 30+ 生效，低版本退回 mediaPlayback），
+通知文案显示「录音中（后台保活）」。录音停止先释放 `AudioRecord` 再 `stopMic`，引用计数与
+评分/AI 保活共用，互不误停。`AndroidManifest` 增加 `FOREGROUND_SERVICE_MICROPHONE`。
