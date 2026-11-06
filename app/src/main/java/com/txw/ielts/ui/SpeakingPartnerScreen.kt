@@ -57,7 +57,10 @@ fun SpeakingPartnerScreen(
     val scope = rememberCoroutineScope()
     val (ttsAvailable, speak) = rememberTts()
     // 对练进度持久化：退出后回来可继续，不用重头录。
-    val prefs = remember { context.getSharedPreferences("ielts_partner", android.content.Context.MODE_PRIVATE) }
+    val prefs = remember { context.getSharedPreferences(
+        com.txw.ielts.data.RecordingCleanup.PARTNER_PREFS,
+        android.content.Context.MODE_PRIVATE,
+    ) }
 
     var part by remember { mutableStateOf(prefs.getString("part", "Part 1") ?: "Part 1") }
     val limit = when (part) {
@@ -74,7 +77,7 @@ fun SpeakingPartnerScreen(
     var turns by remember {
         mutableStateOf(
             runCatching {
-                val arr = org.json.JSONArray(prefs.getString("turns", "[]") ?: "[]")
+                val arr = org.json.JSONArray(prefs.getString(com.txw.ielts.data.RecordingCleanup.PARTNER_TURNS_KEY, "[]") ?: "[]")
                 (0 until arr.length()).map {
                     val o = arr.getJSONObject(it)
                     PartnerTurn(o.optString("q"), o.optString("a"), o.optString("p"))
@@ -181,7 +184,7 @@ fun SpeakingPartnerScreen(
         }
         prefs.edit()
             .putString("part", part)
-            .putString("turns", arr.toString())
+            .putString(com.txw.ielts.data.RecordingCleanup.PARTNER_TURNS_KEY, arr.toString())
             .putInt("round", round)
             .putString("question", currentQuestion ?: "")
             .apply()
