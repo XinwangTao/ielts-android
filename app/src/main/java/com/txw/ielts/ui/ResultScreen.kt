@@ -883,11 +883,16 @@ private fun ScoreBar(label: String, score: Double, color: Color) {
 internal fun RecordingPlayer(path: String, compact: Boolean = false) {
     var player by remember(path) { mutableStateOf<android.media.MediaPlayer?>(null) }
     var playing by remember(path) { mutableStateOf(false) }
+    // 0.75x 更容易听清连读和自己的口误；1.25x 用来练反应。
+    var speed by remember(path) { mutableStateOf(1f) }
     androidx.compose.runtime.DisposableEffect(path) {
         onDispose {
             runCatching { player?.release() }
             player = null
         }
+    }
+    fun applySpeed(p: android.media.MediaPlayer, s: Float) {
+        runCatching { p.playbackParams = p.playbackParams.setSpeed(s) }
     }
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -905,6 +910,7 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                 val ok = runCatching {
                     np.setDataSource(path)
                     np.prepare()
+                    applySpeed(np, speed)
                     np.start()
                 }.isSuccess
                 if (ok) {
@@ -919,6 +925,22 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                 playing = true
             }
         }) { Text(if (playing) "暂停录音" else "播放我的录音") }
+        TextButton(onClick = {
+            speed = when (speed) {
+                1f -> 0.75f
+                0.75f -> 1.25f
+                else -> 1f
+            }
+            player?.let { applySpeed(it, speed) }
+        }) {
+            Text(
+                when (speed) {
+                    0.75f -> "0.75x"
+                    1.25f -> "1.25x"
+                    else -> "1x"
+                }
+            )
+        }
         if (!compact) {
             Text(
                 "听停顿与语速（转写看不出这些）",
