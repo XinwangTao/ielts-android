@@ -25,12 +25,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
-import android.graphics.BitmapFactory
 
 /**
  * 写作模考：Task 1（20 分钟建议）+ Task 2（40 分钟建议），共 60 分钟连续计时。
@@ -144,11 +142,7 @@ fun WritingMockScreen(
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("Task 1 · 图表描述（150 词以上）", style = MaterialTheme.typography.labelLarge)
                         t1Item.image?.let { path ->
-                            val bmp = remember(path) {
-                                runCatching {
-                                    ctx.assets.open(path).use { BitmapFactory.decodeStream(it).asImageBitmap() }
-                                }.getOrNull()
-                            }
+                            val bmp = rememberAssetImage(ctx.assets, path)
                             if (bmp != null) {
                                 Image(
                                     bitmap = bmp,

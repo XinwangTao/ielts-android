@@ -69,6 +69,8 @@
 - 导入（纯逻辑）：`BackupImporter.mergeAiSets / parseSettings / modelWarning`。
 
 **工程**
+- 主线程 IO 扫描（2026-11-07）：写作/模考页图表改为 assets 异步解码（`rememberAssetImage`），
+  不再把 PNG 解码塞进首帧；设置页「清空所有数据」的删录音/范文移入 IO 线程。
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。
 
 ## 判断标准

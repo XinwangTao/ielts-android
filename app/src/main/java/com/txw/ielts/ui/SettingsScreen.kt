@@ -650,11 +650,14 @@ fun SettingsScreen(
                         confirmClear = false
                         exportScope.launch {
                             runCatching {
+                                // 清库 + 删录音/范文都放 IO：录音多时逐个 delete 在主线程会卡住确认框。
                                 kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                                     com.txw.ielts.data.AppDb.get(context).clearAllTables()
+                                    java.io.File(context.filesDir, "model_essays.json").delete()
+                                    context.filesDir.listFiles()
+                                        ?.filter { it.name.endsWith(".wav") }
+                                        ?.forEach { it.delete() }
                                 }
-                                java.io.File(context.filesDir, "model_essays.json").delete()
-                                context.filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { it.delete() }
                                 // 派生缓存必须一起清：否则清空后 AI 复盘仍显示旧练习生成的建议。
                                 prefs.clearDerivedCaches()
                             }
