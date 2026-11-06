@@ -392,8 +392,10 @@ fun SettingsScreen(
                                 }
                                 java.io.File(context.filesDir, "model_essays.json").delete()
                                 context.filesDir.listFiles()?.filter { it.name.endsWith(".wav") }?.forEach { it.delete() }
+                                // 派生缓存必须一起清：否则清空后 AI 复盘仍显示旧练习生成的建议。
+                                prefs.clearDerivedCaches()
                             }
-                            clearMsg = "已清空所有数据"
+                            clearMsg = "已清空所有数据（本地 AI 复盘/生词/提纲缓存也已重置）"
                         }
                     }) { Text("确认清空") }
                 },

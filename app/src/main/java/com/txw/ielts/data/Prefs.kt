@@ -157,6 +157,22 @@ class Prefs(context: Context) {
         set(v) = sp.edit().putString(KEY_STUDY_PLAN, v).apply()
 
     /**
+     * 清空「从练习数据派生出来的缓存」——设置页「清空所有数据」必须一起调。
+     *
+     * 只清数据库不够：AI 复盘缓存的是旧练习算出来的行动建议，生词卡/提纲缓存的是旧文本的结果，
+     * 不清就会在清空后继续显示旧内容，看起来像「数据没清干净」。
+     * 不动用户主动设置的项（目标分、考期、通道、模型、课表手动覆盖）。
+     */
+    fun clearDerivedCaches() {
+        aiReviewCache = ""
+        studyAiCache = "{}"
+        mutedFixes = "{}"
+        vocabEdits = "{}"
+        localScoreStarted = "{}"
+        localScoreFinished = "{}"
+    }
+
+    /**
      * 首启引导是否已看完/跳过。
      *
      * 只在「看完」或「跳过」时置 true：中途点了「去设置」不算看完，
