@@ -472,7 +472,7 @@ private fun App(
         writingOutlineBusy = true
         writingOutlineError = null
         writingOutlineTopic = topic
-        if (LocalLlmEngine.isBusy) {
+        if (LocalLlmEngine.isGenerating) {
             writingOutlineError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
             writingOutlineBusy = false
             return
@@ -517,7 +517,7 @@ private fun App(
         speakingSampleBusy = true
         speakingSampleError = null
         speakingSampleQuestion = question
-        if (LocalLlmEngine.isBusy) {
+        if (LocalLlmEngine.isGenerating) {
             speakingSampleError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
             speakingSampleBusy = false
             return
@@ -564,7 +564,7 @@ private fun App(
         vocabBusy = true
         vocabError = null
         vocabSessionId = sessionId
-        if (LocalLlmEngine.isBusy) {
+        if (LocalLlmEngine.isGenerating) {
             vocabError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
             vocabBusy = false
             return
@@ -594,7 +594,7 @@ private fun App(
         followUpBusy = true
         followUpError = null
         followUpSessionId = sessionId
-        if (LocalLlmEngine.isBusy) {
+        if (LocalLlmEngine.isGenerating) {
             followUpError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
             followUpBusy = false
             return
@@ -627,7 +627,7 @@ private fun App(
     suspend fun requestAiReview() {
         aiReviewBusy = true
         aiReviewError = null
-        if (LocalLlmEngine.isBusy) {
+        if (LocalLlmEngine.isGenerating) {
             aiReviewError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
             aiReviewBusy = false
             return
@@ -1126,10 +1126,21 @@ private fun App(
         runCatching { JSONObject(prefs.localScoreStarted).optLong(id.toString(), 0L) }
             .getOrDefault(0L)
 
+    /** 评分失败原因按会话存盘：结果页重开/重启后仍能说清「为什么没出分、下一步改什么」。 */
+    fun recordScoreFailure(id: Long, reason: String?) {
+        prefs.localScoreErrors =
+            com.txw.ielts.llm.ScoreFailures.record(prefs.localScoreErrors, id, reason)
+    }
+
+    fun clearScoreFailure(id: Long) {
+        prefs.localScoreErrors = com.txw.ielts.llm.ScoreFailures.clear(prefs.localScoreErrors, id)
+    }
+
     /** 后台本地写作评分（不阻塞继续练习）。 */
     suspend fun startLocalWriting(session: Session, text: String, task: String) {
         stage = null
         error = null
+        clearScoreFailure(session.id)
         db.sessions().updateResult(
             id = session.id, t = text, e = session.essayText.ifBlank { text },
             s = session.scoresJson, f = session.fixesJson, p = session.polished, st = "pending_local",
@@ -1143,6 +1154,7 @@ private fun App(
                 s = session.scoresJson, f = session.fixesJson, p = session.polished, st = "pending_eval",
             )
             error = "系统不允许后台启动评分服务，请停在结果页点「重新评分」"
+            recordScoreFailure(session.id, error)
         }
     }
 
@@ -1150,6 +1162,7 @@ private fun App(
     suspend fun startLocalSpeaking(session: Session, text: String) {
         stage = null
         error = null
+        clearScoreFailure(session.id)
         db.sessions().updateResult(
             id = session.id, t = text, e = "",
             s = session.scoresJson, f = session.fixesJson, p = session.polished, st = "pending_local",
@@ -1174,6 +1187,8 @@ private fun App(
         val mode = prefs.scoreChannel
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
         val online = hasNetwork(context)
+        // 新一轮评分先清掉上一轮的原因：这次如果成功，结果页不该再显示「上次失败」。
+        clearScoreFailure(session.id)
         // 显式选云端又断网：这一路必然失败，直接给出改设置的提示，不白等 HTTP 超时。
         ChannelPick.cloudOfflineError(mode, online)?.let { throw IOException(it) }
         if (ChannelPick.effective(
@@ -1232,6 +1247,7 @@ private fun App(
                 }.toString(),
                 p = eval.polished, st = ScoreGate.statusFor(scores.overall),
             )
+            clearScoreFailure(session.id)
             stage = null
             error = null
             // 评分完成不强行导航：用户已离开时只更新 Room 并靠通知告知，避免把人从别的页面拉回结果页。
@@ -1241,7 +1257,10 @@ private fun App(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (mode == "cloud") throw e
+            if (mode == "cloud") {
+                recordScoreFailure(session.id, e.message)
+                throw e
+            }
             val msg = e.message ?: ""
             // 额度耗尽/限流：冷却 1 小时，auto 直接走本地，避免每次评分都先白试云端。
             markCloudDown(prefs, e)
@@ -1261,6 +1280,7 @@ private fun App(
         }
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
         val online = hasNetwork(context)
+        clearScoreFailure(session.id)
         ChannelPick.cloudOfflineError(mode, online)?.let { throw IOException(it) }
         if (ChannelPick.effective(
                 mode, cloudDown, online, prefs.remainingCalls()
@@ -1294,6 +1314,7 @@ private fun App(
                 f = speakingFixesJson(eval),
                 p = eval.improved, st = ScoreGate.statusFor(scores.overall),
             )
+            clearScoreFailure(session.id)
             stage = null
             error = null
             // 评分完成不强行导航：用户已离开时只更新 Room 并靠通知告知，避免把人从别的页面拉回结果页。
@@ -1303,7 +1324,10 @@ private fun App(
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {
-            if (mode == "cloud") throw e
+            if (mode == "cloud") {
+                recordScoreFailure(session.id, e.message)
+                throw e
+            }
             val msg = e.message ?: ""
             markCloudDown(prefs, e)
             Log.w(TAG, "cloud speaking eval failed, fallback local: $msg")
@@ -1337,6 +1361,7 @@ private fun App(
             evaluateWriting(session, text, task)
         } catch (e: Exception) {
             Log.e(TAG, "llm fail: ${e.message}")
+            recordScoreFailure(id, e.message)
             db.sessions().updateResult(id, text, text, "", "", "", "pending_eval")
             error = "评分失败：${e.message}（内容已保存，可重试）"; stage = null; route = Route.Result(id)
         }
@@ -1439,6 +1464,7 @@ private fun App(
             evaluateSpeaking(session, text)
         } catch (e: Exception) {
             Log.e(TAG, "llm fail: ${e.message}")
+            recordScoreFailure(id, e.message)
             db.sessions().updateResult(id, text, "", "", "", "", "pending_eval")
             error = "评分失败：${e.message}（录音已保存，可重试）"; stage = null; route = Route.Result(id)
         }
@@ -2335,6 +2361,10 @@ private fun App(
                         }
                         ResultScreen(
                             session = session, busy = stage, error = error,
+                            // 失败原因按会话存盘：通知被划掉/App 重启后，结果页仍能说清上次为什么没出分。
+                            lastFailure = com.txw.ielts.llm.ScoreFailures.reasonFor(
+                                prefs.localScoreErrors, session.id, System.currentTimeMillis(),
+                            ),
                             // 开始时间缺失时不回退到 session.startedAt（录音起点），
                             // 结果页会从进入时开始计时，避免显示「已等待」几十分钟。
                             staleLocal = session.status == "pending_local" &&
@@ -2370,6 +2400,7 @@ private fun App(
                                         }
                                     } catch (e: Exception) {
                                         error = "评分失败：${e.message}"; stage = null
+                                        recordScoreFailure(session.id, e.message)
                                     }
                                 }
                             },

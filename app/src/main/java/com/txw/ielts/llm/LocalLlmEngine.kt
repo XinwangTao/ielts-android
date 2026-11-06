@@ -63,8 +63,14 @@ object LocalLlmEngine {
     var state: String = "idle"
         private set
 
-    /** 引擎是否正被加载/推理占用：新任务先问一句，避免用户干等十几分钟。 */
-    val isBusy: Boolean get() = engineBusy.get()
+    /**
+     * 是否正在**生成**（不含纯粹的模型加载）。
+     *
+     * 练习页会在停留几秒后预热模型；预热期间引擎被占但没在生成，
+     * 这时点「AI 提纲」应该排队等加载完，而不是直接报「本地模型正在忙」。
+     * 加载中排队由 [acquireEngine] 的等待上限兜底。
+     */
+    val isGenerating: Boolean get() = state == "generating"
 
     /** 背景评分被系统冻住时，不能无限等锁：超过这个时间就报错让用户重试。 */
     private suspend fun acquireEngine(what: String) {
@@ -295,7 +301,8 @@ object LocalLlmEngine {
     /** 仅预加载模型而不生成（诊断用：验证加载后的 RSS 与 release 是否真的释放）。 */
     suspend fun preload(context: Context, model: String) {
         // 加载也是阻塞 native 调用：同样用前台媒体服务兜住，避免切后台时停在半途。
-        com.txw.ielts.Guard.start(context)
+        // 文案与评分区分开：预热不是评分，通知里别写「评分进行中」。
+        com.txw.ielts.Guard.start(context, label = "正在准备本地模型…")
         try {
             loaded(context, model)
         } finally {

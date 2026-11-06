@@ -30,9 +30,9 @@ object Guard {
     private val refs = AtomicInteger(0)
     private val micRefs = AtomicInteger(0)
 
-    fun start(context: Context) {
+    fun start(context: Context, label: String? = null) {
         if (refs.incrementAndGet() != 1) return
-        ensureService(context, mic = micRefs.get() > 0)
+        ensureService(context, mic = micRefs.get() > 0, label = label)
     }
 
     /**
@@ -75,11 +75,13 @@ object Guard {
         runCatching { context.stopService(Intent(context, GuardService::class.java)) }
     }
 
-    private fun ensureService(context: Context, mic: Boolean) {
+    private fun ensureService(context: Context, mic: Boolean, label: String? = null) {
         runCatching {
             ContextCompat.startForegroundService(
                 context,
-                Intent(context, GuardService::class.java).putExtra("mic", mic),
+                Intent(context, GuardService::class.java)
+                    .putExtra("mic", mic)
+                    .putExtra("label", label),
             )
         }.onFailure {
             // 只撤销本次引用；直接置 0 会把另一个仍在跑的任务的保活一起算丢，
@@ -100,13 +102,14 @@ class GuardService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val mic = intent?.getBooleanExtra("mic", false) == true || Guard.micActive()
+        val label = intent?.getStringExtra("label")
         // Android 14 起，从后台启动 microphone 类型前台服务会抛异常；录音由 UI 触发时
         // 正常都在前台，但口语对练的准备倒计时可能在用户切走后自动开录，必须兜住。
         try {
-            startForegroundCompat(mic)
+            startForegroundCompat(mic, label)
         } catch (e: Exception) {
             android.util.Log.w("Guard", "startForeground(mic=$mic) failed: ${e.message}")
-            runCatching { startForegroundCompat(mic = false) }.onFailure {
+            runCatching { startForegroundCompat(mic = false, label = label) }.onFailure {
                 stopSelf()
                 return START_NOT_STICKY
             }
@@ -136,7 +139,7 @@ class GuardService : Service() {
         return START_NOT_STICKY
     }
 
-    private fun startForegroundCompat(mic: Boolean) {
+    private fun startForegroundCompat(mic: Boolean, label: String? = null) {
         // minSdk 26：通知渠道无需再判断版本。
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
@@ -145,7 +148,8 @@ class GuardService : Service() {
         val n = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("雅思随身练")
-            .setContentText(if (mic) "录音中（后台保活）" else "评分 / AI 生成进行中")
+            // 预加载模型时没有在评分，文案要说清，否则用户以为后台在跑评分。
+            .setContentText(label ?: if (mic) "录音中（后台保活）" else "评分 / AI 生成进行中")
             .setOngoing(true)
             .setShowWhen(false)
             .build()
