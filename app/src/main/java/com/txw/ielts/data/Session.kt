@@ -67,7 +67,7 @@ interface SessionDao {
     suspend fun updateResultIfPending(id: Long, t: String, e: String, s: String, f: String, p: String, st: String): Int
 }
 
-@Database(entities = [Session::class, Card::class], version = 3, exportSchema = false)
+@Database(entities = [Session::class, Card::class], version = 3, exportSchema = true)
 abstract class AppDb : RoomDatabase() {
     abstract fun sessions(): SessionDao
     abstract fun cards(): CardDao

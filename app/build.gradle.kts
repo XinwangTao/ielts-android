@@ -54,6 +54,12 @@ android {
     }
 }
 
+// Room 结构快照：导出到 app/schemas 并入库。以后改表（加字段/索引）能对照旧结构写迁移，
+// 也能用 MigrationTestHelper 做迁移测试；不导出时一切都只能靠手写 SQL 猜。
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     implementation(files("libs/sherpa-onnx-2.0.1.aar"))
 
