@@ -439,10 +439,11 @@ private fun App(
         if (recoveryNotice != null && sessions.none { it.status == "pending_local" }) recoveryNotice = null
     }
 
-    // 进练习页停留 5 秒后预热本地模型：用户写完/说完提交时少等一次 60 秒冷加载。
+    // 进 AI 相关页面停留 5 秒后预热本地模型：用户写完/说完/点生成时少等一次 60 秒冷加载。
     // 只是路过（5 秒内离开）不会触发，避免白占 2.7GB；模型未投递时静默跳过。
     LaunchedEffect(route) {
-        if (route !is Route.Writing && route !is Route.Speaking) return@LaunchedEffect
+        val likelyNeedsAi = route is Route.Writing || route is Route.Speaking || route is Route.AiGen
+        if (!likelyNeedsAi) return@LaunchedEffect
         kotlinx.coroutines.delay(5_000)
         if (LocalLlmEngine.isReady(context, prefs.localModel)) return@LaunchedEffect
         if (!LocalLlmEngine.hasExternalCopy(context, prefs.localModel)) return@LaunchedEffect
