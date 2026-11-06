@@ -1837,7 +1837,9 @@ private fun App(
                                 bankFilter = module
                                 route = Route.Bank
                             }
-                            // 休息/考前/考试日不跳转，留在课表页看说明
+                            // 考前一天只看错题：进语料页，错题专项入口在那里
+                            "light" -> route = Route.Corpus
+                            // 休息/考试日不跳转，留在课表页看说明
                             else -> Unit
                         }
                     },
