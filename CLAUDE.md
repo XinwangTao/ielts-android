@@ -65,5 +65,9 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 ## 约定
 
 - 改动保持最小、跟随现有风格；新增纯逻辑优先抽成可单测的对象。
+- AI 动作回调（`onRequestXxx` / `onAiExplain` 等）**不给默认空实现**：漏接线必须在编译期失败，
+  否则界面上就是「按钮点了没反应」（本仓库已踩两次）。
+- 多行 Kotlin 字符串的改动走编辑工具，不要用脚本批量替换：`
+` 常被写成真换行，导致编译错误。
 - 涉及 UI 的改动，若当前无法真机验证，写进验收清单 TODO 并说明命令/判据。
 - 不要提交 `.tmp-shots/`、`.secret/`、录音与模型文件。
