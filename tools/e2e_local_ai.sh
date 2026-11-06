@@ -11,14 +11,31 @@ MODE=${2:-outline}
 "$ADB" -s "$DEVICE" logcat -c
 "$ADB" -s "$DEVICE" shell "am force-stop com.txw.ielts; am start -n com.txw.ielts/.MainActivity --es e2e_ai $MODE"
 
-for _ in $(seq 1 120); do
+WARNED=0
+LAST_FOCUS=""
+# 本地 4B 冷加载可达 2-3 分钟，加生成 1-2 分钟，4 分钟不够；放宽到 8 分钟。
+for i in $(seq 1 240); do
   LINE=$("$ADB" -s "$DEVICE" logcat -d -s E2E:I 2>/dev/null | grep "E2E: RESULT ai" | tail -1 || true)
   if [ -n "$LINE" ]; then
     echo "$LINE"
     exit 0
   fi
+  # 每 6 秒看一次前台：被其它 App/实例顶掉时 ColorOS 会冻结本地推理，先告警。
+  if [ $((i % 3)) -eq 0 ]; then
+    LAST_FOCUS=$("$ADB" -s "$DEVICE" shell "dumpsys window | grep -m1 mCurrentFocus" 2>/dev/null || true)
+    case "$LAST_FOCUS" in
+      *com.txw.ielts*) ;;
+      *)
+        if [ "$WARNED" -eq 0 ]; then
+          echo "!! App 不在前台：$LAST_FOCUS；本地推理可能被系统冻结" >&2
+          WARNED=1
+        fi
+        ;;
+    esac
+  fi
   sleep 2
 done
 
-echo "!! 本地 AI 自测超时（约 4 分钟）：确认模型已投递、屏幕亮着、App 在前台"
+PID=$("$ADB" -s "$DEVICE" shell "pidof com.txw.ielts" 2>/dev/null || true)
+echo "!! 本地 AI 自测超时（8 分钟）。last focus: ${LAST_FOCUS:-未知} pid: ${PID:-无}"
 exit 1
