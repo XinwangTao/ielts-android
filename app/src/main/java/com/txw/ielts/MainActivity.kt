@@ -1536,6 +1536,9 @@ private fun App(
                 keys = gq.keys,
             )
         }
+        // 云端出题是长 HTTP 等待：窗口不可见约 7 秒进程就被冻，请求会一起停住。
+        // 本地分支内部已包 Guard（LocalLlmEngine），这里再包一层靠引用计数，不会重复占资源。
+        Guard.start(context)
         try {
             val setId = "ai-${System.currentTimeMillis()}"
             val set: BankSet
@@ -1624,6 +1627,7 @@ private fun App(
         } finally {
             aiGenBusy = false
             aiGenStage = null
+            Guard.stop(context)
         }
     }
 
@@ -1642,6 +1646,7 @@ private fun App(
             prefs.remainingCalls(),
         )
         explainingIds = explainingIds + item.id
+        Guard.start(context)
         try {
             val exp = withContext(Dispatchers.IO) {
                 routeLlm(
@@ -1666,6 +1671,7 @@ private fun App(
             error = "精讲失败：${e.message}"
         } finally {
             explainingIds = explainingIds - item.id
+            Guard.stop(context)
         }
     }
 

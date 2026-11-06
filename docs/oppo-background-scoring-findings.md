@@ -282,3 +282,17 @@ OPPO 真机（session 21）本地口语评分完成一次模型生成后，通�
 实测限制：并行会话重装 APK（系统 `killDueToPackageUpdate`）会杀掉正在跑的后台评分，
 设备实测必须单执行者；悬浮窗权限在 ColorOS 无法用 `adb shell appops set` 授予
 （shell uid 2000 无 `MANAGE_APP_OPS_MODES`），只能走设置页手动授权。
+
+## 12.6 Guard 覆盖审计（2026-11-06 15:0x）
+
+逐条核对「长任务 → 是否持有 Guard」：
+
+| 链路 | 入口 | 结果 |
+|---|---|---|
+| 本地评分/生成 | `LocalLlmEngine.generate/preload/generateText` | ✅ Guard 包裹 |
+| 云端写作/口语评分 | `MainActivity.evaluateWriting/evaluateSpeaking` | ✅ `ebfba53` |
+| 语音转写 | `WhisperAsr.load/transcribe` | ✅ Guard 包裹 |
+| AI 出题（听力/阅读） | `runAiGen` | ✅ 本次补：云端 HTTP 分支原先裸奔 |
+| 错题精讲 | `runAiExplain` | ✅ 本次补：同上 |
+
+引用计数保证本地分支的 Guard 不会因外层再包一次而提前 stop。
