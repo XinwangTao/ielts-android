@@ -369,6 +369,13 @@ fun SettingsScreen(
 
         var confirmClear by remember { mutableStateOf(false) }
         var clearMsg by remember { mutableStateOf<String?>(null) }
+        // 只清 AI 派生缓存：练习记录、词汇卡、课表都保留，适合「想换一份提纲/复盘」但不想丢数据。
+        TextButton(onClick = {
+            prefs.clearDerivedCaches()
+            clearMsg = "已清除本地 AI 缓存（复盘 / 提纲 / 范例 / 生词 / 忽略批注）"
+        }) {
+            Text("清除本地 AI 缓存")
+        }
         TextButton(onClick = { confirmClear = true }) {
             Text("清空所有数据", color = MaterialTheme.colorScheme.error)
         }
