@@ -110,7 +110,9 @@ class GuardService : Service() {
         // 单次评分可能超过 15 分钟；兜底先到会在后半段撤掉保护。
         handler.removeCallbacks(timeout)
         handler.postDelayed(timeout, MAX_HOLD_MS)
-        return START_STICKY
+        // 不自动重启：进程被杀时引擎/录音已经不存在，系统把服务拉起来只会白占
+        // 最多 30 分钟的屏幕唤醒锁；下次真正开始任务时调用方会重新 start。
+        return START_NOT_STICKY
     }
 
     private fun startForegroundCompat(mic: Boolean) {
