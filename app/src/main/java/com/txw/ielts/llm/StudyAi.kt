@@ -474,7 +474,7 @@ object StudyAi {
         - Task 2: a discussion/opinion essay prompt in the same style (e.g. Some people believe ... Others think ... Discuss both views and give your own opinion), 25-45 words.
         - Task 1: one sentence describing a chart/table/map/process to summarise; do not invent specific figures.
         - same difficulty as the original; do not reuse its wording or topic.
-        - return plain text only: one paragraph, no quotes, no numbering, no JSON, no commentary.
+        - return plain text only: one paragraph, never JSON, never key-value wrapping, no quotes, no numbering, no commentary.
     """.trimIndent()
 
     private val VARIANT_SYSTEM = """
