@@ -493,6 +493,8 @@ class LlmClient(
               {"type":"choice","prompt":"...","options":["...","...","...","..."],"answers":["..."],"explain":"...","explain_en":"...","keys":["..."]}
             ]}
             Every question MUST include explain (Chinese), explain_en (English) and keys (2-4 locating phrases).
+            keys is mandatory for EVERY question, including gap and choice types: if any question lacks keys,
+            the whole output is invalid and will be rejected. Write keys immediately after answers.
             Do not wrap the JSON in markdown fences.
             Every string value must be valid JSON on one line. Never put a raw double quote inside a string;
             use single quotes or escape it as \" .
