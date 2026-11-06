@@ -283,6 +283,12 @@ def cases() -> list[dict]:
                    "Correct answer: NOT GIVEN\nStudent's answer: TRUE\n"
                    "Explanation: 原文只提到 19 世纪建造，没有说明最初用途。"),
              validate="variant"),
+        dict(name="bank_variant_gap",
+             system=sys_variant,
+             user=("Original question: The museum opens at ___ on Monday.\n"
+                   "Correct answer: 9 am\nStudent's answer: 10 am\n"
+                   "Explanation: 录音里明确说 opens at nine in the morning。"),
+             validate="variant"),
         dict(name="chart_prompt_polish",
              system="You are an IELTS Writing Task 1 examiner. Rewrite the given Task 1 prompt in natural exam-authentic English. Keep every number, category and unit exactly as given; do not add or remove data. Output only the prompt sentence(s), no explanation.",
              user="Chart type: table\nTitle: household spending by category in 1995 and 2015\nUnit: %\nData:\n" + TABLE_DATA,
