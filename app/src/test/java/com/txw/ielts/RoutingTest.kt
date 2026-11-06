@@ -106,6 +106,19 @@ class RoutingTest {
     }
 
     @Test
+    fun `JSONException 也按格式失败重试`() = runBlocking {
+        // 真实「JSON 写坏」抛的是 JSONException，消息里没有 JSON/解析/格式 这些词。
+        var calls = 0
+        val out = retryOnceOnFormat<String> {
+            calls++
+            if (calls == 1) throw org.json.JSONException("Unterminated string at character 42")
+            "ok"
+        }
+        assertEquals("ok", out)
+        assertEquals(2, calls)
+    }
+
+    @Test
     fun `HTTP 失败不重试直接抛出`() = runBlocking {
         var calls = 0
         try {

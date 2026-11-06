@@ -340,4 +340,22 @@ class ScoreSanitizerTest {
         assertEquals("", eval.sentenceFixes[1].issue)
         assertEquals("It is really fine.", eval.sentenceFixes[1].better)
     }
+
+    @Test
+    fun `越界分数封顶到 9_0`() {
+        assertEquals(9.0, ScoreSanitizer.band(10.0), 0.0)
+        assertEquals(9.0, ScoreSanitizer.band(9.5), 0.0)
+        val s = ScoreSanitizer.sanitizeSpeaking(9.5, 9.5, 9.5, 10.0, 10.0, wordCount = 100)
+        assertTrue(s.fluency <= 9.0 && s.pronunciation <= 9.0 && s.overall <= 9.0)
+    }
+
+    @Test
+    fun `兜底漏写 overall 不再整次失败`() {
+        // 一个没收尾的 JSON + 缺 overall：分项仍能救回，overall 由分项重算。
+        val raw = "{\"TR\": 7, \"CC\": 6.5, \"LR\": 7, \"GRA\": 6.5, \"top_fixes\": [\"use clearer linkers\"]"
+        val eval = ScoreSanitizer.toWritingEval(raw, wordCount = 260)
+        assertEquals(7.0, eval.tr, 0.0)
+        assertEquals(6.5, eval.cc, 0.0)
+        assertTrue(eval.overall > 0.0)
+    }
 }

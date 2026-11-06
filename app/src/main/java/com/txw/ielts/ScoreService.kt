@@ -340,22 +340,26 @@ class ScoreService : Service() {
     /** 记录评分完成时间，结果页据此显示「本次评分耗时」。 */
     private fun markScoreFinished(context: Context, id: Long) {
         val p = Prefs(context)
-        val o = runCatching { JSONObject(p.localScoreFinished) }.getOrDefault(JSONObject())
-        o.put(id.toString(), System.currentTimeMillis())
-        p.localScoreFinished = o.toString()
-        // 这次已经出分：把上一轮的失败原因清掉，结果页不再显示「上次失败」。
-        p.localScoreErrors = ScoreFailures.clear(p.localScoreErrors, id)
+        // 与界面侧（MainActivity.recordScoreFailure/clearScoreFailure）共用 editJson 锁：
+        // 两边各自读旧串再整体覆盖，后写者会把对方的条目冲掉。
+        p.editJson {
+            val o = runCatching { JSONObject(p.localScoreFinished) }.getOrDefault(JSONObject())
+            o.put(id.toString(), System.currentTimeMillis())
+            p.localScoreFinished = o.toString()
+            // 这次已经出分：把上一轮的失败原因清掉，结果页不再显示「上次失败」。
+            p.localScoreErrors = ScoreFailures.clear(p.localScoreErrors, id)
+        }
     }
 
     /** 失败原因按会话存下：通知划掉、重开结果页甚至重启 App 后都还能看到为什么没出分。 */
     private fun recordFailure(id: Long, reason: String?) {
         val p = Prefs(this)
-        p.localScoreErrors = ScoreFailures.record(p.localScoreErrors, id, reason)
+        p.editJson { p.localScoreErrors = ScoreFailures.record(p.localScoreErrors, id, reason) }
     }
 
     private fun clearFailure(id: Long) {
         val p = Prefs(this)
-        p.localScoreErrors = ScoreFailures.clear(p.localScoreErrors, id)
+        p.editJson { p.localScoreErrors = ScoreFailures.clear(p.localScoreErrors, id) }
     }
 
     private fun buildNotification(content: String): Notification {

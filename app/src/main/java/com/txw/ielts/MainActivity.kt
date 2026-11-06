@@ -1942,14 +1942,13 @@ private fun App(
             val set: BankSet
             if (module == "listening") {
                 val gen = withContext(Dispatchers.IO) {
+                    // client 建在 retry 之外：格式类重试复用同一实例，额度只扣一次。
+                    val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
                     routeLlm(
                         channel = channelNow,
                         label = "AI 出题（听力）",
                         onCloudFail = { markCloudDown(prefs, it) },
-                        cloud = {
-                            LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
-                                .generateListening(difficulty, types, count)
-                        },
+                        cloud = { client.generateListening(difficulty, types, count) },
                         local = {
                             LocalLlmEngine.generateListening(
                                 context, prefs.localModel, difficulty, types, count,
@@ -1984,14 +1983,12 @@ private fun App(
                 }
             } else {
                 val gen = withContext(Dispatchers.IO) {
+                    val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
                     routeLlm(
                         channel = channelNow,
                         label = "AI 出题（阅读）",
                         onCloudFail = { markCloudDown(prefs, it) },
-                        cloud = {
-                            LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
-                                .generateReading(difficulty, types, count)
-                        },
+                        cloud = { client.generateReading(difficulty, types, count) },
                         local = {
                             LocalLlmEngine.generateReading(
                                 context, prefs.localModel, difficulty, types, count,
@@ -2052,14 +2049,12 @@ private fun App(
         Guard.start(context)
         try {
             val exp = withContext(Dispatchers.IO) {
+                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
                 routeLlm(
                     channel = channel,
                     label = "错题精讲",
                     onCloudFail = { markCloudDown(prefs, it) },
-                    cloud = {
-                        LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
-                            .explainBankWrong(item.prompt, item.right, item.yours, item.explain)
-                    },
+                    cloud = { client.explainBankWrong(item.prompt, item.right, item.yours, item.explain) },
                     local = {
                         LocalLlmEngine.explainBankWrong(
                             context, prefs.localModel,

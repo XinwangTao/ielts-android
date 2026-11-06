@@ -175,7 +175,8 @@ object ScoreSanitizer {
 
     private fun roundHalf(v: Double): Double {
         if (v.isNaN() || v <= 0) return 0.0
-        return Math.round(v * 2.0) / 2.0
+        // 云端模型偶发给 10/9.5：不封顶会写进结果页与首页统计，出现不可能的分数。
+        return (Math.round(v * 2.0) / 2.0).coerceAtMost(9.0)
     }
 
     data class WritingScores(
@@ -254,7 +255,8 @@ object ScoreSanitizer {
             }
             if (arr.length() > 0) o.put("sentence_fixes", arr)
         }
-        if (!o.has("overall")) throw java.io.IOException("模型输出无法解析出评分：${raw.take(160)}")
+        // overall 由 sanitizeWriting/Speaking 用分项重算，调用方也不读它：
+        // 只因为模型漏写 overall 就整次判失败，会让本来能救回的分项全部作废。
         return o
     }
 

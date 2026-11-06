@@ -79,6 +79,13 @@ suspend fun <T> retryOnceOnFormat(block: suspend () -> T): T {
  */
 internal fun isFormatFailure(e: Throwable): Boolean {
     if (e is LlmClient.HttpError) return false
+    // 真实「JSON 写坏」抛的是 JSONException（Unterminated string / Expected ':'），
+    // 消息里不一定出现 JSON/解析/格式 这些词；只看消息会漏掉最该重试的一类。
+    var t: Throwable? = e
+    while (t != null) {
+        if (t is org.json.JSONException) return true
+        t = t.cause
+    }
     val m = e.message ?: return false
     return listOf("JSON", "json", "解析", "格式", "缺少", "不完整", "模型没有", "没有返回")
         .any { m.contains(it) }

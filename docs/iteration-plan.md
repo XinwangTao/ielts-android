@@ -66,6 +66,11 @@
 - 评分 watchdog 按状态分阈值；失败原因存盘（并行会话）。
 
 **AI**
+- llm 层独立复审（2026-11-07）：7 项发现全部修复——①`JSONException` 视为格式失败（此前真实坏 JSON
+  不重试直接掉本地）②额度按逻辑请求只扣一次（重试不再重复扣到上限）③云端分数封顶 9.0
+  ④1210 降级不再把 8000 预算压到 6000（`maxOf`）⑤ScoreService 的失败/完成记录走 `editJson`
+  ⑥兜底解析不再强制 overall（调用方本就重算）⑦云端评分复用 `parseObject` 字段级兜底。
+  新增 3 例单测（JSONException 重试、9.0 封顶、漏 overall 可救回）。
 - 设置项并发写（2026-11-07）：`Prefs.editJson` 串行化 JSON 读改写；`studyAiCache`、`localScoreStarted/Errors`、
   `bankProgress`、`mutedFixes/vocabEdits` 的多线程落盘不再互相覆盖（两个评分/两次生成同时完成时，
   后写者不再丢前者的条目）。

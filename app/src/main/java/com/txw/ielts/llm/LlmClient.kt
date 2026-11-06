@@ -81,6 +81,12 @@ class LlmClient(
     internal class HttpError(val code: Int, message: String) : IOException(message)
 
     /**
+     * 额度只按「一次逻辑请求」扣：格式类重试会重新执行整个 cloud block（同一 client 实例），
+     * 这里保证只调一次 [onBeforeCall]。每个请求链路各建一个 LlmClient，因此不会漏扣。
+     */
+    private val charged = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /**
      * 把云端错误翻译成用户能照着做的中文。原始返回体照旧附在后面便于排查。
      * 讯飞实测：账号没有有效订单/额度用尽时返回 403 + code 11200，只抛 "HTTP 403: {...}" 用户看不懂。
      */
@@ -105,8 +111,9 @@ class LlmClient(
     ): WritingEval {
         // 超长粘贴不能整段发出去：留开头与结尾（结论段），中部省略。
         val content = chat(WRITING_SYSTEM, ScorePrompt.writing(topic, essay, weaknesses))
-        val json = extractJson(content)
-        val o = JSONObject(json)
+        // 与本地同一套解析兜底：长评论里一个未转义引号就会让严格 JSONObject 整次失败。
+        val o = ScoreSanitizer.parseObject(content)
+        val json = o.toString()
         return WritingEval(
             tr = num(o, "TR", "task_response"),
             cc = num(o, "CC", "coherence_cohesion"),
@@ -123,8 +130,8 @@ class LlmClient(
     /** 写作 Task 1（图表描述）：TA 任务完成度 + 数据覆盖 + 比较。 */
     fun evaluateWritingTask1(chart: String, essay: String): WritingEval {
         val content = chat(TASK1_SYSTEM, ScorePrompt.writingTask1(chart, essay))
-        val json = extractJson(content)
-        val o = JSONObject(json)
+        val o = ScoreSanitizer.parseObject(content)
+        val json = o.toString()
         return WritingEval(
             tr = num(o, "TA", "task_achievement", "task_response"),
             cc = num(o, "CC", "coherence_cohesion"),
@@ -150,8 +157,8 @@ class LlmClient(
             SPEAKING_SYSTEM,
             ScorePrompt.speaking(part, question, transcript, seconds, weaknesses),
         )
-        val json = extractJson(content)
-        val o = JSONObject(json)
+        val o = ScoreSanitizer.parseObject(content)
+        val json = o.toString()
         return SpeakingEval(
             fluency = num(o, "FC", "fluency", "fluency_coherence"),
             lexical = num(o, "LR", "lexical_resource"),
@@ -199,7 +206,7 @@ class LlmClient(
         )
 
     private fun chat(system: String, user: String, maxTokens: Int = 4000): String {
-        onBeforeCall()
+        if (charged.compareAndSet(false, true)) onBeforeCall()
         val payload = JSONObject().apply {
             put("model", model)
             put("max_tokens", maxTokens)
@@ -218,7 +225,8 @@ class LlmClient(
             // 自动降级为 low 档思考重试，并加大 max_tokens 给思考 token 留空间。
             if (e.code == 400 && e.message?.contains("1210") == true) {
                 payload.put("thinking", JSONObject().put("type", "enabled").put("level", "low"))
-                payload.put("max_tokens", 6000)
+                // 思考 token 也算预算：只加不降，不能把 8 题档的 8000 压回 6000。
+                payload.put("max_tokens", maxOf(maxTokens, 6000))
                 postWithRetry(url, payload.toString())
             } else {
                 throw e
