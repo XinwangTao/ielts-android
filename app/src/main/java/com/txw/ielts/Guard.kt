@@ -89,7 +89,7 @@ class GuardService : Service() {
         val n = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.stat_notify_sync)
             .setContentTitle("雅思随身练")
-            .setContentText("本地评分 / AI 生成进行中")
+            .setContentText("评分 / AI 生成进行中")
             .setOngoing(true)
             .setShowWhen(false)
             .build()

@@ -1084,6 +1084,8 @@ private fun App(
         }
         stage = "评分中（${prefs.model}）…"
         val t0 = System.currentTimeMillis()
+        // 云端请求也要扛住切后台：ColorOS 在窗口不可见约 7 秒后就会冻进程，HTTP 等待会被一起冻掉。
+        com.txw.ielts.Guard.start(context)
         try {
             val eval: WritingEval = withContext(Dispatchers.IO) {
                 val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
@@ -1144,6 +1146,8 @@ private fun App(
             markCloudDown(prefs, e)
             Log.w(TAG, "cloud writing eval failed, fallback local: $msg")
             startLocalWriting(session, text, task)
+        } finally {
+            com.txw.ielts.Guard.stop(context)
         }
     }
 
@@ -1166,6 +1170,7 @@ private fun App(
         }
         stage = "评分中（${prefs.model}）…"
         val t0 = System.currentTimeMillis()
+        com.txw.ielts.Guard.start(context)
         try {
             val eval: SpeakingEval = withContext(Dispatchers.IO) {
                 LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
@@ -1202,6 +1207,8 @@ private fun App(
             markCloudDown(prefs, e)
             Log.w(TAG, "cloud speaking eval failed, fallback local: $msg")
             startLocalSpeaking(session, text)
+        } finally {
+            com.txw.ielts.Guard.stop(context)
         }
     }
 
