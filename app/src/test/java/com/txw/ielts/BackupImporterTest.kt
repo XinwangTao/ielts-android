@@ -4,6 +4,7 @@ import com.txw.ielts.data.BackupImporter
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class BackupImporterTest {
@@ -44,5 +45,38 @@ class BackupImporterTest {
         val many = JSONArray().apply { (1..BackupImporter.MAX_AI_SETS + 5).forEach { put(JSONObject().put("id", "s$it")) } }
         val merged = JSONObject(BackupImporter.mergeAiSets(null, many)).getJSONArray("sets")
         assertEquals(BackupImporter.MAX_AI_SETS, merged.length())
+    }
+
+    @Test
+    fun `设置解析只收认识的字段`() {
+        val obj = JSONObject()
+            .put("targetBand", 6.5)
+            .put("scoreChannel", "auto")
+            .put("dailyNewCards", 12)
+            .put("readerFontSize", 18)
+            .put("unknownKey", "ignore")
+        val s = com.txw.ielts.data.BackupImporter.parseSettings(obj)
+        assertEquals(6.5f, s.targetBand!!, 0.0f)
+        assertEquals("auto", s.scoreChannel)
+        assertEquals(12, s.dailyNewCards)
+        assertEquals(18, s.readerFontSize)
+        // 缺失字段保持 null（不覆盖）。
+        assertEquals(null, s.examDate)
+    }
+
+    @Test
+    fun `非法通道与空设置`() {
+        val s = com.txw.ielts.data.BackupImporter.parseSettings(JSONObject().put("scoreChannel", "weird"))
+        assertEquals(null, s.scoreChannel)
+        assertTrue(s.isEmpty)
+        assertTrue(com.txw.ielts.data.BackupImporter.parseSettings(null).isEmpty)
+    }
+
+    @Test
+    fun `模型不在本机时给提示`() {
+        assertEquals(null, com.txw.ielts.data.BackupImporter.modelWarning("qwen3-4b-instruct", setOf("qwen3-4b-instruct")))
+        assertEquals(null, com.txw.ielts.data.BackupImporter.modelWarning(null, emptySet()))
+        val w = com.txw.ielts.data.BackupImporter.modelWarning("qwen35-2b", setOf("qwen3-4b-instruct"))
+        assertTrue(w != null && w.contains("qwen35-2b"))
     }
 }

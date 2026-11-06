@@ -14,6 +14,46 @@ object BackupImporter {
     /** AI 套题上限：与 BankRepo 的列表口径一致，避免导入把文件撑爆。 */
     const val MAX_AI_SETS = 200
 
+    /** 从备份的 settings 里取「本 App 认识」的字段；缺失/类型不对的保持 null（即不覆盖）。 */
+    data class ImportSettings(
+        val targetBand: Float?,
+        val examDate: String?,
+        val dailyNewCards: Int?,
+        val scoreChannel: String?,
+        val localModel: String?,
+        val readerFontSize: Int?,
+        val readerLineHeight: Float?,
+    ) {
+        val isEmpty: Boolean
+            get() = targetBand == null && examDate == null && dailyNewCards == null &&
+                scoreChannel == null && localModel == null &&
+                readerFontSize == null && readerLineHeight == null
+    }
+
+    fun parseSettings(obj: JSONObject?): ImportSettings {
+        if (obj == null) return ImportSettings(null, null, null, null, null, null, null)
+        fun num(key: String): Float? = if (obj.has(key)) runCatching { obj.getDouble(key).toFloat() }.getOrNull() else null
+        fun int(key: String): Int? = if (obj.has(key)) runCatching { obj.getInt(key) }.getOrNull() else null
+        fun str(key: String): String? =
+            if (obj.has(key)) obj.optString(key).trim().takeIf { it.isNotBlank() } else null
+        return ImportSettings(
+            targetBand = num("targetBand"),
+            examDate = str("examDate"),
+            dailyNewCards = int("dailyNewCards"),
+            scoreChannel = str("scoreChannel")?.takeIf { it in setOf("local", "cloud", "auto") },
+            localModel = str("localModel"),
+            readerFontSize = int("readerFontSize"),
+            readerLineHeight = num("readerLineHeight"),
+        )
+    }
+
+    /** 导入后若本地模型名在本机不存在，给一句提示（否则评分会一直加载失败）。 */
+    fun modelWarning(localModel: String?, available: Set<String>): String? {
+        val m = localModel?.trim().orEmpty()
+        if (m.isBlank() || m in available) return null
+        return "备份里的本地模型「$m」在本机不可用，请到设置页重新选择模型"
+    }
+
     /**
      * 合并 AI 套题（`files/ai_bank.json` 的 `sets` 数组）。
      *
