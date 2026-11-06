@@ -478,7 +478,16 @@ fun ResultScreen(
                                     sentenceFixes,
                                 )
                             },
-                        ) { Text(if (busyHere) "提取中…" else "提取生词 / 搭配") }
+                        ) {
+                            // 已有本场生词卡时再点就是「换一批」（缓存会被跳过），文案要说清。
+                            Text(
+                                when {
+                                    busyHere -> "提取中…"
+                                    vocabResult != null && vocabSessionId == session.id -> "换一批生词"
+                                    else -> "提取生词 / 搭配"
+                                }
+                            )
+                        }
                     }
                     if (busyHere) {
                         LocalAiBusy("本地模型提取生词中（请留在 App 内）")

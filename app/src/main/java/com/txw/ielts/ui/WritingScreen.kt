@@ -422,7 +422,16 @@ fun WritingScreen(
                     OutlinedButton(
                         enabled = !busy && !recording && !outlineBusy,
                         onClick = { onRequestOutline(topic, task) },
-                    ) { Text(if (outlineBusyHere) "生成提纲中…" else "AI 提纲") }
+                    ) {
+                        // 已有本题提纲时再点就是「换一份」（缓存会被跳过），文案要说清。
+                        Text(
+                            when {
+                                outlineBusyHere -> "生成提纲中…"
+                                outline != null && outlineTopic == topic -> "换一份提纲"
+                                else -> "AI 提纲"
+                            }
+                        )
+                    }
                 }
                 if (outlineBusyHere) {
                     LocalAiBusy("本地模型生成提纲中（请留在 App 内）")

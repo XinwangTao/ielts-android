@@ -303,7 +303,16 @@ fun SpeakingScreen(
             OutlinedButton(
                 enabled = !busy && !recording && countdown == 0 && !sampleBusy,
                 onClick = { onRequestSample(part, question) },
-            ) { Text(if (sampleBusyHere) "生成范例中…" else "AI 范例答案") }
+            ) {
+                // 已有本题范例时再点就是「换一份」（缓存会被跳过），文案要说清。
+                Text(
+                    when {
+                        sampleBusyHere -> "生成范例中…"
+                        sample != null && sampleQuestion == question && !sample.isEmpty -> "换一份范例"
+                        else -> "AI 范例答案"
+                    }
+                )
+            }
         }
         if (sampleBusyHere) {
             LocalAiBusy("本地模型生成范例中（请留在 App 内）")
