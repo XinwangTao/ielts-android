@@ -4,14 +4,18 @@
 
 | 模型 | token 预算 | 结果 | 夹具 |
 |---|---|---|---|
-| DeepSeek V4.1 Flash（`ccs-claude-openai--deepseek-v4.1-flash[1m]`） | 4000 | **18/18** | `app/src/test/resources/ai_probe/` |
-| GLM-5.3-Flash（`ccs-claude-openai--glm-5.3-flash`） | 3500 | **18/18** | `app/src/test/resources/ai_probe_glm/` |
+| DeepSeek V4.1 Flash（`ccs-claude-openai--deepseek-v4.1-flash[1m]`） | 4000 | **19/19** | `app/src/test/resources/ai_probe/` |
+| GLM-5.3-Flash（`ccs-claude-openai--glm-5.3-flash`） | 3500 | **19/19** | `app/src/test/resources/ai_probe_glm/` |
 
-覆盖 18 项：写作 Task2/Task1 评分、弱作文区分度、口语评分、提纲 Task2/Task1、口语范例 Part1/2/3、生词卡、AI 复盘、阅读出题 6/8 题、听力出题 6/8 题、错题精讲、口语追问、图表题干润色。
+覆盖 19 项：写作 Task2/Task1 评分、弱作文区分度、口语评分、提纲 Task2/Task1、口语范例 Part1/2/3、生词卡、AI 复盘、阅读出题 6/8 题、听力出题 6/8 题、错题精讲、口语追问、错题变式题、图表题干润色。
 
 强/弱作文区分度：DeepSeek 7.0 vs 4.5-5.0；GLM 7.0 vs 5.5。
 
 ## 关键坑与加固
+
+0. **听力出题的 `keys` 必须写成硬约束**（2026-11-06）：GLM 在 6 题那次把每题 `keys` 整组丢掉（18/19）。
+   提示词补「任何一题缺 keys 整个输出作废、keys 紧跟 answers 写」后，GLM 与 DeepSeek 均 19/19。
+   App 侧本就能容忍（`GeneratedParser.strings` 缺省为空数组），只是少了精听定位高亮。
 
 1. **必须带 `thinking: disabled`**（与 `LlmClient.chat` 一致）。否则推理 token 吃满 `max_tokens`，正文返回空或半截 JSON；探针最初就踩了这个坑。
 2. **JSON 卫生**：字符串内不能有裸双引号（转义 `\"` 或改单引号）；解析层镜像 `ScoreSanitizer.extractJson`，把字符串内裸换行换成空格，并按括号配对截取对象（不会被 JSON 后面的说明文字带偏）。
