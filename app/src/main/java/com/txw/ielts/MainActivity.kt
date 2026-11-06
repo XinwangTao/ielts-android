@@ -780,10 +780,15 @@ private fun App(
         // （实测 files/ 下残留 2.3MB 的 partner_*.wav 十余个）。保留 session 仍引用的文件与 7 天内新文件。
         runCatching {
             val referenced = db.sessions().recent(200).mapNotNull { it.audioPath }.toSet()
-            val cutoff = System.currentTimeMillis() - 7 * 86_400_000L
-            context.filesDir.listFiles { f -> f.isFile && f.name.endsWith(".wav", ignoreCase = true) }
-                ?.filter { it.absolutePath !in referenced && it.lastModified() < cutoff }
-                ?.forEach { f -> if (f.delete()) Log.i(TAG, "cleanup recording ${f.name}") }
+            val files = context.filesDir
+                .listFiles { f -> f.isFile && f.name.endsWith(".wav", ignoreCase = true) }
+                ?.map { it.absolutePath to it.lastModified() }
+                .orEmpty()
+            com.txw.ielts.data.RecordingCleanup.pickDeletable(
+                files, referenced, System.currentTimeMillis(), com.txw.ielts.data.RecordingCleanup.KEEP_STARTUP_MS,
+            ).forEach { path ->
+                if (java.io.File(path).delete()) Log.i(TAG, "cleanup recording ${java.io.File(path).name}")
+            }
         }
     }
 

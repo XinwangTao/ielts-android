@@ -402,19 +402,24 @@ fun SettingsScreen(
                     runCatching {
                         val refs = com.txw.ielts.data.AppDb.get(context).sessions().recent(500)
                             .mapNotNull { it.audioPath }
-                            .map { java.io.File(it).name }
                             .toSet()
+                        val files = context.filesDir.listFiles()
+                            ?.filter { it.isFile && it.name.endsWith(".wav", ignoreCase = true) }
+                            ?.map { it.absolutePath to it.lastModified() }
+                            .orEmpty()
+                        // 与启动清理共用同一判定（RecordingCleanup），只是保留期更短。
+                        val targets = com.txw.ielts.data.RecordingCleanup.pickDeletable(
+                            files, refs, System.currentTimeMillis(),
+                            com.txw.ielts.data.RecordingCleanup.KEEP_MANUAL_MS,
+                        )
                         var freed = 0L
                         var count = 0
-                        // 与启动清理同口径：只删「没被引用且超过 1 天」的，避免误删正在录/刚录完还没入库的文件。
-                        val cutoff = System.currentTimeMillis() - 24 * 3_600_000L
-                        context.filesDir.listFiles()?.filter { it.name.endsWith(".wav") }.orEmpty().forEach { f ->
-                            if (f.name !in refs && f.lastModified() < cutoff) {
-                                val len = f.length()
-                                if (f.delete()) {
-                                    freed += len
-                                    count++
-                                }
+                        targets.forEach { p ->
+                            val f = java.io.File(p)
+                            val len = f.length()
+                            if (f.delete()) {
+                                freed += len
+                                count++
                             }
                         }
                         "已清理 $count 个无主录音，释放 ${freed / 1024 / 1024} MB"
