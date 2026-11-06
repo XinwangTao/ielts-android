@@ -160,6 +160,17 @@ fun SettingsScreen(prefs: Prefs, onBack: () -> Unit) {
         )
         val localReady = com.txw.ielts.llm.LocalLlmEngine.isReady(context, localModel) ||
             com.txw.ielts.llm.LocalLlmEngine.hasExternalCopy(context, localModel)
+        // 显式选「仅云端」又断网：不提示的话，用户提交后只能等一次必然失败的超时。
+        com.txw.ielts.llm.ChannelPick.cloudOfflineError(
+            channel,
+            hasNetwork = com.txw.ielts.llm.NetworkStatus.hasNetwork(context),
+        )?.let { message ->
+            Text(
+                message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
         // 自动模式降级原因：断网/额度冷却时提前说明，否则用户会以为评分变慢是模型坏了。
         com.txw.ielts.llm.ChannelPick.localReason(
             channel,

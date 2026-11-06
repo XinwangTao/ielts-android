@@ -76,6 +76,7 @@ fun HomeScreen(
     examDate: String = "",
     skillTargets: SkillTargets? = null,
     recoveryNotice: String? = null,
+    channelNotice: com.txw.ielts.llm.ChannelNotice? = null,
 ) {
     val streak = remember(sessions) { StreakCalc.currentStreak(sessions) }
 
@@ -121,6 +122,30 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+
+        // 通道降级提示：断网/云端冷却/额度用完时说明「现在为什么用本地模型」，
+        // 显式选云端又断网则把用户引到设置页改通道。
+        if (channelNotice != null) {
+            BookCard(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        channelNotice.title,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (channelNotice.needsAction) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary,
+                    )
+                    Text(
+                        channelNotice.detail,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (channelNotice.needsAction) {
+                        TextButton(onClick = onSettings) { Text("去设置") }
+                    }
                 }
             }
             Spacer(Modifier.height(6.dp))

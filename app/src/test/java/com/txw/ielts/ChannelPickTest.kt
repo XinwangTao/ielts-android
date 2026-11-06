@@ -76,4 +76,53 @@ class ChannelPickTest {
         assertFalse(ChannelPick.isQuotaFailure(null))
         assertFalse(ChannelPick.isQuotaFailure(""))
     }
+
+    @Test
+    fun `显式仅云端又断网时提前报错并给出改法`() {
+        val msg = ChannelPick.cloudOfflineError("cloud", hasNetwork = false)
+        assertTrue(msg != null && msg.contains("仅本地"))
+        assertTrue(msg != null && msg.contains("无网络"))
+    }
+
+    @Test
+    fun `自动或仅本地断网不拦请求`() {
+        // auto 断网会落本地，local 本来就离线；只有 cloud 是必失败。
+        assertNull(ChannelPick.cloudOfflineError("auto", hasNetwork = false))
+        assertNull(ChannelPick.cloudOfflineError("local", hasNetwork = false))
+        assertNull(ChannelPick.cloudOfflineError("cloud", hasNetwork = true))
+    }
+
+    @Test
+    fun `首页提示说清自动降级原因`() {
+        val offline = ChannelPick.notice(
+            "auto", cloudDown = false, hasNetwork = false, remainingCalls = 99,
+        )
+        assertEquals("无网络：已改用本地模型", offline?.title)
+        assertTrue(offline != null && offline.detail.contains("端侧"))
+        assertFalse(offline!!.needsAction)
+
+        val cooling = ChannelPick.notice(
+            "auto", cloudDown = true, hasNetwork = true, remainingCalls = 99,
+        )
+        assertTrue(cooling != null && cooling.title.contains("冷却"))
+
+        val noQuota = ChannelPick.notice(
+            "auto", cloudDown = false, hasNetwork = true, remainingCalls = 0,
+        )
+        assertTrue(noQuota != null && noQuota.title.contains("额度已用完"))
+    }
+
+    @Test
+    fun `显式仅云端断网提示需要动手改设置`() {
+        val n = ChannelPick.notice("cloud", cloudDown = false, hasNetwork = false, remainingCalls = 99)
+        assertTrue(n != null && n.needsAction)
+        assertTrue(n != null && n.detail.contains("设置页"))
+    }
+
+    @Test
+    fun `仅本地或一切正常时不打扰用户`() {
+        assertNull(ChannelPick.notice("local", cloudDown = true, hasNetwork = false, remainingCalls = 0))
+        assertNull(ChannelPick.notice("cloud", cloudDown = false, hasNetwork = true, remainingCalls = 99))
+        assertNull(ChannelPick.notice("auto", cloudDown = false, hasNetwork = true, remainingCalls = 99))
+    }
 }

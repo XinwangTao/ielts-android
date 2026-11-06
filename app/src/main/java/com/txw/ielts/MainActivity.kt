@@ -336,6 +336,18 @@ private fun App(
     var route by rememberSaveable(stateSaver = RouteSaver) { mutableStateOf<Route>(Route.Home) }
     // 页面跳转诊断：旋转屏 / 进程重建 / 深链时用它确认 route 是否符合预期。
     LaunchedEffect(route) { Log.i(TAG, "route=${route.encode()} (freshStart=$freshStart)") }
+    // 网络状态决定 AI 走云端还是本地。首页需要说明降级原因，不能让用户等到云端超时才发现没网；
+    // 只在首页轮询，离开首页立即取消，不常驻耗电。
+    var networkOnline by remember { mutableStateOf(com.txw.ielts.llm.NetworkStatus.hasNetwork(context)) }
+    LaunchedEffect(route) {
+        networkOnline = com.txw.ielts.llm.NetworkStatus.hasNetwork(context)
+        if (route == Route.Home) {
+            while (true) {
+                delay(15_000L)
+                networkOnline = com.txw.ielts.llm.NetworkStatus.hasNetwork(context)
+            }
+        }
+    }
     var stage by remember { mutableStateOf<String?>(null) }
     var error by remember { mutableStateOf<String?>(null) }
     var practiceFocus by remember { mutableStateOf<PracticeFocus?>(null) }
@@ -968,8 +980,11 @@ private fun App(
     suspend fun evaluateWriting(session: Session, text: String, task: String = "task2") {
         val mode = prefs.scoreChannel
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
+        val online = hasNetwork(context)
+        // 显式选云端又断网：这一路必然失败，直接给出改设置的提示，不白等 HTTP 超时。
+        ChannelPick.cloudOfflineError(mode, online)?.let { throw IOException(it) }
         if (ChannelPick.effective(
-                mode, cloudDown, hasNetwork(context), prefs.remainingCalls()
+                mode, cloudDown, online, prefs.remainingCalls()
             ) == "local"
         ) {
             startLocalWriting(session, text, task)
@@ -1048,8 +1063,10 @@ private fun App(
             else -> "Part"
         }
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
+        val online = hasNetwork(context)
+        ChannelPick.cloudOfflineError(mode, online)?.let { throw IOException(it) }
         if (ChannelPick.effective(
-                mode, cloudDown, hasNetwork(context), prefs.remainingCalls()
+                mode, cloudDown, online, prefs.remainingCalls()
             ) == "local"
         ) {
             startLocalSpeaking(session, text)
@@ -1387,12 +1404,18 @@ private fun App(
     suspend fun runAiGen(module: String, difficulty: String, types: List<String>, count: Int) {
         aiGenBusy = true
         aiGenError = null
+        val online = hasNetwork(context)
+        ChannelPick.cloudOfflineError(prefs.scoreChannel, online)?.let {
+            aiGenError = it
+            aiGenBusy = false
+            return
+        }
         // 本地模型要几分钟才出题，先说清楚，否则用户以为卡死；auto 模式也提示会自动兜底。
         // 云端处于冷却期时这里直接落成 local，否则每次出题都要先白试一次云端。
         val channelNow = ChannelPick.effective(
             prefs.scoreChannel,
             System.currentTimeMillis() < prefs.cloudDownUntil,
-            hasNetwork(context),
+            online,
             prefs.remainingCalls(),
         )
         aiGenStage = if (channelNow == "local") "本地模型生成中（可能要几分钟）…"
@@ -1506,11 +1529,24 @@ private fun App(
     }
 
     suspend fun runAiExplain(item: BankResultItem) {
+        val mode = prefs.scoreChannel
+        val online = hasNetwork(context)
+        ChannelPick.cloudOfflineError(mode, online)?.let {
+            error = it
+            return
+        }
+        // 与评分/出题共用选路：auto 在断网/冷却/无额度时直接走本地，不再先白试一次云端。
+        val channel = ChannelPick.effective(
+            mode,
+            System.currentTimeMillis() < prefs.cloudDownUntil,
+            online,
+            prefs.remainingCalls(),
+        )
         explainingIds = explainingIds + item.id
         try {
             val exp = withContext(Dispatchers.IO) {
                 routeLlm(
-                    channel = prefs.scoreChannel,
+                    channel = channel,
                     label = "错题精讲",
                     onCloudFail = { markCloudDown(prefs, it) },
                     cloud = {
@@ -1682,6 +1718,12 @@ private fun App(
                     examDate = prefs.examDate,
                     skillTargets = skillTargets,
                     recoveryNotice = recoveryNotice,
+                    channelNotice = ChannelPick.notice(
+                        mode = prefs.scoreChannel,
+                        cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil,
+                        hasNetwork = networkOnline,
+                        remainingCalls = prefs.remainingCalls(),
+                    ),
                 )
 
                 is Route.Writing -> WritingScreen(
