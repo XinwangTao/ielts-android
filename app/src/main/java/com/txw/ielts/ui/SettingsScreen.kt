@@ -376,6 +376,28 @@ fun SettingsScreen(
         var backupFiles by remember { mutableStateOf<List<java.io.File>>(emptyList()) }
         var backupRefresh by remember { mutableStateOf(0) }
         var pendingDeleteBackup by remember { mutableStateOf<java.io.File?>(null) }
+        // 导入预览（只读）：选文件 → 解析 → 只看摘要，不写库（写库仍属 L1 待确认）。
+        var backupPreview by remember { mutableStateOf<String?>(null) }
+        val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+        ) { uri ->
+            if (uri != null) {
+                exportScope.launch {
+                    val text = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        runCatching {
+                            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        }.getOrNull()
+                    }
+                    backupPreview = if (text == null) {
+                        "读取文件失败"
+                    } else {
+                        runCatching {
+                            com.txw.ielts.data.BackupRestore.summary(com.txw.ielts.data.BackupRestore.parse(text))
+                        }.getOrElse { it.message ?: "解析失败" }
+                    }
+                }
+            }
+        }
         LaunchedEffect(backupRefresh) {
             backupFiles = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
                 java.io.File(context.getExternalFilesDir(null), "backup").listFiles()
@@ -398,6 +420,17 @@ fun SettingsScreen(
                 it,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        TextButton(onClick = {
+            pickBackup.launch(arrayOf("application/json", "text/plain", "*/*"))
+        }) { Text("预览备份文件（只读）") }
+        backupPreview?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
             )
         }
 
