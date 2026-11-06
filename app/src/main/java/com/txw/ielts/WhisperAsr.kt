@@ -23,6 +23,9 @@ class WhisperAsr(
 ) {
     private var recognizer: OfflineRecognizer? = null
 
+    // sherpa 的 OfflineRecognizer 不是线程安全的：同一实例的 load/transcribe/release
+    // 必须串行。当前调用方都是顺序使用，这里加锁防守（未来若有页面复用实例也不会崩）。
+    @Synchronized
     fun load(): Long {
         if (recognizer != null) return 0
         Guard.start(context)
@@ -54,6 +57,7 @@ class WhisperAsr(
     }
 
     /** 返回 (识别文本, 识别耗时毫秒) */
+    @Synchronized
     fun transcribe(wav: File): Pair<String, Long> {
         // 转写也是长 CPU 任务：切后台时同样用媒体前台服务钉住进程。
         Guard.start(context)
@@ -72,10 +76,14 @@ class WhisperAsr(
                 val end = minOf(start + chunk, samples.size)
                 val piece = samples.copyOfRange(start, end)
                 val stream = rec.createStream()
-                stream.acceptWaveform(piece, WavRecorder.SAMPLE_RATE)
-                rec.decode(stream)
-                val part = rec.getResult(stream).text.trim()
-                stream.release()
+                val part = try {
+                    stream.acceptWaveform(piece, WavRecorder.SAMPLE_RATE)
+                    rec.decode(stream)
+                    rec.getResult(stream).text.trim()
+                } finally {
+                    // decode 抛异常时也要释放 native stream，否则每次失败泄漏一块解码缓冲。
+                    stream.release()
+                }
                 if (part.isNotBlank()) {
                     val merged = if (index == 0) part else mergeOverlap(text.toString(), part)
                     text.setLength(0)
@@ -92,6 +100,7 @@ class WhisperAsr(
         }
     }
 
+    @Synchronized
     fun release() {
         recognizer?.release()
         recognizer = null

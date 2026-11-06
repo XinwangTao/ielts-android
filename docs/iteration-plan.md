@@ -26,6 +26,9 @@
 > 口语模考录音中禁止提交并提示「某段中断，请重录」；`ai_bank.json` 原子写 + 损坏隔离 `.corrupt`；
 > 音频缓存按 assets 长度校验并 `.part` 后改名；词典整库拷贝加锁 + SQLite 头校验。
 > TTS `synthesizeOne` 超时/取消时补 `invokeOnCancellation → shutdown`（重试 3 次不再累积 3 个引擎绑定）。
+> WhisperAsr：decode/取结果抛异常也释放 native stream；同实例 load/transcribe/release 串行化。
+> 已知长尾（待真机）：两个页面同时转写会并发跑两个 recognizer（约 2× 内存），是否加全局串行门
+> 需要先看真机后台内存与等待体感再定。
 
 ## 阻塞（写清解除条件，不在本阶段空等）
 
