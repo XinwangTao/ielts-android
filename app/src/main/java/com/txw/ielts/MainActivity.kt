@@ -529,6 +529,19 @@ private fun App(
     }
 
     suspend fun requestVocab(sessionId: Long, text: String, fixes: List<Triple<String, String, String>>) {
+        // 同一篇作文/同一段转写的生词卡不会变：重开结果页直接展示，省一次 30-60 秒推理。
+        val cacheKey = com.txw.ielts.llm.StudyAiCache.key(
+            "vocab", sessionId.toString(), text, fixes.joinToString("\u0001") { it.first },
+        )
+        com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)?.let { raw ->
+            val cached = com.txw.ielts.llm.StudyAi.parseVocab(raw)
+            if (cached.items.isNotEmpty()) {
+                vocabResult = cached
+                vocabSessionId = sessionId
+                vocabError = null
+                return
+            }
+        }
         vocabBusy = true
         vocabError = null
         vocabSessionId = sessionId
@@ -547,6 +560,9 @@ private fun App(
                 com.txw.ielts.llm.StudyAi.vocab(context, prefs.localModel, text, fixes)
             }
             vocabResult = r
+            if (r.items.isNotEmpty()) {
+                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw)
+            }
         } catch (e: Exception) {
             vocabError = "生词提取失败：${e.message}"
         } finally {

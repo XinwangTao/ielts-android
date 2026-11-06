@@ -148,7 +148,9 @@ object StudyAi {
             PromptBudget.STUDY_INPUT_TOKENS,
         )
         val raw = LocalLlmEngine.generateText(context, model, VOCAB_SYSTEM, prompt.text)
-        return parseVocab(raw).copy(trimmedChars = prompt.removedChars)
+        val parsed = parseVocab(raw)
+        // 解析成功也保留原始输出，供调用方缓存复用（重开结果页不必再跑一次）。
+        return if (parsed.items.isEmpty()) parsed else parsed.copy(raw = raw, trimmedChars = prompt.removedChars)
     }
 
     /** 最近练习复盘：输入由调用方拼好的「最近成绩 + 高频问题」摘要。 */
