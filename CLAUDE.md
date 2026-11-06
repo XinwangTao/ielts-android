@@ -13,6 +13,8 @@ bash tools/verify_all.sh              # 一键回归：单测 + 打包 + lint + 
 
 - 单测开了 `unitTests.isReturnDefaultValues`（`app/build.gradle.kts`），所以带 `android.util.Log` 的纯逻辑也能测。
 - CI：`.github/workflows/android-ci.yml` 跑单测 + lint（命令与 `tools/verify_all.sh` 一致）；Dependabot 周更 Gradle。
+- 跑 `bash tools/verify_all.sh` 时看脚本退出码：`bash tools/verify_all.sh; echo EXIT=$?`。
+  用管道（`| tail`）会把脚本失败吞成 0（本项目已踩过）。
 - 构建偶发 “KSP/增量编译不一致”（`AppDb_Impl` 找不到符号、`lateinit cleanFilenames`）：重试一次，仍失败则 `--rerun-tasks` 或 `:app:clean`。
 
 ## AI 链路
