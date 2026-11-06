@@ -15,7 +15,10 @@
 4. [x] **依赖与 targetSdk 评估 + Stage A/B**：lifecycle 2.8.7；已装 `platforms;android-35`，`compileSdk = 35`（targetSdk 仍 34）；
    16KB 页对齐静态验证通过（8 个 .so 全 16384）；`LocalLifecycleOwner` 已迁 `lifecycle-runtime-compose`。
 5. [x] **AI 缓存解析记忆化**（2026-11-06）：`StudyAiCache` 按存储串内容记忆解析结果，连续读取不再重复解析整串 JSON；
-   新增 1 例单测（不同存储串之间不串用），总 457 例全绿。
+   新增 1 例单测（不同存储串之间不串用）。
+
+6. [x] **导入预览摘要**（2026-11-06）：`BackupRestore.summary` 返回「将新增 N 条练习、M 张卡片、K 套 AI 题；跳过 X 条」，
+   1 例单测。当前单测总数 **458 例**。
 
 ## 可离线队列（按顺序，下一项从这里挑）
 
