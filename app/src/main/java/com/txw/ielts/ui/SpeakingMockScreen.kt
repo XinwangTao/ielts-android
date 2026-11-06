@@ -109,7 +109,11 @@ fun SpeakingMockScreen(
             if (cur >= 0) {
                 secs = secs.toMutableList().also { it[cur] += 1 }
                 if (secs[cur] >= limits[cur]) {
+                    // 采集失败（来电/被抢麦）时 AudioRecord 已自行停止：标出来让用户重录这一段，
+                    // 否则会拿着只有文件头的空录音去合并评分。
+                    val broken = recorder?.lastError?.let { it != 0 } == true
                     recorder?.stop(); recorder = null; active = -1
+                    if (broken) localError = "第 ${cur + 1} 段录音中断，请重录"
                 }
             }
         }
@@ -117,9 +121,12 @@ fun SpeakingMockScreen(
     DisposableEffect(Unit) { onDispose { recorder?.stop() } }
 
     fun stopActive() {
+        val part = active
+        val broken = recorder?.lastError?.let { it != 0 } == true
         recorder?.stop()
         recorder = null
         active = -1
+        if (broken) localError = "第 ${part + 1} 段录音中断，请重录"
     }
 
     Column(
@@ -185,8 +192,12 @@ fun SpeakingMockScreen(
 
         Button(
             modifier = Modifier.fillMaxWidth(),
-            enabled = !busy && files.all { it != null },
-            onClick = { onSubmit(files.map { it!!.absolutePath }, secs) },
+            // 录音未停就提交：最后一段 WAV 头还没回填，转写会读到半成品。
+            enabled = !busy && active < 0 && files.all { it != null },
+            onClick = {
+                if (active >= 0) stopActive()
+                onSubmit(files.map { it!!.absolutePath }, secs)
+            },
         ) {
             Text(
                 when {

@@ -39,6 +39,14 @@ class WavRecorder(
     var bytesWritten: Long = 0
         private set
 
+    /**
+     * 采集线程内的错误码（0 = 无错；负数 = AudioRecord 返回的错误）。
+     * 读失败（来电/被抢麦）时采集线程会自行结束，调用方可在 stop() 后据此提示重录，
+     * 而不是拿着一段只有头部的空 WAV 去转写。
+     */
+    @Volatile var lastError: Int = 0
+        private set
+
     @SuppressLint("MissingPermission")
     fun start() {
         val rec = AudioRecord(
@@ -50,22 +58,45 @@ class WavRecorder(
         )
         check(rec.state == AudioRecord.STATE_INITIALIZED) { "AudioRecord 初始化失败" }
         record = rec
-        // AudioRecord 初始化成功后再开前台服务；失败不会留下未释放的保活引用。
+        // 先把文件打开再开前台服务：文件失败（存储满/权限）时不能留下麦克风保活与未释放的 AudioRecord。
+        val raf = try {
+            RandomAccessFile(outFile, "rw")
+        } catch (e: Exception) {
+            record = null
+            runCatching { rec.release() }
+            throw e
+        }
+        raf.setLength(0)
+        raf.write(ByteArray(44)) // WAV 头占位，停止时回填
+        // AudioRecord 与文件都就绪后再开前台服务。
         context?.let {
             Guard.startMic(it)
             micGuarded = true
         }
-        val raf = RandomAccessFile(outFile, "rw")
-        raf.setLength(0)
-        raf.write(ByteArray(44)) // WAV 头占位，停止时回填
         running = true
         bytesWritten = 0
         worker = thread(name = "wav-recorder") {
             val buf = ShortArray(minBuf)
-            rec.startRecording()
+            try {
+                rec.startRecording()
+            } catch (e: Exception) {
+                // worker 线程里抛异常会走未捕获处理器直接杀进程。
+                android.util.Log.e("WavRecorder", "startRecording failed: ${e.message}")
+                lastError = -1
+                running = false
+                runCatching { raf.close() }
+                return@thread
+            }
             raf.use { f ->
                 while (running) {
                     val n = rec.read(buf, 0, buf.size)
+                    if (n < 0) {
+                        // 来电/被抢麦等：不能继续满速空转（耗电发热），也不能假装还在录。
+                        android.util.Log.w("WavRecorder", "read error=$n, stop recording")
+                        lastError = n
+                        running = false
+                        break
+                    }
                     if (n > 0) {
                         val bytes = ByteArray(n * 2)
                         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(buf, 0, n)
@@ -82,9 +113,10 @@ class WavRecorder(
     fun stop() {
         running = false
         worker?.join(3_000)
-        record?.runCatching {
-            stop()
-            release()
+        // stop 与 release 分开：stop 抛异常时 release 仍必须执行，否则麦克风一直占着。
+        record?.let { r ->
+            runCatching { r.stop() }
+            runCatching { r.release() }
         }
         record = null
         // 先停采集再撤前台服务，避免系统在麦克风仍被占用时回收类型。

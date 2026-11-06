@@ -110,10 +110,25 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
             if (local.exists() && local.length() > 0L) return@runCatching local
             val f = File(File(context.cacheDir, "bank"), name)
             f.parentFile?.mkdirs()
-            val needCopy = !f.exists() || f.length() == 0L
+            // assets fd 在部分机型不可靠，拿不到长度就退化为「空文件才重拷」。
+            val expected = runCatching { context.assets.openFd(set.audio).length }.getOrDefault(-1L)
+            // 长度不足（上次拷到一半）也必须重拷，否则半截 mp3 会被永远当成可用缓存。
+            val needCopy = !f.exists() || f.length() == 0L || (expected > 0L && f.length() < expected)
             if (needCopy) {
+                val part = File(f.parentFile, "$name.part")
                 context.assets.open(set.audio).use { input ->
-                    f.outputStream().use { input.copyTo(it) }
+                    part.outputStream().use { input.copyTo(it) }
+                }
+                if (expected > 0L && part.length() < expected) {
+                    part.delete()
+                    throw java.io.IOException("音频缓存不完整")
+                }
+                if (!part.renameTo(f)) {
+                    f.delete()
+                    if (!part.renameTo(f)) {
+                        part.delete()
+                        throw java.io.IOException("音频缓存写入失败")
+                    }
                 }
             }
             f
@@ -124,11 +139,17 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
 
     private val aiBankFile: File get() = File(context.filesDir, "ai_bank.json")
 
-    fun aiSets(): List<BankSet> = runCatching {
-        if (!aiBankFile.exists()) return@runCatching emptyList()
-        val arr = JSONObject(aiBankFile.readText()).optJSONArray("sets") ?: return@runCatching emptyList()
-        (0 until arr.length()).map { parseSet(arr.getJSONObject(it)) }
-    }.getOrDefault(emptyList())
+    fun aiSets(): List<BankSet> = try {
+        if (!aiBankFile.exists()) emptyList() else {
+            val arr = JSONObject(aiBankFile.readText()).optJSONArray("sets") ?: JSONArray()
+            (0 until arr.length()).map { parseSet(arr.getJSONObject(it)) }
+        }
+    } catch (e: Exception) {
+        // 半截/损坏的文件不能静默当「没有套题」：隔离成 .corrupt，避免下一次保存把原内容覆盖掉。
+        android.util.Log.w("BankRepo", "ai_bank.json 解析失败，已隔离：${e.message}")
+        runCatching { aiBankFile.renameTo(File(aiBankFile.parentFile, "ai_bank.json.corrupt")) }
+        emptyList()
+    }
 
     fun saveAiSet(set: BankSet) {
         val existing = aiSets().toMutableList()
@@ -150,7 +171,18 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
     private fun writeAiSets(sets: List<BankSet>) {
         val arr = JSONArray()
         sets.forEach { arr.put(setToJson(it)) }
-        aiBankFile.writeText(JSONObject().put("sets", arr).toString())
+        val text = JSONObject().put("sets", arr).toString()
+        // 原子写：先写 .tmp 再改名。直接 writeText 截断重写，进程被杀/磁盘满会留下半截 JSON，
+        // 下次打开列表静默变空，再保存一次就把剩余套题永久覆盖。
+        val tmp = File(aiBankFile.parentFile, "ai_bank.json.tmp")
+        tmp.writeText(text)
+        if (!tmp.renameTo(aiBankFile)) {
+            aiBankFile.delete()
+            if (!tmp.renameTo(aiBankFile)) {
+                tmp.delete()
+                throw java.io.IOException("题库写入失败（磁盘空间不足或文件被占用）")
+            }
+        }
     }
 
     private fun parseSet(o: JSONObject): BankSet {
