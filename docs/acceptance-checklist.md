@@ -64,7 +64,6 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 5. 追问故意不缓存：模型暖时只要 1.6 秒，缓存反而会挡住「换一个问题」。
 
 ## 六、回归命令
-
 ```bash
 # 全量单测
 ./gradlew :app:testDebugUnitTest --console=plain
@@ -75,3 +74,13 @@ python tools/ai_probe.py
 # 真机 AI 自测（一条命令，不用点按钮）
 bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_writing|score_speaking
 ```
+
+## 七、待真机验证（TODO，当前不允许设备实测）
+
+- [ ] 预热：进写作 / 口语 / AI 出题页 5 秒后，通知显示「正在准备本地模型…」，返回后消失
+- [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
+- [ ] 设置页「提前加载模型」开关关闭后，进练习页不再触发加载
+- [ ] 错题「再来一道同考点新题」：生成、选项排版、答案默认收起、查看答案
+- [ ] 变式题换套题后不串题（A 套 1 号题的变式不会出现在 B 套 1 号题）
+- [ ] lint 清理后的通知渠道与前台服务启动回归（评分完成通知仍正常）
+- [ ] 清空数据后 AI 派生缓存确实清空（复盘页不再显示旧建议）

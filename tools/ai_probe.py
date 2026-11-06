@@ -292,6 +292,23 @@ def cases() -> list[dict]:
 
 # ---------------------------------------------------------------- 校验器
 
+def _match_option(answer: str, options: list[str]) -> str | None:
+    """与 App 的 StudyAi.normalizeVariantAnswer 同口径：原文 → 字母 → 包含。"""
+    a = (answer or "").strip()
+    if not a or not options:
+        return None
+    for o in options:
+        if o.lower() == a.lower():
+            return o
+    core = a.strip("() .、（）\t")
+    if len(core) == 1 and core.upper() in "ABCDE":
+        i = ord(core.upper()) - 65
+        if i < len(options):
+            return options[i]
+    cands = [o for o in options if a.lower() in o.lower() or o.lower() in a.lower()]
+    return max(cands, key=len) if cands else None
+
+
 def validate(case: dict, text: str) -> list[str]:
     issues: list[str] = []
     if not text.strip():
@@ -354,8 +371,12 @@ def validate(case: dict, text: str) -> list[str]:
             issues.append("question 为空")
         if not isinstance(opts, list):
             issues.append("options 不是数组")
-        elif opts and ans not in [str(o).strip() for o in opts]:
-            issues.append(f"answer 不在 options 里：{ans!r}")
+        elif opts:
+            clean = [re.sub(r"^[A-Ea-e][.、)]\s*", "", str(o).strip()) for o in opts]
+            # 与 App 的 normalizeVariantAnswer 同口径：原文 → 字母 → 包含。
+            hit = _match_option(ans, clean)
+            if hit is None:
+                issues.append(f"answer 折回后仍不在 options 里：{ans!r}")
         if not has_cjk(str(d.get("explain", ""))):
             issues.append("explain 不是中文")
         if q and "museum" in q.lower():
