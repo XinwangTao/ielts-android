@@ -1715,6 +1715,8 @@ private fun App(
         if (mode.isEmpty() || !freshStart) return@LaunchedEffect
         val model = prefs.localModel
         try {
+            // 本地 submit 是阻塞 native 调用；直接在 Main 协程里跑会触发 5 秒 ANR。
+            withContext(Dispatchers.IO) {
             when (mode) {
                 "outline" -> {
                     val r = com.txw.ielts.llm.StudyAi.outline(
@@ -1746,6 +1748,10 @@ private fun App(
                 }
                 else -> Log.w(TAG, "E2E: RESULT ai unknown=$mode")
             }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // 页面/组合离开时的正常取消，不是生成失败；吞掉会误报一条 FAIL。
+            throw e
         } catch (e: Exception) {
             Log.e(TAG, "E2E: RESULT ai mode=$mode fail=${e.javaClass.simpleName}:${e.message}")
         }

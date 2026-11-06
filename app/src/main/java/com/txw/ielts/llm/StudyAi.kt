@@ -97,12 +97,30 @@ object StudyAi {
         part: String,
         question: String,
     ): SpeakingSample {
-        val raw = LocalLlmEngine.generateText(
-            context, model, SPEAKING_SYSTEM,
-            "Part: $part\nQuestion: ${question.trim()}",
-        )
-        return parseSample(raw)
+        val user = "Part: $part\nQuestion: ${question.trim()}"
+        val first = parseSample(LocalLlmEngine.generateText(context, model, SPEAKING_SYSTEM, user))
+        // 本地 4B 的 Part 2 实测只写 146 词（目标 180-220）；给一次更明确的重写机会，
+        // 只有确实更长才采用，重试失败也不丢第一版。
+        if (part == "Part 2" && wordCount(first.answer) < 170) {
+            val retry = try {
+                parseSample(
+                    LocalLlmEngine.generateText(
+                        context, model, SPEAKING_SYSTEM,
+                        "$user\n\nYour previous answer was too short. Rewrite it with at least 180 words " +
+                            "(about 12-15 sentences). Do not stop early.",
+                    )
+                )
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                null
+            }
+            if (retry != null && wordCount(retry.answer) > wordCount(first.answer)) return retry
+        }
+        return first
     }
+
+    private fun wordCount(s: String): Int = s.split(Regex("\\s+")).count { it.isNotBlank() }
 
     suspend fun vocab(
         context: Context,
@@ -263,7 +281,7 @@ object StudyAi {
         Return STRICT JSON only, with exactly this shape:
         {"answer":"sample answer","keywords":["useful phrase"],"structure":["中文结构提示"]}
         Rules:
-        - Part 2: 180-220 words. Part 1 and Part 3: 70-110 words; never exceed 120 and keep it to one short paragraph.
+        - Part 2 MUST be 180-220 words (about 12-15 sentences); an answer under 180 words is invalid, count the words before you finish. Part 1 and Part 3: 70-110 words; never exceed 120 and keep it to one short paragraph.
         - natural spoken English; contractions are fine; answer the question directly.
         - keywords: exactly 5 useful English collocations or phrases taken from the answer.
         - structure: exactly 3 short hints in Chinese.

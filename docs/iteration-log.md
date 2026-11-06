@@ -37,3 +37,4 @@
 | 2026-11-06 11:31 | 课表空动作收口：休息日/考试日不再渲染点了没反应的「去练」；考前轻复习（LIGHT）改为「看错题」并跳到语料页的错题专项；练习日/模考日保留「去练/去模考」，已完成的仍显示「再练一次/再模考一次」 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；304 tests / 0 failures |
 | 2026-11-06 11:40 | 7 天计划入口常驻：今日任务为空时页头「7 天计划」不渲染，首页附录新增「四 7 天计划」，保证课表页永远可达 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；304 tests / 0 failures |
 | 2026-11-06 12:02 | 本地 AI 无点击自测：`e2e_ai=outline|sample|vocab` intent 直接调 `StudyAi` 并把结果打 E2E 日志，生成期间 KeepScreenOn；`tools/e2e_local_ai.sh` 一条命令起 App/等结果，真机验证不再和用户前台 App 抢点击 | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；304 tests / 0 failures |
+| 2026-11-06 12:46 | 本地 4B e2e 收口：`e2e_ai` 生成改走 IO（主线程直接 submit 触发 5s ANR），取消异常不再误报 FAIL；口语 Part 2 范例 <170 词自动重试一次并加严提示词。真机三项：提纲 args=3/phrases=5、范例重试后 195 词/keywords=5/structure=3、生词 items=6，均 raw=false | `./gradlew.bat :app:testDebugUnitTest --offline` | BUILD SUCCESSFUL；308 tests / 0 failures |
