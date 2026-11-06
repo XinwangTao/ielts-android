@@ -26,7 +26,20 @@
 python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 ```
 
-## 二、后台不中断
+## 二、录音回放与存储
+
+| 能力 | 入口 | 状态 |
+|---|---|---|
+| 录音回放 | 口语结果页 / 写作「口述」结果页 | 代码已提交，真机待验 |
+| 倍速 0.75x / 1x / 1.25x | 回放行 | 同上 |
+| 当前/总时长 + 拖动定位 | 回放行（非紧凑模式） | 同上 |
+| 对练逐轮回放 | 口语对练「对话记录」 | 同上 |
+| 跟读结果回放 | 跟读结果页 | 同上 |
+| 单实例播放（同时只响一条） | 全局 | 同上 |
+| 清理无主录音 | 设置页 | 同上 |
+| 存储占用（录音/模型/DB/AI 缓存条数） | 设置页 | 同上 |
+
+## 三、后台不中断
 
 | 场景 | 判据 | 状态 |
 |---|---|---|
@@ -40,7 +53,7 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 边界：ColorOS 的 `OplusHansManager` 对**冷加载 + 长生成**仍可能限速到 5 分钟量级（会完成，不是死锁）。
 想看更稳可在设置页授权悬浮窗 + 系统「允许后台运行」。
 
-## 三、结果缓存
+## 四、结果缓存
 
 | 项 | TTL | 验证 |
 |---|---|---|
@@ -50,13 +63,13 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 缓存不会挡「换一份」：已有同题结果时再点按钮会跳过缓存重新生成，文案同步为「换一份提纲/范例/换一批生词」。
 设置页「清除本地 AI 缓存」可单独清掉，不动练习记录。
 
-## 四、数据与设置
+## 五、数据与设置
 
 - 导出备份：设置页「导出数据备份（JSON）」，不含 Key。
 - 清空所有数据：DB + 录音 + 范文 + AI 派生缓存一起清（清完后建议重启 App）。
 - 评分通道：local / cloud / auto；云端额度失败自动冷却 1 小时，期间直接走本地。
 
-## 五、已知限制（不要当成 bug 报）
+## 六、已知限制（不要当成 bug 报）
 
 1. 发音分是**文本估计**（转写 + 语速 + 填充词），不是声学评分；结果页有说明。
 2. 本地 4B 的绝对分偏高约 0.5，相对排序正确；已有确定性后处理封顶（CC/GRA/overall）。
@@ -66,7 +79,7 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 6. 云端返回的 JSON 写坏时（实测 GLM 偶发）会自动**重试一次**再降级本地，所以偶尔会多等一个往返；
    HTTP / 额度 / 鉴权失败不重试，直接按通道策略回退或报错。
 
-## 六、回归命令
+## 七、回归命令
 ```bash
 # 全量单测
 ./gradlew :app:testDebugUnitTest --console=plain
@@ -78,7 +91,7 @@ python tools/ai_probe.py
 bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_writing|score_speaking
 ```
 
-## 七、待真机验证（TODO，当前不允许设备实测）
+## 八、待真机验证（TODO，当前不允许设备实测）
 
 - [ ] 预热：进写作 / 口语 / AI 出题页 5 秒后，通知显示「正在准备本地模型…」，返回后消失
 - [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
