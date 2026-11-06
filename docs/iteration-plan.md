@@ -68,7 +68,11 @@
 - 导入（只读）：`BackupRestore.parse/keepNew/summary` + SAF 预览 + 按本机数据去重显示；去重键契约测试。
 - 导入（纯逻辑）：`BackupImporter.mergeAiSets / parseSettings / modelWarning`。
 
-**工程**
+**安全**
+- 系统备份排除敏感/大体积数据（2026-11-07）：`allowBackup=true` 但没有规则时，云备份/换机会把
+  `ielts_prefs`（含 API Key）和 `files/models`（数 GB）一起带上。新增 `backup_rules.xml` +
+  `data_extraction_rules.xml`：排除 prefs、filesDir 全部、external 备份目录，只留 Room 数据库。
+  行为变化：换机恢复后需重新填 API Key/设置；AI 套题/范文走应用内 JSON 导入。
 - 主线程 IO 扫描（2026-11-07）：写作/模考页图表改为 assets 异步解码（`rememberAssetImage`），
   不再把 PNG 解码塞进首帧；设置页「清空所有数据」的删录音/范文移入 IO 线程。
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。

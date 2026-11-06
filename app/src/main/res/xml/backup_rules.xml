@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 及以下的系统备份规则；31+ 走 data_extraction_rules.xml。 -->
+<full-backup-content>
+    <!-- 设置里含用户填的 API Key：系统云备份/换机迁移都不带，换机后由用户重新填。 -->
+    <exclude domain="sharedpref" path="ielts_prefs.xml" />
+    <!-- filesDir 下是模型（数 GB，远超 25MB 配额）、录音、AI 套题与范文；
+         应用内已有 JSON 导出/导入，系统备份只保留 Room 数据库。 -->
+    <exclude domain="file" path="." />
+    <!-- 导出备份本身也在 external-files/backup，不再重复备份一遍。 -->
+    <exclude domain="external" path="." />
+</full-backup-content>
