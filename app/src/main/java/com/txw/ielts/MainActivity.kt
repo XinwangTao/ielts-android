@@ -1748,7 +1748,10 @@ private fun App(
                     id = setId,
                     module = "listening",
                     title = gen.title,
-                    intro = "$difficulty · AI 生成 · ${gen.questions.size} 题" + if (ok) " · 含音频" else "",
+                    intro = "$difficulty · AI 生成 · ${gen.questions.size} 题" +
+                        // 模型偶尔漏题（残题会被过滤）：说清「请求 N 题、实际 M 题」，别让用户以为本来就这么多。
+                        (if (count > 0 && gen.questions.size < count) " · 模型少给 ${count - gen.questions.size} 题" else "") +
+                        (if (ok) " · 含音频" else ""),
                     passage = "",
                     audio = if (ok) audioName else "",
                     transcript = gen.transcript,
@@ -1783,7 +1786,8 @@ private fun App(
                     id = setId,
                     module = "reading",
                     title = gen.title,
-                    intro = "$difficulty · AI 生成 · ${gen.questions.size} 题",
+                    intro = "$difficulty · AI 生成 · ${gen.questions.size} 题" +
+                        (if (count > 0 && gen.questions.size < count) " · 模型少给 ${count - gen.questions.size} 题" else ""),
                     passage = gen.passage,
                     audio = "",
                     transcript = "",
