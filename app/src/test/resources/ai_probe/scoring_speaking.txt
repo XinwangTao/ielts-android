@@ -1,1 +1,30 @@
-{"sentence_fixes":[{"sentence":"The main reason it was difficult is that I had a bad experience as a child, so I panicked easily.","issue":"时态不一致：主句用现在时 is，从句却用过去时 had，叙述过去经历时应统一为过去时。","better":"The main reason it was difficult was that I had had a bad experience as a child, so I panicked easily."},{"sentence":"I practiced for about half an hour every morning for two weeks, and I watched short videos to copy the arm movements.","issue":"用词不够自然：'copy the arm movements' 搭配生硬，应为 'copy the arm movements' 改为 'imitate the arm movements' 或 'copy the arm movements from videos' 更地道。","better":"I practised for about half an hour every morning for two weeks, and I watched short videos to imitate the arm movements."},{"sentence":"I learned it when I was 22 years old, during a summer holiday at the coast.","issue":"表达略啰嗦且介词搭配不自然：'at the coast' 不如 'on the coast'，'22 years old' 可简化为 '22'。","better":"I learned it when I was 22, during a summer holiday on the coast."}],"GRA":6.5,"LR":6.5,"FC":6.0,"P":6.0,"overall":6.5,"top_fixes":["主谓一致/时态一致性：'The main reason it was difficult is that I had a bad experience' 中 is 与 had 时态冲突，应统一为过去时 'was ... had had'。这是你反复出现的时态一致问题，本次仍有出现，需要重点改进。","字数与展开：本次约 149 词，达到 Part 2 基本要求，但细节仍偏概括（如 'watched short videos'、'became confident' 缺少具体例子）。相比以往有进步，建议再加入一个具体场景（如第一次成功漂浮的瞬间）来增强展开。","词汇搭配自然度：'copy the arm movements'、'at the coast' 等搭配不够地道，应改为 'imitate the arm movements'、'on the coast'，平时多积累动词与介词的固定搭配。"],"improved":"I'd like to talk about learning to swim, which was really difficult for me at first. I learned it when I was 22, during a summer holiday on the coast. My friend Tom taught me the basics in a shallow pool before we moved to the sea. At first I was terrified of putting my face under the water, and I couldn't float at all. The main reason it was difficult was that I'd had a bad experience as a child, so I panicked easily. I practised for about half an hour every morning for two weeks, and I watched short videos to imitate the arm movements. Slowly I became confident, and by the end of the holiday I could swim 50 metres without stopping. I feel proud of it now, because it taught me that patience and small daily steps can overcome fear."}
+{
+  "sentence_fixes": [
+    {
+      "sentence": "I learned it when I was 22 years old, during a summer holiday at the coast.",
+      "issue": "介词搭配不当：'at the coast' 不自然，应使用 'on the coast' 或 'at the seaside'。",
+      "better": "I learned it when I was 22, during a summer holiday on the coast."
+    },
+    {
+      "sentence": "The main reason it was difficult is that I had a bad experience as a child, so I panicked easily.",
+      "issue": "时态不一致：主句用现在时 'is'，从句用过去时 'had'，应统一为过去时 'was'。",
+      "better": "The main reason it was difficult was that I had had a bad experience as a child, so I panicked easily."
+    },
+    {
+      "sentence": "I practiced for about half an hour every morning for two weeks, and I watched short videos to copy the arm movements.",
+      "issue": "用词不自然：'copy the arm movements' 不如 'imitate the arm movements' 或 'follow the arm movements' 准确。",
+      "better": "I practiced for about half an hour every morning for two weeks, and I watched short videos to imitate the arm movements."
+    }
+  ],
+  "GRA": 6.5,
+  "LR": 6.5,
+  "FC": 6.0,
+  "P": 6.0,
+  "overall": 6.5,
+  "top_fixes": [
+    "字数与展开：本次回答约149词，内容基本完整但细节有限，未明显改善。建议增加具体感受或对比（如学习前后的变化），使回答更充实。",
+    "主谓一致：本次未发现主谓一致错误，说明在该问题上有所进步，需继续保持。",
+    "时态一致性：'The main reason it was difficult is that I had a bad experience' 中现在时与过去时混用，应统一为过去时 'was'。"
+  ],
+  "improved": "I'd like to talk about learning to swim, which was really difficult for me at first. I learned it when I was 22, during a summer holiday on the coast. My friend Tom taught me the basics in a shallow pool before we moved to the sea. At first I was terrified of putting my face under the water, and I couldn't float at all. The main reason it was difficult was that I'd had a bad experience as a child, so I panicked easily. I practiced for about half an hour every morning for two weeks, and I watched short videos to imitate the arm movements. Slowly I became confident, and by the end of the holiday I could swim 50 meters without stopping. I feel proud of it now, because it taught me that patience and small daily steps can overcome fear."
+}
