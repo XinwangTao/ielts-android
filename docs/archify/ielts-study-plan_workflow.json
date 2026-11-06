@@ -1,0 +1,68 @@
+{
+  "name": "ielts-study-plan_workflow",
+  "title": "7 天备考课表（排期 / 进度 / 手动调整）",
+  "level": "L2",
+  "version": "v1",
+  "updated": "2026-11-06",
+  "context": "雅思随身练 F:\\projects\\ielts-android。今日任务回答「现在做什么」，7 天课表回答「这周怎么排」：按考期倒排强度、按最弱科分配次数，并把模考/轻复习/休息固定进周内。",
+  "nodes": [
+    {
+      "id": "entry",
+      "label": "入口",
+      "kind": "ui",
+      "detail": "首页「今日任务」右侧「7 天计划 ›」。不自动弹，用户主动进入。"
+    },
+    {
+      "id": "input",
+      "label": "读取输入",
+      "kind": "data",
+      "detail": "考试日期、四科目标/最近 Band、到期卡与错题数、手动覆盖（Prefs.studyPlanOverrides）、练习记录（status=done）。"
+    },
+    {
+      "id": "calc",
+      "label": "排期计算",
+      "kind": "logic",
+      "detail": "StudyPlanCalc.build：课表只排到考试日；考前一周不给休息、考前 1 天转 LIGHT；距考 ≥8 天才排模考；>21 天才给休息；每科保底一次，其余按离目标差用最高均数法分配；相邻两天不排同科。"
+    },
+    {
+      "id": "progress",
+      "label": "进度回填",
+      "kind": "logic",
+      "detail": "按本地日期 + status=done 判定：练习日看当天科目（换过科目按换后的判）；模考日听力/阅读任意一套即完成；待评分、跟读、别的科目不算。"
+    },
+    {
+      "id": "display",
+      "label": "课表展示",
+      "kind": "ui",
+      "detail": "StudyPlanScreen：7 天卡片 + 「本周计划 N 次 · 已完成 M 次」；完成日金色竖条 +「✓ 已完成」；每天显示科目/说明/预计分钟。"
+    },
+    {
+      "id": "interact",
+      "label": "逐日调整",
+      "kind": "ui",
+      "detail": "练习日「换一科」按四科循环、可「恢复」或「全部恢复」；去练/去模考/看错题分别跳到写作、口语、题库、语料页。覆盖只存日期→科目，课表本体每天重算。"
+    },
+    {
+      "id": "empty",
+      "label": "空/失败出口",
+      "kind": "manual",
+      "detail": "未设考试日期 → 按均衡节奏排 7 天；考试日期已过 → 停止倒排并提示去设置改日期；无练习日 → 空态给「去设置考试日期」。"
+    }
+  ],
+  "edges": [
+    { "from": "entry", "to": "input", "label": "进入课表" },
+    { "from": "input", "to": "calc", "label": "考期/目标/记录" },
+    { "from": "calc", "to": "progress", "label": "7 天排期" },
+    { "from": "progress", "to": "display", "label": "打勾/进度" },
+    { "from": "display", "to": "interact", "label": "换科目/去练" },
+    { "from": "interact", "to": "calc", "label": "覆盖变更后重算" },
+    { "from": "display", "to": "empty", "label": "无可用日子" },
+    { "from": "empty", "to": "entry", "label": "去设置改日期" }
+  ],
+  "rules": [
+    "课表只排到考试当天；考试日期已过时停止倒排，避免出现「距考试 -3 天」",
+    "考前一天 LIGHT 只安排看错题；REST/EXAM 不显示无动作的「去练」",
+    "手动覆盖只影响那一天；轮回到原科目时自动清掉覆盖",
+    "完成状态只认 status=done，待评分/没听清不打勾"
+  ]
+}

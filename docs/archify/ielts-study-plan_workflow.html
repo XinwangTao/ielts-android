@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7 天备考课表 · ielts-study-plan_workflow</title>
+<style>
+  :root{--paper:#FAF6EC;--ink:#2B2621;--dim:#6A6255;--line:#D8CFBE;--red:#B3432B;--blue:#2F4F6F;--gold:#8A6A2F;--green:#3F6B4A;--violet:#6B4F8A}
+  *{box-sizing:border-box}
+  body{margin:0;padding:32px 24px 64px;background:var(--paper);color:var(--ink);font:16px/1.65 "Iowan Old Style","Songti SC","Noto Serif CJK SC",serif}
+  header{max-width:1060px;margin:0 auto 28px;border-bottom:3px double var(--ink);padding-bottom:16px}
+  h1{font-size:30px;margin:0 0 6px}
+  .sub{color:var(--dim);font-size:14px;letter-spacing:.14em}
+  .meta{margin-top:12px;font-size:13px;color:var(--dim)}
+  .meta b{color:var(--red)}
+  main{max-width:1060px;margin:0 auto}
+  h2{font-size:18px;margin:34px 0 14px;letter-spacing:.06em}
+  .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .node{border:1px solid var(--line);background:#fffdf7;border-radius:10px;padding:14px 15px;position:relative}
+  .node .id{font:12px/1 ui-monospace,Menlo,monospace;color:var(--dim);letter-spacing:.08em}
+  .node .name{font-size:17px;font-weight:700;margin:6px 0 8px}
+  .node .detail{font-size:13px;color:var(--dim);line-height:1.55}
+  .node::after{content:"";position:absolute;inset:0 auto 0 0;width:4px;border-radius:10px 0 0 10px;background:var(--line)}
+  .node.ui::after{background:var(--red)}
+  .node.logic::after{background:var(--blue)}
+  .node.data::after{background:var(--gold)}
+  .node.manual::after{background:var(--violet)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--dim)}
+  code{font:12.5px ui-monospace,Menlo,monospace;background:#f2ecdf;padding:1px 5px;border-radius:4px}
+  ul{margin:6px 0 0;padding-left:20px;font-size:14px}
+  footer{max-width:1060px;margin:40px auto 0;border-top:1px solid var(--line);padding-top:14px;font-size:12.5px;color:var(--dim)}
+  @media(max-width:820px){.flow{grid-template-columns:1fr 1fr}}
+  @media(max-width:560px){.flow{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <h1>7 天备考课表</h1>
+  <div class="sub">IELTS STUDY PLAN · SCHEDULE / PROGRESS / MANUAL SWAP</div>
+  <div class="meta">图名 <b>ielts-study-plan_workflow</b> · 级别 <b>L2</b> · 2026-11-06 · 配套旁路 <code>ielts-study-plan_workflow.json</code></div>
+</header>
+<main>
+  <h2>主路径</h2>
+  <div class="flow">
+    <div class="node ui"><div class="id">entry</div><div class="name">入口</div><div class="detail">首页「今日任务」右侧「7 天计划 ›」。用户主动进入，不自动弹。</div></div>
+    <div class="node data"><div class="id">input</div><div class="name">读取输入</div><div class="detail">考试日期、四科目标/最近 Band、到期卡与错题、手动覆盖（<code>Prefs.studyPlanOverrides</code>）、练习记录（status=done）。</div></div>
+    <div class="node logic"><div class="id">calc</div><div class="name">排期计算</div><div class="detail">课表只排到考试日；考前 1 天转 LIGHT；距考 ≥8 天才排模考；&gt;21 天才给休息；每科保底一次，其余按离目标差用最高均数法分配；相邻不排同科。</div></div>
+    <div class="node logic"><div class="id">progress</div><div class="name">进度回填</div><div class="detail">按本地日期 + status=done：练习日看当天科目（换过按换后的判）；模考日听力/阅读任意一套即完成；待评分/跟读/别的科目不算。</div></div>
+    <div class="node ui"><div class="id">display</div><div class="name">课表展示</div><div class="detail">7 天卡片 +「本周计划 N 次 · 已完成 M 次」；完成日金色竖条 +「✓ 已完成」；显示科目/说明/预计分钟。</div></div>
+    <div class="node ui"><div class="id">interact</div><div class="name">逐日调整</div><div class="detail">练习日「换一科」循环四科，可「恢复」/「全部恢复」；去练/去模考/看错题分别跳写作、口语、题库、语料页。</div></div>
+    <div class="node manual"><div class="id">empty</div><div class="name">空/失败出口</div><div class="detail">未设日期 → 均衡排 7 天；考试已过 → 停止倒排并提示改日期；无练习日 → 空态「去设置考试日期」。</div></div>
+  </div>
+
+  <h2>边</h2>
+  <table>
+    <thead><tr><th>从</th><th>到</th><th>条件 / 载荷</th></tr></thead>
+    <tbody>
+      <tr><td><code>entry</code></td><td><code>input</code></td><td>进入课表</td></tr>
+      <tr><td><code>input</code></td><td><code>calc</code></td><td>考期 / 目标 / 记录</td></tr>
+      <tr><td><code>calc</code></td><td><code>progress</code></td><td>7 天排期</td></tr>
+      <tr><td><code>progress</code></td><td><code>display</code></td><td>打勾 / 进度</td></tr>
+      <tr><td><code>display</code></td><td><code>interact</code></td><td>换科目 / 去练</td></tr>
+      <tr><td><code>interact</code></td><td><code>calc</code></td><td>覆盖变更后重算</td></tr>
+      <tr><td><code>display</code></td><td><code>empty</code></td><td>无可用日子</td></tr>
+      <tr><td><code>empty</code></td><td><code>entry</code></td><td>去设置改日期</td></tr>
+    </tbody>
+  </table>
+
+  <h2>硬规则</h2>
+  <ul>
+    <li>课表只排到考试当天；考试日期已过时停止倒排，避免「距考试 -3 天」。</li>
+    <li>考前一天 LIGHT 只安排看错题；REST/EXAM 不显示无动作的「去练」。</li>
+    <li>手动覆盖只影响那一天；轮回到原科目时自动清掉覆盖。</li>
+    <li>完成状态只认 <code>status=done</code>，待评分/没听清不打勾。</li>
+  </ul>
+</main>
+<footer>本图与 <code>ielts-study-plan_workflow.json</code> 内容一致；代码实现见 <code>ui/StudyPlan.kt</code>、<code>ui/StudyPlanScreen.kt</code>、<code>MainActivity</code> 的 <code>Route.Plan</code>。</footer>
+</body>
+</html>
