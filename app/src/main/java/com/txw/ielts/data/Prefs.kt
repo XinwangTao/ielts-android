@@ -166,6 +166,11 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_VOCAB_EDITS, "{}") ?: "{}"
         set(v) = sp.edit().putString(KEY_VOCAB_EDITS, v).apply()
 
+    /** 跟读进度（JSON：passageId → {i: 当前句, t: {句号: 转写}}）：旋转与进程重建后接着读。 */
+    var shadowProgress: String
+        get() = sp.getString(KEY_SHADOW_PROGRESS, "{}") ?: "{}"
+        set(v) = sp.edit().putString(KEY_SHADOW_PROGRESS, v).apply()
+
     /** 7 天课表里用户手动换过的日子（JSON：日期 → 科目），跨天、重启后仍然生效。 */
     var studyPlanOverrides: String
         get() = sp.getString(KEY_STUDY_PLAN, "{}") ?: "{}"
@@ -249,6 +254,7 @@ class Prefs(context: Context) {
         private const val KEY_MUTED_FIXES = "ai_muted_fixes"
         private const val KEY_VOCAB_EDITS = "ai_vocab_edits"
         private const val KEY_STUDY_PLAN = "study_plan_overrides"
+        private const val KEY_SHADOW_PROGRESS = "shadow_progress"
         private const val KEY_FIRST_RUN_DONE = "first_run_done"
         private const val KEY_TARGET_BAND = "target_band"
         private const val KEY_EXAM_DATE = "exam_date"

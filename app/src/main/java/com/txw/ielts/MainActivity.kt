@@ -1092,11 +1092,47 @@ private fun App(
     var shadowDiffs by remember { mutableStateOf<Map<Int, ShadowDiff>>(emptyMap()) }
     var shadowTranscripts by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
 
+    /** 跟读进度落盘：旋转/进程重建后接着读，不用从头再来。 */
+    fun saveShadowProgress(id: String) {
+        runCatching {
+            val o = JSONObject(prefs.shadowProgress)
+            o.put(id, com.txw.ielts.data.ShadowProgressCodec.encode(
+                com.txw.ielts.data.ShadowProgressState(shadowIndex, shadowTranscripts),
+            ))
+            prefs.shadowProgress = o.toString()
+        }
+    }
+
+    fun loadShadowProgress(id: String, passage: ShadowPassage) {
+        runCatching {
+            val state = com.txw.ielts.data.ShadowProgressCodec.decode(
+                JSONObject(prefs.shadowProgress).optJSONObject(id),
+                maxIndex = (passage.sentences.size - 1).coerceAtLeast(0),
+            ) ?: return@runCatching
+            shadowIndex = state.index
+            shadowTranscripts = state.transcripts
+            // diff 不落盘（结构复杂）：用转写与原文重新比对，保证结果卡能显示。
+            shadowDiffs = state.transcripts.mapValues { (i, text) ->
+                shadowRepo.compare(passage.sentences.getOrNull(i) ?: "", text)
+            }
+        }
+    }
+
+    fun clearShadowProgress(id: String) {
+        runCatching {
+            val o = JSONObject(prefs.shadowProgress)
+            o.remove(id)
+            prefs.shadowProgress = o.toString()
+        }
+    }
+
     fun openShadow(id: String) {
-        shadowPassage = shadowRepo.byId(id)
+        val passage = shadowRepo.byId(id)
+        shadowPassage = passage
         shadowIndex = 0
         shadowDiffs = emptyMap()
         shadowTranscripts = emptyMap()
+        if (passage != null) loadShadowProgress(id, passage)
         route = Route.ShadowStudy(id)
     }
 

@@ -19,8 +19,8 @@
 
 > 2026-11-07 UI/路由复审完成：已修跟读历史错进写作模板、Task 类型丢失、精讲跨套串用、
 > 答题页旋转丢进度、词典/音频主线程 IO、ShadowResult 加载态误判。**未修**（需更大重构，记入长尾）：
-> BankResult 已修（按 sessionId 从 fixesJson 重建，含「载入中」守卫）；**Study / ShadowStudy 仍是下一轮首选**
-> （复习卡位置与跟读句索引需要 saveable 化）。
+> BankResult 已修（按 sessionId 重建）；**ShadowStudy 已修**（`ShadowProgressCodec` 按 passageId 持久化
+> 句索引与转写，diff 由转写重新比对；3 例单测）。**Study（复习卡位置）仍是下一轮首选**。
 
 ## 阻塞（写清解除条件，不在本阶段空等）
 
@@ -70,4 +70,4 @@
 
 - 每一步落地后跑 `bash tools/verify_all.sh`（单测 + lint + AI 探针），全绿才算完成。
 - 涉及 UI 的步骤，若当期不能上机，必须在 `docs/acceptance-checklist.md` 写清「看什么、怎么判」。
-- 当前基线：单测 **471 例**、lint 0 error / 4 warning、探针 21/21、打包通过（`verify_all` EXIT=0）。
+- 当前基线：单测 **474 例**、lint 0 error / 4 warning、探针 21/21、打包通过（`verify_all` EXIT=0）。
