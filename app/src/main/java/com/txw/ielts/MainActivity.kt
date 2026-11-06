@@ -502,7 +502,7 @@ private fun App(
                 writingOutlineError = "本地模型没有输出可用的提纲，请重试"
             } else {
                 writingOutline = r
-                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw)
+                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
             }
         } catch (e: Exception) {
             writingOutlineError = "提纲生成失败：${e.message}"
@@ -547,7 +547,7 @@ private fun App(
                 speakingSampleError = "本地模型没有输出可用的范例，请重试"
             } else {
                 speakingSample = r
-                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw)
+                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
             }
         } catch (e: Exception) {
             speakingSampleError = "范例生成失败：${e.message}"
@@ -592,7 +592,7 @@ private fun App(
             }
             vocabResult = r
             if (r.items.isNotEmpty()) {
-                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw)
+                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
             }
         } catch (e: Exception) {
             vocabError = "生词提取失败：${e.message}"
@@ -1931,7 +1931,7 @@ private fun App(
                 error = "变式题生成失败，请重试"
             } else {
                 bankVariants = bankVariants + (vk to v)
-                prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, v.raw)
+                withContext(Dispatchers.IO) { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, v.raw) }
             }
         } catch (e: Exception) {
             Log.e(TAG, "variant fail: ${e.message}")
