@@ -13,6 +13,11 @@
 
 ## 关键坑与加固
 
+00. **GLM 出 8 题阅读约 1/3 概率不稳**（2026-11-06 连测）：一次 JSON 语法坏（缺冒号），
+   一次多给 1 题。多给题 App 会截断（`GeneratedParser.questions` 的 `take(count)`），探针已改为
+   「多给不算错、少给才算缺口」；语法坏则由 `routeLlm` 在 auto 通道重试一次云端（HTTP/额度错误不重试），
+   再失败才回退本地。
+
 0. **听力出题的 `keys` 必须写成硬约束**（2026-11-06）：GLM 在 6 题那次把每题 `keys` 整组丢掉（18/19）。
    提示词补「任何一题缺 keys 整个输出作废、keys 紧跟 answers 写」后，GLM 与 DeepSeek 均 19/19。
    App 侧本就能容忍（`GeneratedParser.strings` 缺省为空数组），只是少了精听定位高亮。

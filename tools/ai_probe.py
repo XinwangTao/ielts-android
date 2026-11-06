@@ -465,10 +465,13 @@ def validate(case: dict, text: str) -> list[str]:
             issues.append(f"{'passage' if v == 'reading' else 'transcript'} 词数={wc}（期望 {lo}-{hi}）")
         qs = d.get("questions")
         expected_count = case.get("count", 6)
-        if not isinstance(qs, list) or len(qs) != expected_count:
-            issues.append(f"questions 条数={len(qs) if isinstance(qs, list) else 'N/A'}（要求 {expected_count}）")
+        # 多于要求不算问题：App 的 GeneratedParser.questions 会按请求数截断；少于才是真缺口。
+        if not isinstance(qs, list):
+            issues.append("questions 不是数组")
+        elif len(qs) < expected_count:
+            issues.append(f"questions 条数={len(qs)}（少于要求的 {expected_count}）")
         else:
-            for i, q in enumerate(qs):
+            for i, q in enumerate(qs[:expected_count]):
                 for k in ("type", "prompt", "answers", "explain", "explain_en", "keys"):
                     if k not in q:
                         issues.append(f"questions[{i}] 缺 {k}")
