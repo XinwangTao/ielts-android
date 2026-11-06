@@ -885,15 +885,25 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
     var playing by remember(path) { mutableStateOf(false) }
     // 0.75x 更容易听清连读和自己的口误；1.25x 用来练反应。
     var speed by remember(path) { mutableStateOf(1f) }
+    var durationMs by remember(path) { mutableLongStateOf(0L) }
+    var positionMs by remember(path) { mutableLongStateOf(0L) }
     androidx.compose.runtime.DisposableEffect(path) {
         onDispose {
             runCatching { player?.release() }
             player = null
         }
     }
+    // 播放中每 300ms 刷新进度：用来定位「这句话想重听」的位置。
+    LaunchedEffect(playing, player) {
+        while (playing) {
+            positionMs = (player?.currentPosition ?: 0).toLong()
+            kotlinx.coroutines.delay(300)
+        }
+    }
     fun applySpeed(p: android.media.MediaPlayer, s: Float) {
         runCatching { p.playbackParams = p.playbackParams.setSpeed(s) }
     }
+    fun clock(ms: Long): String = "%d:%02d".format(ms / 1000 / 60, (ms / 1000) % 60)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -914,7 +924,11 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                     np.start()
                 }.isSuccess
                 if (ok) {
-                    np.setOnCompletionListener { playing = false }
+                    durationMs = np.duration.toLong().coerceAtLeast(0L)
+                    np.setOnCompletionListener {
+                        playing = false
+                        positionMs = 0L
+                    }
                     player = np
                     playing = true
                 } else {
@@ -941,7 +955,13 @@ internal fun RecordingPlayer(path: String, compact: Boolean = false) {
                 }
             )
         }
-        if (!compact) {
+        if (durationMs > 0L) {
+            Text(
+                "${clock(positionMs)} / ${clock(durationMs)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        } else if (!compact) {
             Text(
                 "听停顿与语速（转写看不出这些）",
                 style = MaterialTheme.typography.labelSmall,
