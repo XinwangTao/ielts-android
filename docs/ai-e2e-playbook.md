@@ -63,3 +63,30 @@ adb -s <设备> logcat -d -s E2E:I | grep "E2E: RESULT ai"
 - 只有 `start_route/route`：生成未开始或卡在加载。
 - 有 `fail=...`：模型/解析/内存问题，按错误信息排查。
 - 8 分钟无结果：看 `dumpsys window | grep mCurrentFocus` 是否仍在雅思。
+
+## 设备发现（Windows mDNS 常为空）
+
+```bash
+adb mdns services            # 手机亮屏 + 无线调试开着 + 同网段才会出现
+adb connect <手机当前IP>:<调试端口>
+```
+
+- IP 会在 `192.168.236/237/137.x` 间漂移，端口每次重开无线调试都会变；优先用 mDNS 名
+  `adb-afa99023-q6q7Cb._adb-tls-connect._tcp`。
+- 同网段可能有别的不明设备（实测 `192.168.137.162:5555` 是 root shell、没有
+  `/system/bin/dumpsys`，**不是 PKJ110**）。连接后用
+  `adb shell getprop ro.product.model` 确认是 `PKJ110` 再跑。
+- mDNS 为空且不知道 IP：手机解锁 → 开发者选项 → 无线调试页保持打开；
+  或插一次 USB，用序列号 `afa99023` 部署。
+
+## 云端回归（不依赖手机）
+
+```bash
+PYTHONIOENCODING=utf-8 python tools/ai_probe.py --report docs/ai-probe-report.md
+```
+
+- 18 项：写作 T1/T2、强/弱作文区分度、口语、提纲 T1/T2、范例 P1/P2/P3、
+  生词卡、阅读/听力 6/8 题、错题精讲、口语追问、图表润色、AI 复盘。
+- 直连 CC Switch `127.0.0.1:15721` 的 DeepSeek V4.1 Flash；探针必须带
+  `thinking:disabled`，JSON 清洗逻辑与 App 的 `ScoreSanitizer.extractJson` 对齐。
+
