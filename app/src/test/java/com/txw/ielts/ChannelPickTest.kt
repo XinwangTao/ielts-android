@@ -125,4 +125,69 @@ class ChannelPickTest {
         assertNull(ChannelPick.notice("cloud", cloudDown = false, hasNetwork = true, remainingCalls = 99))
         assertNull(ChannelPick.notice("auto", cloudDown = false, hasNetwork = true, remainingCalls = 99))
     }
+
+    // —— 降级到本地之前先确认本地真的可用 ——
+
+    @Test
+    fun `自动降级但本地模型未投递时要说会失败并给出口`() {
+        val offline = ChannelPick.notice(
+            "auto", cloudDown = false, hasNetwork = false, remainingCalls = 99,
+            localAvailable = false,
+        )
+        assertTrue(offline != null && offline.title.contains("本地模型还没就绪"))
+        assertTrue(offline != null && offline.detail.contains("失败"))
+        assertTrue(offline != null && offline.detail.contains("设置页"))
+        assertTrue(offline!!.needsAction)
+
+        val cooling = ChannelPick.notice(
+            "auto", cloudDown = true, hasNetwork = true, remainingCalls = 99,
+            localAvailable = false,
+        )
+        assertTrue(cooling != null && cooling.title.contains("本地模型还没就绪"))
+        assertTrue(cooling!!.needsAction)
+
+        val noQuota = ChannelPick.notice(
+            "auto", cloudDown = false, hasNetwork = true, remainingCalls = 0,
+            localAvailable = false,
+        )
+        assertTrue(noQuota != null && noQuota.title.contains("本地模型还没就绪"))
+        assertTrue(noQuota!!.needsAction)
+    }
+
+    @Test
+    fun `本地模型可用时不再误报降级失败`() {
+        // 同一个断网场景，本地可用就仍然只说「已改用本地模型」，不要变成错误提示。
+        val n = ChannelPick.notice(
+            "auto", cloudDown = false, hasNetwork = false, remainingCalls = 99,
+            localAvailable = true,
+        )
+        assertEquals("无网络：已改用本地模型", n?.title)
+        assertFalse(n!!.needsAction)
+    }
+
+    @Test
+    fun `仅本地但模型未投递也要提醒`() {
+        // 主动选「仅本地」不代表通道可用：没投递时每次评分都会失败，首页不能一声不响。
+        val n = ChannelPick.notice(
+            "local", cloudDown = false, hasNetwork = false, remainingCalls = 0,
+            localAvailable = false,
+        )
+        assertTrue(n != null && n.needsAction)
+        assertTrue(n != null && n.title.contains("还没就绪"))
+        assertNull(
+            ChannelPick.notice(
+                "local", cloudDown = false, hasNetwork = false, remainingCalls = 0,
+                localAvailable = true,
+            )
+        )
+    }
+
+    @Test
+    fun `仅云端断网且本地也未投递时不再建议切到本地`() {
+        val msg = ChannelPick.cloudOfflineError("cloud", hasNetwork = false, localAvailable = false)
+        assertTrue(msg != null && msg.contains("无网络"))
+        // 原来的文案让用户「改为仅本地/自动」，但本地模型没投递时那句话同样是死路。
+        assertFalse(msg!!.contains("改为「仅本地」"))
+        assertTrue(msg.contains("投递"))
+    }
 }

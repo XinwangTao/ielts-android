@@ -1102,6 +1102,16 @@ private fun App(
     /** 历史高频弱点 top3：注入评分 prompt，实现「反馈针对你的老毛病」闭环。 */
     fun myWeaknesses(): List<String> = topErrors(sessions).take(3).map { it.label }
 
+    /**
+     * 本地通道是否真的可用：内部已就绪，或已投递到外部目录（首次使用会自动拷贝）。
+     * 通道提示/预检都靠它区分「降级到本地」与「降级到必然失败」——
+     * 后者不能再让用户去等本地模型，而要直接说清先投递模型。
+     */
+    fun localAiAvailable(): Boolean = runCatching {
+        LocalLlmEngine.isReady(context, prefs.localModel) ||
+            LocalLlmEngine.hasExternalCopy(context, prefs.localModel)
+    }.getOrDefault(false)
+
     /** 口语评分落库 JSON：fixes + 逐句打磨（sentence_fixes）。 */
     fun speakingFixesJson(eval: SpeakingEval): String = JSONObject().apply {
         put("fixes", JSONArray(eval.fixes))
@@ -1203,7 +1213,7 @@ private fun App(
         // 新一轮评分先清掉上一轮的原因：这次如果成功，结果页不该再显示「上次失败」。
         clearScoreFailure(session.id)
         // 显式选云端又断网：这一路必然失败，直接给出改设置的提示，不白等 HTTP 超时。
-        ChannelPick.cloudOfflineError(mode, online)?.let { throw IOException(it) }
+        ChannelPick.cloudOfflineError(mode, online, localAiAvailable())?.let { throw IOException(it) }
         if (ChannelPick.effective(
                 mode, cloudDown, online, prefs.remainingCalls()
             ) == "local"
@@ -1294,7 +1304,7 @@ private fun App(
         val cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil
         val online = hasNetwork(context)
         clearScoreFailure(session.id)
-        ChannelPick.cloudOfflineError(mode, online)?.let { throw IOException(it) }
+        ChannelPick.cloudOfflineError(mode, online, localAiAvailable())?.let { throw IOException(it) }
         if (ChannelPick.effective(
                 mode, cloudDown, online, prefs.remainingCalls()
             ) == "local"
@@ -1644,7 +1654,7 @@ private fun App(
         aiGenBusy = true
         aiGenError = null
         val online = hasNetwork(context)
-        ChannelPick.cloudOfflineError(prefs.scoreChannel, online)?.let {
+        ChannelPick.cloudOfflineError(prefs.scoreChannel, online, localAiAvailable())?.let {
             aiGenError = it
             aiGenBusy = false
             return
@@ -1774,7 +1784,7 @@ private fun App(
     suspend fun runAiExplain(item: BankResultItem) {
         val mode = prefs.scoreChannel
         val online = hasNetwork(context)
-        ChannelPick.cloudOfflineError(mode, online)?.let {
+        ChannelPick.cloudOfflineError(mode, online, localAiAvailable())?.let {
             error = it
             return
         }
@@ -2095,37 +2105,45 @@ private fun App(
                     onDone = { prefs.firstRunDone = true; route = Route.Home },
                     onBack = { prefs.firstRunDone = true; route = Route.Home },
                 )
-                is Route.Home -> HomeScreen(
-                    sessions = sessions,
-                    onStartWriting = { route = Route.Writing; error = null },
-                    onStartSpeaking = { route = Route.Speaking; error = null },
-                    onReview = { route = Route.Review },
-                    onCorpus = { route = Route.Corpus },
-                    onBank = { bankFilter = "all"; route = Route.Bank },
-                    onAiGen = { route = Route.AiGen; aiGenError = null },
-                    onShadow = { route = Route.Shadow },
-                    onOpen = { route = Route.Result(it) },
-                    onSettings = { route = Route.Settings },
-                    onModelEssays = { route = Route.ModelEssays },
-                    onOpenPlan = { route = Route.Plan },
-                    aiGenBusy = aiGenBusy,
-                    aiGenStage = aiGenStage,
-                    aiGenReadyId = aiGenReady,
-                    aiGenError = if (aiGenBusy) null else aiGenError,
-                    onOpenReadySet = { id -> aiGenReady = null; openSet(id) },
-                    onDismissAiGenError = { aiGenError = null },
-                    plan = dailyPlan,
-                    targetBand = prefs.targetBand,
-                    examDate = prefs.examDate,
-                    skillTargets = skillTargets,
-                    recoveryNotice = recoveryNotice,
-                    channelNotice = ChannelPick.notice(
-                        mode = prefs.scoreChannel,
-                        cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil,
-                        hasNetwork = networkOnline,
-                        remainingCalls = prefs.remainingCalls(),
-                    ),
-                )
+                is Route.Home -> {
+                    // 「已改用本地模型」只有在模型确实可用时才成立：
+                    // 没投递时提示要说清「现在评分会失败、先推模型」，而不是让用户白等一轮。
+                    val localModelReady = remember(route, networkOnline, prefs.localModel) {
+                        localAiAvailable()
+                    }
+                    HomeScreen(
+                        sessions = sessions,
+                        onStartWriting = { route = Route.Writing; error = null },
+                        onStartSpeaking = { route = Route.Speaking; error = null },
+                        onReview = { route = Route.Review },
+                        onCorpus = { route = Route.Corpus },
+                        onBank = { bankFilter = "all"; route = Route.Bank },
+                        onAiGen = { route = Route.AiGen; aiGenError = null },
+                        onShadow = { route = Route.Shadow },
+                        onOpen = { route = Route.Result(it) },
+                        onSettings = { route = Route.Settings },
+                        onModelEssays = { route = Route.ModelEssays },
+                        onOpenPlan = { route = Route.Plan },
+                        aiGenBusy = aiGenBusy,
+                        aiGenStage = aiGenStage,
+                        aiGenReadyId = aiGenReady,
+                        aiGenError = if (aiGenBusy) null else aiGenError,
+                        onOpenReadySet = { id -> aiGenReady = null; openSet(id) },
+                        onDismissAiGenError = { aiGenError = null },
+                        plan = dailyPlan,
+                        targetBand = prefs.targetBand,
+                        examDate = prefs.examDate,
+                        skillTargets = skillTargets,
+                        recoveryNotice = recoveryNotice,
+                        channelNotice = ChannelPick.notice(
+                            mode = prefs.scoreChannel,
+                            cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil,
+                            hasNetwork = networkOnline,
+                            remainingCalls = prefs.remainingCalls(),
+                            localAvailable = localModelReady,
+                        ),
+                    )
+                }
 
                 is Route.Plan -> StudyPlanScreen(
                     plan = studyPlan,

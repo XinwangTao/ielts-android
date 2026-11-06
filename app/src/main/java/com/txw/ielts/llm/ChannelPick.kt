@@ -36,39 +36,84 @@ object ChannelPick {
     /**
      * 显式选「仅云端」又断网时，不要等 HTTP 超时才报错：这一路必然失败，
      * 提前给出「改哪一项设置」的提示。auto/local 不走云端，不返回错误。
+     *
+     * @param localAvailable 本地模型是否可用（内部已就绪，或已投递到外部目录）。
+     *   不可用时不能再让用户「改成仅本地」——那同样是必失败，得先投递模型。
      */
-    fun cloudOfflineError(mode: String, hasNetwork: Boolean): String? =
-        if (mode == "cloud" && !hasNetwork) {
+    fun cloudOfflineError(
+        mode: String,
+        hasNetwork: Boolean,
+        localAvailable: Boolean = true,
+    ): String? = if (mode == "cloud" && !hasNetwork) {
+        if (localAvailable) {
             "当前无网络，云端评分不可用。请到设置页把评分通道改为「仅本地」或「自动（云端优先）」后重试。"
-        } else null
+        } else {
+            "当前无网络，云端评分不可用，本地模型也还没投递：此刻评分一定失败。" +
+                "请先连上网，或到设置页按提示投递本地模型后再重试。"
+        }
+    } else null
 
     /**
      * 首页的降级提示：自动模式下断网/冷却/额度用完时，AI 仍能用本地模型，
      * 但用户需要知道「为什么变慢」；显式选云端又断网时则要说清怎么改。
-     * 仅本地模式是用户主动选择，不需要每天提醒。
+     *
+     * @param localAvailable 本地模型是否可用（内部已就绪，或已投递到外部目录）。
+     *   这条提示原来只按通道模式判断，于是本地模型没投递时也会说「已改用本地模型」——
+     *   用户照着等了几分钟，实际得到的是一句「缺少本地模型」。现在不可用时如实说明并给出口。
      */
     fun notice(
         mode: String,
         cloudDown: Boolean,
         hasNetwork: Boolean,
         remainingCalls: Int,
+        localAvailable: Boolean = true,
     ): ChannelNotice? = when {
+        // 仅本地是主动选择，但本地模型没投递时这条通道根本不通，必须提醒。
+        mode == "local" && !localAvailable -> ChannelNotice(
+            title = "仅本地：本地模型还没就绪",
+            detail = "当前选择「仅本地」，但本地模型没有投递或拷贝完成，评分与 AI 出题会直接失败。" +
+                "到设置页按提示推送模型，或先把通道改成「自动（云端优先）」。",
+            needsAction = true,
+        )
         mode == "local" -> null
         mode == "cloud" && !hasNetwork -> ChannelNotice(
             title = "无网络：云端通道不可用",
-            detail = "当前选择「仅云端」，评分与 AI 出题会直接失败。到设置页改为「仅本地」或「自动」即可离线继续。",
+            detail = "当前选择「仅云端」，评分与 AI 出题会直接失败。" +
+                if (localAvailable) {
+                    "到设置页改为「仅本地」或「自动」即可离线继续。"
+                } else {
+                    "本地模型也还没投递，切换通道前需先到设置页按提示推送模型。"
+                },
             needsAction = true,
         )
         mode == "cloud" -> null
+        !hasNetwork && !localAvailable -> ChannelNotice(
+            title = "无网络：本地模型还没就绪",
+            detail = "自动模式断网时会走本地，但本地模型没有投递或拷贝完成，此刻评分与出题会直接失败。" +
+                "连上网，或到设置页按提示推送模型后再试。",
+            needsAction = true,
+        )
         !hasNetwork -> ChannelNotice(
             title = "无网络：已改用本地模型",
             detail = "评分、出题与错题精讲会自动走端侧模型；首次加载约 1–2 分钟，结果不受影响。",
             needsAction = false,
         )
+        cloudDown && !localAvailable -> ChannelNotice(
+            title = "云端额度冷却中：本地模型还没就绪",
+            detail = "冷却期间自动模式会走本地，但本地模型没有投递，此刻评分与出题会直接失败。" +
+                "到设置页按提示推送模型，或等冷却结束后用云端。",
+            needsAction = true,
+        )
         cloudDown -> ChannelNotice(
             title = "云端额度冷却中：已改用本地模型",
             detail = "上次云端额度或限流失败，1 小时内直接走本地，避免每次评分都先白等一轮。",
             needsAction = false,
+        )
+        remainingCalls <= 0 && !localAvailable -> ChannelNotice(
+            title = "今日云端额度已用完：本地模型还没就绪",
+            detail = "额度用完后自动模式会走本地，但本地模型没有投递，此刻评分与出题会直接失败。" +
+                "到设置页按提示推送模型，或明天再用云端。",
+            needsAction = true,
         )
         remainingCalls <= 0 -> ChannelNotice(
             title = "今日云端额度已用完：已改用本地模型",

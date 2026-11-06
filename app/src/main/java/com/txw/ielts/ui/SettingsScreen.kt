@@ -169,6 +169,7 @@ fun SettingsScreen(
         com.txw.ielts.llm.ChannelPick.cloudOfflineError(
             channel,
             hasNetwork = com.txw.ielts.llm.NetworkStatus.hasNetwork(context),
+            localAvailable = localReady,
         )?.let { message ->
             Text(
                 message,
@@ -177,6 +178,7 @@ fun SettingsScreen(
             )
         }
         // 自动模式降级原因：断网/额度冷却时提前说明，否则用户会以为评分变慢是模型坏了。
+        // 本地模型没投递时不能只说「将使用本地模型评分」——那会变成一句空头承诺。
         com.txw.ielts.llm.ChannelPick.localReason(
             channel,
             cloudDown = System.currentTimeMillis() < prefs.cloudDownUntil,
@@ -184,9 +186,11 @@ fun SettingsScreen(
             remainingCalls = prefs.remainingCalls(),
         )?.let { reason ->
             Text(
-                "$reason，自动模式将使用本地模型评分。",
+                if (localReady) "$reason，自动模式将使用本地模型评分。"
+                else "$reason，但本地模型未投递：自动模式此刻会评分失败，请先按下方提示推送模型。",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary,
+                color = if (localReady) MaterialTheme.colorScheme.tertiary
+                else MaterialTheme.colorScheme.error,
             )
         }
         Text(
