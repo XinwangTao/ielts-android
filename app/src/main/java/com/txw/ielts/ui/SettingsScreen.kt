@@ -343,7 +343,8 @@ fun SettingsScreen(
         )
         Text(
             "ColorOS 还有一层自己的冻结：设置 → 电池 → 应用耗电管理 → 雅思随身练 → 允许后台运行 / 允许自启动 / 允许关联启动。" +
-                "开启后长评分在后台更稳；未开启时请在评分期间保持 App 在前台。",
+                "不开也能后台跑（实测 74 秒完成一次口语评分），但冷启动首次加载模型更慢；" +
+                "若评分被系统打断，结果页会在 3 分钟后给出「重新评分」入口，不会永久卡住。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
