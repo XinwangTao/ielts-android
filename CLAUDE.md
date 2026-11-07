@@ -81,4 +81,6 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 - **Bash heredoc 会折叠反斜杠**：脚本里写 `\n`、`\p{L}`、`’` 可能被提前解释成真换行/真字符，
   产出不可编译的 Kotlin。含转义的文件用 Write/Edit 工具或 `chr(92)` 构造，写完 grep 复核。
 - 可选能力（TTS/播放器）失败可以静默，但不能改变界面状态：恢复播放失败必须复位按钮。
+- 聚合统计必须与单条展示共用有效性判定：Band 用 `ScoreGate.isValidBand`（0.5–9.0），
+  正确率要求 `total>0` 且 `correct` 夹在 0..total；新增聚合先补 0/越界/坏 JSON 的边界测试。
 - 不要提交 `.tmp-shots/`、`.secret/`、录音与模型文件。
