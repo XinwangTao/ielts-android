@@ -17,7 +17,7 @@
 | AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*` | ✅ 探针 18/18 |
 | 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 18/18 |
 | 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` / `e2e_local_ai.sh <设备> variant` | ✅ 探针通过；真机待验 |
-| 写作换题 | 写作结果页「换一个同类型题目」 | PC 探针 `writing_new_topic` | ✅ 探针通过；真机待验 |
+| 写作换题 | 写作结果页「换一个同类型题目」 | PC 探针 `writing_new_topic`；真机 `e2e_local_ai.sh <设备> newtopic` | ✅ 探针通过；真机生成通过（words=32，2026-11-07） |
 | 图表题干润色 | 出图题「AI 润色题干」 | PC 探针 `chart_prompt_polish` | ✅ 探针 18/18 |
 
 一键跑全部 PC 探针（不装机）：
@@ -48,7 +48,7 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 | AI 生成时按 HOME | `E2E: RESULT ai ...` 出现 | ✅ 提纲 23.8 秒完成 |
 | 转写时按 HOME | `asr load_ms/transcribe_ms` 正常 | ✅ |
 | 云端评分时按 HOME | 请求不中断 | ✅ 已包 Guard（`ebfba53`） |
-| 练习页预热 | 进写作/口语页 5 秒后通知显示「正在准备本地模型…」 | 代码已提交（`0bf5784`），待真机确认 |
+| 练习页预热 | 进写作/口语页 5 秒后通知显示「正在准备本地模型…」 | 写作页已真机确认（批次 0，通知出现且返回后消失）；口语/出题页待补 |
 
 边界：ColorOS 的 `OplusHansManager` 对**冷加载 + 长生成**仍可能限速到 5 分钟量级（会完成，不是死锁）。
 想看更稳可在设置页授权悬浮窗 + 系统「允许后台运行」。
@@ -108,6 +108,8 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
 - [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
 - [ ] 设置页「提前加载模型」开关关闭后，进练习页不再触发加载
 - [ ] 错题「再来一道同考点新题」：生成、选项排版、答案默认收起、查看答案
+      —— 生成与答案对齐已在真机通过（`e2e_local_ai.sh variant`：options=4、answerOk=true，
+      2026-11-07 16:13）；排版/默认收起仍需人工看一眼
 - [ ] 历史结果页（首页→最近练习→听读结果）：AI 精讲与「再来一道同考点新题」都应可用（此前漏接线）
       （可先用 `bash tools/e2e_local_ai.sh <设备> variant` 验生成与答案对齐，无需点按钮）
 - [ ] 变式题「换一道」：已有结果时点按钮会重新生成（不是原样返回缓存）
@@ -116,6 +118,7 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
 - [ ] 「换一道」后新变式默认收起答案
 - [ ] 切到另一个结果页：生词卡/追问/提纲/范例不应显示上一场的内容
 - [ ] 写作「换一个同类型题目」：生成后直接进写作页且题干预填，不残留上一题
+      —— 生成已真机通过（`e2e_local_ai.sh newtopic`：words=32，2026-11-07 16:14）；进页/预填待人工
       （可先用 `bash tools/e2e_local_ai.sh <设备> newtopic` 验生成，无需点按钮）
 - [ ] 生成归属：生成中切到别的结果页，不应看到上一页的「生成中/错误」；生成完成后也不应被强行跳走
 - [ ] 口语结果页「播放我的录音」：能播放/暂停，离开页面后释放播放器（不再出声）

@@ -123,7 +123,7 @@
 - 真机批次 0 抓到的崩溃（2026-11-07）：预热在主线程阻塞，`GuardService` 5 秒内来不及
   `startForeground`，系统抛 `ForegroundServiceDidNotStartInTimeException` 杀进程（PKJ110 实机日志）。
   `LocalLlmEngine.preload` 改为 `withContext(Dispatchers.IO)`，主线程保持可响应；
-  已重新打包安装，批次 0 重跑待手机空闲。
+  已重新打包安装，批次 0 实机复验通过（通知出现→返回消失→无崩溃）。
 - 模考结果聚合（2026-11-07）：①Task1/Task2 只有一段出分时不再把单篇当「模考总分」，
   显示「未全部出分，暂不合成」；②老记录无 task 字段才按顺序回退，避免 Task2 被当两次使用；
   ③非法 Band（0/10）不再显示为成绩（与 ScoreGate 同口径）；④记录被删时显示明确空态。
