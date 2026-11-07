@@ -26,8 +26,20 @@ class AnswerKeyTest {
     }
 
     @Test
-    fun `撇号保留 其余标点变空格`() {
-        assertEquals("don t stop", AnswerKey.normalize("Don’t-stop."))
-        assertEquals("it's", AnswerKey.normalize("it's"))
+    fun `撇号与弯引号不参与判分`() {
+        // 输入法打出的弯引号与直引号、以及干脆不打撇号，都应对同一个答案判对。
+        assertEquals("dont stop", AnswerKey.normalize("Don’t-stop."))
+        assertEquals(AnswerKey.normalize("don't"), AnswerKey.normalize("dont"))
+    }
+
+    @Test
+    fun `千分位逗号不改变数字答案`() {
+        assertEquals("1000", AnswerKey.normalize("1,000"))
+        assertEquals("6 30", AnswerKey.normalize("6:30"))
+    }
+
+    @Test
+    fun `重音字母按基本字母判分`() {
+        assertEquals("cafe", AnswerKey.normalize("café"))
     }
 }
