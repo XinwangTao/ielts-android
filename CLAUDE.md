@@ -65,6 +65,7 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 - `docs/ai-probe-report.md` / `docs/ai-probe-cross-model.md`：探针结果与跨模型结论。
 - `docs/ai-e2e-playbook.md`：真机验证操作手册。
 - `docs/oppo-*.md`：OPPO 部署与后台限制实测。
+- `docs/device-acceptance-runbook.md`：真机验收的分批执行手册（连接/安装/日志/失败注入命令）。
 
 ## 约定
 

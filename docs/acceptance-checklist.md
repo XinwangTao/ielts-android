@@ -91,7 +91,7 @@ python tools/ai_probe.py
 bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_writing|score_speaking
 ```
 
-## 八、待真机验证（TODO，当前不允许设备实测）
+## 八、待真机验证（已获授权；按 `docs/device-acceptance-runbook.md` 分批执行）
 
 - [ ] 预热：进写作 / 口语 / AI 出题页 5 秒后，通知显示「正在准备本地模型…」，返回后消失
 - [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
