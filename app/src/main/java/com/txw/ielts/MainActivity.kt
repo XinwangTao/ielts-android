@@ -2991,7 +2991,12 @@ private fun App(
                             },
                             onDelete = {
                                 scope.launch {
-                                    repo.delete(card)
+                                    // 删除写库失败不能直接抛到协程外（会崩），也不能假装删成功。
+                                    val gone = runCatching { repo.delete(card) }
+                                    if (gone.isFailure) {
+                                        error = "删除失败：${gone.exceptionOrNull()?.message}"
+                                        return@launch
+                                    }
                                     round = round.discard()
                                     if (round.finished) {
                                         lastRoundSummary = round.summary()
