@@ -42,6 +42,10 @@ bash tools/e2e_batch0.sh <序列号> --force   # 手机被别人占用时强跑�
 
 > 2026-11-07 首次实跑：PKJ110 安装成功、冷启动 485–536ms、进程存活、首页渲染通过
 > （截图 `.tmp-shots/smoke_*.png`，日志在 job tmp）。
+>
+> 2026-11-07 16:24 复核（`e2e_batch0.sh`，17cec4f 后无代码变更）：写作页预热通知出现 →
+> 返回后 20 秒内消失 → 口语页深链直达 → 崩溃缓冲为空，EXIT=0。手机切回 tickflow 时脚本
+> 按约定退出 3，未抢屏。
 
 | # | 操作 | 判据 |
 |---|---|---|
@@ -61,7 +65,10 @@ bash tools/e2e_local_ai.sh <设备> variant|newtopic|outline|sample|vocab|review
 
 > 2026-11-07 实跑（PKJ110）：`variant`（options=4、answerOk=true）、`newtopic`（words=32）、
 > `followup`（83 字符单句）、`gen_reading`（questions=4、passage_words=192）均 PASS；
-> 期间用户切回 tickflow，脚本按约定告警但不抢屏。8 题档、听力出题、以及所有需要点按钮的条目仍待人工。
+> 期间用户切回 tickflow，脚本按约定告警但不抢屏。
+>
+> 2026-11-07 16:26 补跑 `gen_listening`：questions=4、transcript_words=252、title_chars=20，EXIT=0。
+> 免点击项已全部覆盖；8 题档、以及所有需要点按钮的条目仍待人工。
 
 | # | 操作 | 判据 |
 |---|---|---|
