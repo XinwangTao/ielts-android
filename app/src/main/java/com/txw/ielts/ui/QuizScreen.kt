@@ -60,6 +60,8 @@ fun QuizScreen(
     limitMinutes: Int = 0,          // >0 表示限时模考：倒计时到点自动交卷
     onAnswer: (Int, String) -> Unit,
     onSubmit: () -> Unit,
+    /** 交卷失败原因：留在答题页展示，不把用户踢走、也不吞掉异常。 */
+    error: String? = null,
     onBack: () -> Unit,
     onAddWord: (String, String, String) -> Unit = { _, _, _ -> },
 ) {
@@ -77,10 +79,17 @@ fun QuizScreen(
     val clock = "${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}"
     val remainingSec = limitMinutes * 60 - elapsedSec
     var autoSubmitted by remember { mutableStateOf(false) }
+    // 交卷锁提到自动交卷之前：倒计时到点与用户点交卷同时发生时只能提交一次。
+    var submitting by remember { mutableStateOf(false) }
+    // 交卷失败（错误文案回来）要解锁，否则按钮永远禁用、用户没法重试。
+    LaunchedEffect(error) { if (error != null) submitting = false }
     LaunchedEffect(limitMinutes, remainingSec) {
         if (limitMinutes > 0 && remainingSec <= 0 && !autoSubmitted) {
             autoSubmitted = true
-            onSubmit()
+            if (!submitting) {
+                submitting = true
+                onSubmit()
+            }
         }
     }
     // 按套题记住滚动位置：切走再回来停在原处
@@ -159,7 +168,6 @@ fun QuizScreen(
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
 
-        var submitting by remember { mutableStateOf(false) }
         val submitScope = rememberCoroutineScope()
         Button(
             modifier = Modifier.fillMaxWidth(),
@@ -173,6 +181,10 @@ fun QuizScreen(
                 }
             },
         ) { Text(if (answered < set.questions.size) "交卷（还有 ${set.questions.size - answered} 题没答）" else "交卷判分") }
+
+        error?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+        }
 
         Text(
             "中途退出会保存已作答内容，下次进入同一套题可以继续。",

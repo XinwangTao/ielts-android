@@ -1081,6 +1081,8 @@ private fun App(
     val bankRepo = remember { BankRepo(context, prefs) }
     val bankSets = remember { runCatching { bankRepo.sets() }.getOrDefault(emptyList()) }
     var bankAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    // 交卷失败（DB 写失败/套题被删）留在答题页提示，答案不丢。
+    var quizError by remember { mutableStateOf<String?>(null) }
     // 用 rememberSaveable：旋转/进程重建后计时与限时不能归零。
     var quizStartAt by rememberSaveable { mutableStateOf(0L) }
     var quizLimitMin by rememberSaveable { mutableStateOf(0) }
@@ -1111,6 +1113,7 @@ private fun App(
     }
 
     fun openSet(setId: String, limitMin: Int = 0) {
+        quizError = null
         bankAnswers = bankRepo.savedAnswers(setId)
         quizStartAt = System.currentTimeMillis()
         quizLimitMin = limitMin
@@ -1748,7 +1751,10 @@ private fun App(
     }
 
     suspend fun submitQuiz(setId: String) {
-        val set = bankRepo.byId(setId) ?: return
+        val set = bankRepo.byId(setId) ?: run {
+            quizError = "这套题已被删除，无法判分"
+            return
+        }
         var correct = 0
         val items = JSONArray()
         val resultItems = ArrayList<BankResultItem>(set.questions.size)
@@ -1771,9 +1777,11 @@ private fun App(
             )
             resultItems.add(BankResultItem(q.id, q.prompt, yours, right, q.explain, q.explainEn, q.keys, ok))
         }
-        val seconds = ((System.currentTimeMillis() - quizStartAt) / 1000).toInt()
-        val id = db.sessions().insert(
-            Session(
+        // 进程重建后 startAt 异常时不要写入荒唐用时：限制在 0..24h。
+        val seconds = (((System.currentTimeMillis() - quizStartAt) / 1000).toInt()).coerceIn(0, 24 * 3600)
+        val id = try {
+            db.sessions().insert(
+                Session(
                 module = set.module,
                 topic = set.title,
                 durationSec = seconds,
@@ -1784,7 +1792,13 @@ private fun App(
                 fixesJson = JSONObject().put("items", items).toString(),
                 status = "done",
             )
-        )
+            )
+        } catch (e: Exception) {
+            // 写库失败（磁盘满/DB 损坏）不能让协程异常直接杀进程；答案还在，可重试。
+            Log.e(TAG, "submitQuiz fail: ${e.message}")
+            quizError = "交卷失败：${e.message}（答案已保留，可重试）"
+            return
+        }
         bankRepo.clearAnswers(setId)
         bankAnswers = emptyMap()
         // 直接缓存结果快照，交卷立刻可见，不等 Room Flow 异步刷新
@@ -3114,6 +3128,7 @@ private fun App(
                                                     if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                                 },
                                                 onSubmit = { scope.launch { submitQuiz(set.id) } },
+                                                error = quizError,
                                                 onBack = {
                                                     if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                                     route = if (isAi) Route.AiGen else Route.Bank
@@ -3189,6 +3204,7 @@ private fun App(
                                             if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                         },
                                         onSubmit = { scope.launch { submitQuiz(set.id) } },
+                                        error = quizError,
                                         onBack = {
                                             if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                             route = if (isAi) Route.AiGen else Route.Bank
