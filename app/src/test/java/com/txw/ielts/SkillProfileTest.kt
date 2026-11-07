@@ -117,4 +117,17 @@ class SkillProfileTest {
         // 6.5+6.5+6.5+6.0 = 25.5 → 平均 6.375 → 总分 6.5
         assertEquals(6.5, SkillProfile(6.5, 6.5, 6.5, 6.0).overall()!!, 1e-9)
     }
+
+    @Test
+    fun `越界分数不进入平均`() {
+        // 10.0 不是合法 Band（云端曾把 10 写进结果页）：不能被当成一次 10 分练习。
+        val sessions = listOf(bandSession("writing", 10.0, 30), bandSession("writing", 7.0, 20))
+        assertEquals(7.0, skillProfile(sessions).writing!!, 1e-9)
+    }
+
+    @Test
+    fun `correct 大于 total 时按 100% 封顶`() {
+        val sessions = listOf(accSession("reading", 15, 10, 20))
+        assertEquals(7.5, skillProfile(sessions).reading!!, 1e-9)
+    }
 }

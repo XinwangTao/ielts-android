@@ -98,7 +98,8 @@ fun skillProfile(sessions: List<Session>): SkillProfile {
             .mapNotNull {
                 runCatching { JSONObject(it.scoresJson).optDouble("overall", 0.0) }.getOrNull()
             }
-            .filter { it > 0 }
+            // 与首页单条记录的判定同口径：越界/非法 Band（0、10、NaN）都不进平均。
+            .filter { com.txw.ielts.llm.ScoreGate.isValidBand(it) }
             .take(5)
         if (bands.isEmpty()) return null
         return Math.round(bands.average() * 2.0) / 2.0
@@ -109,7 +110,11 @@ fun skillProfile(sessions: List<Session>): SkillProfile {
             .mapNotNull {
                 runCatching {
                     val o = JSONObject(it.scoresJson)
-                    if (o.has("correct")) o.optInt("correct") to o.optInt("total") else null
+                    if (o.has("correct")) {
+                        val total = o.optInt("total")
+                        // 坏数据里 correct 可能大于 total：先夹住，避免正确率 >100%。
+                        if (total > 0) o.optInt("correct").coerceIn(0, total) to total else null
+                    } else null
                 }.getOrNull()
             }
             .filter { it.second > 0 }
