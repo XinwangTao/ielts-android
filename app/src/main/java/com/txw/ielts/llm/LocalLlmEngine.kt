@@ -309,8 +309,10 @@ object LocalLlmEngine {
     }
 
     /** 仅预加载模型而不生成（诊断用：验证加载后的 RSS 与 release 是否真的释放）。 */
-    suspend fun preload(context: Context, model: String) {
-        // 加载也是阻塞 native 调用：同样用前台媒体服务兜住，避免切后台时停在半途。
+    suspend fun preload(context: Context, model: String) = withContext(Dispatchers.IO) {
+        // 加载是阻塞 native 调用，必须离开主线程：Guard.start 只是 startForegroundService，
+        // 真正的 startForeground 在 Service 的主线程回调里；主线程被加载卡住会让系统 5 秒后
+        // 判定「没有及时 startForeground」直接杀进程（真机实测 ForegroundServiceDidNotStartInTime）。
         // 文案与评分区分开：预热不是评分，通知里别写「评分进行中」。
         com.txw.ielts.Guard.start(context, label = "正在准备本地模型…")
         try {
