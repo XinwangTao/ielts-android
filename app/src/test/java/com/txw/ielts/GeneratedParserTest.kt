@@ -362,4 +362,28 @@ class GeneratedParserTest {
         val eightMissingTwo = (1..8).map { q(it, answers = it <= 6) }
         assertEquals(eightMissingOne, GeneratedParser.pickMoreComplete(eightMissingOne, eightMissingTwo))
     }
+
+    @Test
+    fun `重发时正文更长者优先 但题数完整度优先`() {
+        fun q(i: Int, answers: Boolean = true) = GeneratedQuestion(
+            type = "gap", prompt = "p$i", options = emptyList(),
+            answers = if (answers) listOf("a") else emptyList(),
+            explain = "e", explainEn = "en", keys = emptyList(),
+        )
+        val full = (1..8).map { q(it) }
+        val short = (1..8).map { q(it) }
+        // 题数相同：正文更长者胜（正文 350 词 vs 80 词）。
+        val longBody = (1..350).joinToString(" ") { "word" }
+        val shortBody = (1..80).joinToString(" ") { "word" }
+        assertTrue(
+            GeneratedParser.overallScore(longBody, full) >
+                GeneratedParser.overallScore(shortBody, short)
+        )
+        // 题数更全者优先，即使正文短一些。
+        val missing = (1..6).map { q(it) }
+        assertTrue(
+            GeneratedParser.overallScore(longBody, full) >
+                GeneratedParser.overallScore(shortBody, missing)
+        )
+    }
 }

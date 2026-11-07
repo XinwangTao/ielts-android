@@ -120,6 +120,10 @@
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。
 
 **工程**
+- 出题正文长度兜底（2026-11-07）：探针复跑发现模型偶发给出 92 词正文（要求 300–550）；
+  `generateReading/Listening` 把正文长度并入完整性判定，不足时重发一次，
+  并用 `overallScore`（题数完整度优先、其次正文长度）在两次结果中取更完整的一份；
+  探针同步对「词数=」失败重试一次。
 - 真机冒烟脚本（2026-11-07）：`tools/e2e_smoke.sh` 一条命令完成安装 → 冷启动 → 截图 → 日志 →
   首页渲染/崩溃检查；自动跳过历史遗留的非 Android TCP 端点（曾误选电脑 ICS 地址导致假失败），
   Git Bash 下关闭路径转换再读 `/sdcard`。已在 PKJ110 实跑通过（冷启动 485–536ms）。

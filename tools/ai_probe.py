@@ -542,7 +542,7 @@ def main() -> int:
     def incomplete_only(issues: list[str]) -> bool:
         """只有「模型少给答案/双语解析」值得重发，HTTP/格式坏不在这里兜。"""
         return bool(issues) and all(
-            ("缺 explain_en" in i) or ("缺 answers" in i) or ("为空" in i)
+            ("缺 explain_en" in i) or ("缺 answers" in i) or ("为空" in i) or ("词数=" in i)
             for i in issues
         )
 

@@ -32,6 +32,15 @@ object GeneratedParser {
         b: List<GeneratedQuestion>,
     ): List<GeneratedQuestion> = if (completeness(b) > completeness(a)) b else a
 
+    /**
+     * 整份生成结果的打分：题数/完整题优先，其次正文长度（阅读 300+ 词、听力 200+ 词）。
+     * 只重发一次时用它决定保留哪一份，避免「第二份题更全但正文只有两句话」。
+     */
+    fun overallScore(body: String, questions: List<GeneratedQuestion>): Int {
+        val words = body.split(Regex("""\s+""")).count { it.isNotBlank() }
+        return completeness(questions) * 1000 + words.coerceAtMost(600)
+    }
+
     fun reading(content: String, count: Int): GeneratedReading {
         val o = JSONObject(ScoreSanitizer.extractJson(content))
         val passage = o.optString("passage").ifBlank { o.optString("article") }
