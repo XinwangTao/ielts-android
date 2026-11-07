@@ -28,7 +28,7 @@ jobs:
       - name: Install Android SDK packages
         run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Unit tests
         run: bash ./gradlew :app:testDebugUnitTest --console=plain --no-daemon
