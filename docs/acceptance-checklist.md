@@ -14,7 +14,7 @@
 | Part 3 追问 | 口语结果页「生成追问」 | `e2e_local_ai.sh <设备> followup` | ✅ 真机 83 字符单句 |
 | 写作评分 | 写作业提交 | `e2e_local_ai.sh <设备> score_writing` | ✅ overall 7.5 |
 | 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5 |
-| AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*` | ✅ 探针 18/18 |
+| AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*`；真机 `e2e_local_ai.sh <设备> gen_reading` | ✅ 探针 18/18；真机阅读 4 题生成通过（questions=4、passage_words=192，2026-11-07）；8 题档与听力待补 |
 | 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 18/18 |
 | 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` / `e2e_local_ai.sh <设备> variant` | ✅ 探针通过；真机待验 |
 | 写作换题 | 写作结果页「换一个同类型题目」 | PC 探针 `writing_new_topic`；真机 `e2e_local_ai.sh <设备> newtopic` | ✅ 探针通过；真机生成通过（words=32，2026-11-07） |

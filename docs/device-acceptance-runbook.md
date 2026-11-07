@@ -59,6 +59,10 @@ bash tools/e2e_batch0.sh <序列号> --force   # 手机被别人占用时强跑�
 bash tools/e2e_local_ai.sh <设备> variant|newtopic|outline|sample|vocab|review|followup
 ```
 
+> 2026-11-07 实跑（PKJ110）：`variant`（options=4、answerOk=true）、`newtopic`（words=32）、
+> `followup`（83 字符单句）、`gen_reading`（questions=4、passage_words=192）均 PASS；
+> 期间用户切回 tickflow，脚本按约定告警但不抢屏。8 题档、听力出题、以及所有需要点按钮的条目仍待人工。
+
 | # | 操作 | 判据 |
 |---|---|---|
 | 1.1 | 预热期间点「AI 提纲」 | 不弹「本地模型正在忙」，加载完继续生成 |
