@@ -1849,7 +1849,13 @@ private fun App(
                     tts = TextToSpeech(context) { status ->
                         Log.i(TAG, "tts init status=$status")
                         if (status != TextToSpeech.SUCCESS) { finish(false); return@TextToSpeech }
-                        tts?.language = java.util.Locale.US
+                        // 保留引擎当前音色（用户装的好引擎，如 Kokoro）：只有不是英语时才切
+                        val currentTag = runCatching { tts?.voice?.locale?.toLanguageTag() }.getOrNull()
+                        if (com.txw.ielts.data.TtsVoice.needsLanguageSwitch(currentTag)) {
+                            tts?.language = java.util.Locale.US
+                        }
+                        Log.i(TAG, "tts voice=" + com.txw.ielts.data.TtsVoice.shortName(
+                            runCatching { tts?.voice?.name }.getOrNull()))
                         tts?.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
                             override fun onStart(id: String?) { Log.i(TAG, "tts onStart") }
                             override fun onDone(id: String?) { Log.i(TAG, "tts onDone"); finish(true) }
