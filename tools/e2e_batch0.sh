@@ -37,7 +37,7 @@ echo "== 设备：$DEV（$(adb -s "$DEV" shell getprop ro.product.model 2>/dev/n
 
 FOCUS=$(adb -s "$DEV" shell dumpsys window 2>/dev/null | grep -m1 mCurrentFocus || true)
 if [ "$FORCE" != "--force" ] && [ -n "$FOCUS" ] &&
-   ! printf '%s' "$FOCUS" | grep -qE "mCurrentFocus=null|com.txw.ielts|launcher"; then
+   ! grep -qE "mCurrentFocus=null|com.txw.ielts|launcher" <<< "$FOCUS"; then
   echo "!! 手机当前在前台使用其它 App：$FOCUS"
   echo "   不抢屏；等空闲再跑，或加 --force 强跑。"
   exit 3
@@ -75,7 +75,9 @@ if open_route "writing"; then
   for _ in $(seq 1 24); do
     NOTES=$(adb -s "$DEV" shell dumpsys notification --noredact 2>/dev/null || true)
     # 用 ASCII 通道名判定：dumpsys 的中文标题在无线 adb 下常被截断/转义，channel=guard 稳定
-    if printf '%s' "$NOTES" | grep -qE "pkg=com\.txw\.ielts.*channel=guard"; then
+    # 注意用 here-string：pipefail 下 `printf 大字符串 | grep -q` 会因 grep 提前退出把 printf
+    # 打成 SIGPIPE(141)，整个管道判失败（本项目实测：明明有通知却报「未显示」）。
+    if grep -qE "pkg=com\.txw\.ielts.*channel=guard" <<< "$NOTES"; then
       FOUND=1
       break
     fi
@@ -83,7 +85,8 @@ if open_route "writing"; then
   done
   LOADED=0
   # 补一条直接证据：预热是否真的跑过（不依赖通知权限）
-  if adb -s "$DEV" logcat -d 2>/dev/null | grep -q "loading local model"; then
+  LOWLOG=$(adb -s "$DEV" logcat -d 2>/dev/null || true)
+  if grep -q "loading local model" <<< "$LOWLOG"; then
     LOADED=1
     echo "   日志：LocalLlm 有加载记录"
   else
@@ -104,7 +107,8 @@ if open_route "writing"; then
   adb -s "$DEV" shell input keyevent KEYCODE_BACK >/dev/null 2>&1
   STUCK=1
   for _ in $(seq 1 20); do
-    if ! adb -s "$DEV" shell dumpsys notification --noredact 2>/dev/null | grep -qE "pkg=com\.txw\.ielts.*channel=guard"; then
+    LATER=$(adb -s "$DEV" shell dumpsys notification --noredact 2>/dev/null || true)
+    if ! grep -qE "pkg=com\.txw\.ielts.*channel=guard" <<< "$LATER"; then
       STUCK=0
       break
     fi

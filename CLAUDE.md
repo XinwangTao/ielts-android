@@ -89,6 +89,9 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
   脚本跑完用 grep 复核落盘，不要让断言失败被后台任务日志吞掉。
 - **Bash heredoc 会折叠反斜杠**：脚本里写 `\n`、`\p{L}`、`’` 可能被提前解释成真换行/真字符，
   产出不可编译的 Kotlin。含转义的文件用 Write/Edit 工具或 `chr(92)` 构造，写完 grep 复核。
+- 脚本里判「大输出里有没有某串」不要写 `cmd | grep -q`：`tools/*.sh` 多带 `set -o pipefail`，
+  grep 命中后提前退出会让上游被 SIGPIPE(141)，整个管道判失败（批次 0 曾因此误报「无预热通知」）。
+  先 `OUT=$(cmd)` 再 `grep -q … <<< "$OUT"`。
 - 可选能力（TTS/播放器）失败可以静默，但不能改变界面状态：恢复播放失败必须复位按钮。
 - 聚合统计必须与单条展示共用有效性判定：Band 用 `ScoreGate.isValidBand`（0.5–9.0），
   正确率要求 `total>0` 且 `correct` 夹在 0..total；新增聚合先补 0/越界/坏 JSON 的边界测试。

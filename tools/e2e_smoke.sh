@@ -91,7 +91,8 @@ echo "== 抓日志：$LOG"
   adb -s "$DEV" logcat -d -b crash 2>/dev/null | tail -n 100
 } > "$LOG"
 
-if adb -s "$DEV" logcat -d -b crash 2>/dev/null | grep -q "$PKG"; then
+CRASHLOG=$(adb -s "$DEV" logcat -d -b crash 2>/dev/null || true)
+if grep -q "$PKG" <<< "$CRASHLOG"; then
   FAILED+=("crash-buffer")
   echo "崩溃缓冲区里有本应用记录（见 $LOG）"
 fi

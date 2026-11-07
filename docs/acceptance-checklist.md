@@ -96,9 +96,15 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
 - ✅ 2026-11-07 冒烟（`tools/e2e_smoke.sh`，PKJ110）：覆盖安装成功、冷启动 485–536ms、
   进程存活、首页正常渲染、无崩溃缓冲区记录。
 
+- ✅ 2026-11-07 批次 0（`tools/e2e_batch0.sh`，PKJ110，16:0x）：写作页深链直达后
+  `NotificationRecord(... pkg=com.txw.ielts ... channel=guard ...)` 出现（预热中），
+  返回后通知消失，口语页可直达，进程存活，崩溃缓冲区为空。装配：versionName=0.1-spike，
+  截图 `F:/projects/_agent-runs/ielts-shot.png`。
+  （脚本首版有 bug：`pipefail` 下 `printf 大字符串 | grep -q` 被 SIGPIPE 打成 141，误报「无通知」，
+  已改 here-string；同一坑在 `e2e_smoke.sh` 崩溃检查里也修了。）
 - [ ] 预热：进写作 / 口语 / AI 出题页 5 秒后，通知显示「正在准备本地模型…」，返回后消失；
-      触发时进程不崩（真机曾因主线程阻塞导致 FGS 超时崩溃，已修）
-- [ ] 批次 0 重跑：`bash tools/e2e_batch0.sh`（需手机前台空闲）
+      触发时进程不崩（真机曾因主线程阻塞导致 FGS 超时崩溃，已修）——写作页路径已由批次 0 覆盖，
+      口语 / 出题页待补
 - [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
 - [ ] 设置页「提前加载模型」开关关闭后，进练习页不再触发加载
 - [ ] 错题「再来一道同考点新题」：生成、选项排版、答案默认收起、查看答案

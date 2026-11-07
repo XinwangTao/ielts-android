@@ -135,6 +135,10 @@
   2026-11-07 修正：通知判定改用 ASCII 通道名 `pkg=com.txw.ielts…channel=guard`
   （中文标题在无线 adb 下会被截断/转义，此前造成假失败）；无通知权限时回退看
   `loading local model` 日志；补「返回后通知消失」判据，并对仍在加载的情况只记录不判失败。
+  同日实机复验又抓到脚本自身 bug：`set -o pipefail` 下 `printf 大字符串 | grep -q` 会因 grep
+  提前退出把 printf 打成 SIGPIPE(141)，整个管道判失败 → 明明有通知却报「未显示」。
+  改为 here-string（`grep -q … <<< "$VAR"`），`e2e_smoke.sh` 的崩溃检查同坑一并修。
+  复验通过：通知出现 → 返回后消失 → 口语页直达 → 崩溃缓冲为空。
 - 出题正文长度兜底（2026-11-07）：探针复跑发现模型偶发给出 92 词正文（要求 300–550）；
   `generateReading/Listening` 把正文长度并入完整性判定，不足时重发一次，
   并用 `overallScore`（题数完整度优先、其次正文长度）在两次结果中取更完整的一份；
