@@ -76,6 +76,8 @@ fun BankResultScreen(
     onBack: () -> Unit,
 ) {
     val wrong = items.count { !it.ok }
+    // 未作答与答错都算错分，但要分开说：用户需要知道是「不会」还是「没来得及」。
+    val unanswered = items.count { it.yours.isBlank() }
     val context = androidx.compose.ui.platform.LocalContext.current
     // 变式题答案默认收起：先自测再对答案，直接摊开就失去练习意义。
     var revealedVariants by remember { mutableStateOf(emptySet<String>()) }
@@ -98,6 +100,7 @@ fun BankResultScreen(
                 )
                 Text(
                     when {
+                        total == 0 -> "这套没有题目。"
                         correct == total -> "全对，这套可以过了。"
                         correct * 10 >= total * 7 -> "正确率 70% 以上，接近目标分数了。"
                         correct * 10 >= total * 5 -> "一半以上，重点看错题解析。"
@@ -105,6 +108,13 @@ fun BankResultScreen(
                     },
                     style = MaterialTheme.typography.bodySmall,
                 )
+                if (unanswered > 0) {
+                    Text(
+                        "其中 $unanswered 题未作答（按错计分）",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
 
