@@ -44,6 +44,11 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 ```
 
 脚本会先预检前台（不是桌面/雅思会快速失败；通知栏挡住会自动收起），结果从 `E2E: RESULT ...` 日志判定。
+- 真机脚本先测前台：用户正在用微信等其它应用时**退出而不是抢屏**；只有显式 `--force` 才强跑。
+- `adb devices` 可能混入非 Android 端点（如电脑 ICS 地址，能 install 却没有 pm/am/logcat）：
+  选设备必须用 `getprop ro.build.version.sdk` 验证，别取第一台就开工。
+- Git Bash 访问设备路径（`/sdcard/...`）要加 `MSYS_NO_PATHCONV=1`，否则被改写成本机路径。
+- 冒烟/批次 0：`tools/e2e_smoke.sh`、`tools/e2e_batch0.sh`；详细批次见 `docs/device-acceptance-runbook.md`。
 
 ## 后台执行
 
