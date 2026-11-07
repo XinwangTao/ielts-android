@@ -58,7 +58,8 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 - `data/`：Room（`Session.kt` 含 DAO/AppDb）、`Prefs.kt`（所有持久化开关）。
 - `llm/`：引擎、提示词、解析器、选路、缓存。
 - `tools/`：`ai_probe.py`（PC 探针）、`e2e_local_ai.sh`（真机无点击自测）、
-  `e2e_smoke.sh`（安装→启动→截图→日志冒烟）、`check_prefs_rmw.py`（约定检查）。
+  `e2e_smoke.sh`（安装→启动→截图→日志冒烟）、`e2e_batch0.sh`（预热通知/深链免点击冒烟）、
+  `check_prefs_rmw.py`（约定检查）。
 
 ## 文档
 

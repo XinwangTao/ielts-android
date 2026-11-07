@@ -32,9 +32,13 @@ adb exec-out screencap -p > shot_<场景>.png
 一条命令完成安装 → 冷启动 → 截图 → 日志 → 首页渲染检查：
 
 ```bash
-bash tools/e2e_smoke.sh            # 自动挑第一台真机
-bash tools/e2e_smoke.sh <序列号>   # 多台设备时指定
+bash tools/e2e_smoke.sh            # 安装 → 启动 → 截图 → 日志（自动挑第一台真机）
+bash tools/e2e_batch0.sh           # 预热通知 + 写作/口语深链直达 + 崩溃检查（免点击）
+bash tools/e2e_batch0.sh <序列号> --force   # 手机被别人占用时强跑（会抢屏）
 ```
+
+`e2e_batch0.sh` 默认检测前台 App，正在用其它应用时直接退出（3），不抢屏。
+跑前确认已授予通知权限，否则「正在准备本地模型…」不会出现。
 
 > 2026-11-07 首次实跑：PKJ110 安装成功、冷启动 485–536ms、进程存活、首页渲染通过
 > （截图 `.tmp-shots/smoke_*.png`，日志在 job tmp）。
