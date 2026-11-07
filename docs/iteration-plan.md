@@ -120,6 +120,10 @@
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。
 
 **工程**
+- 模考结果聚合（2026-11-07）：①Task1/Task2 只有一段出分时不再把单篇当「模考总分」，
+  显示「未全部出分，暂不合成」；②老记录无 task 字段才按顺序回退，避免 Task2 被当两次使用；
+  ③非法 Band（0/10）不再显示为成绩（与 ScoreGate 同口径）；④记录被删时显示明确空态。
+  合成逻辑抽 `MockScore` 并补 3 例单测（总 502）。
 - 批次 0 免点击脚本（2026-11-07）：`tools/e2e_batch0.sh` 用 `route` 深链直达写作/口语页，
   停留 6 秒后检查 `dumpsys notification` 里的「正在准备本地模型…」，并查前台与崩溃缓冲；
   默认检测前台 App，用户正在用别的应用时退出 3（不抢屏），`--force` 才强跑。

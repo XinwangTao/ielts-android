@@ -35,16 +35,20 @@ fun MockResultScreen(
 ) {
     val done = sessions.filter { it.status == "done" }
     val bands = done.mapNotNull { s -> bandOf(s)?.let { s to it } }
+    val writing = done.isNotEmpty() && done.all { it.module != "speaking" }
     // 写作总分 = (Task1 + 2×Task2) / 3（Task 2 权重更高），口语就是该段的 overall；
     // 之前对两篇直接算术平均，会显示 6.3 这种不在 0.5 步长上的分数。
+    // 两段缺一段时不合成：把单篇当「模考总分」会误导（Task1 失分往往更严重）。
+    // 新记录有 task 字段；老记录没有时才按顺序回退（否则 Task2 单篇会被当成 Task1 用两次）。
+    val hasTaskInfo = done.any { it.task == "task1" || it.task == "task2" }
+    val t1Band = done.firstOrNull { it.task == "task1" }?.let { bandOf(it) }
+        ?: if (!hasTaskInfo) bands.getOrNull(0)?.second else null
+    val t2Band = done.firstOrNull { it.task == "task2" }?.let { bandOf(it) }
+        ?: if (!hasTaskInfo) bands.getOrNull(1)?.second else null
     val overall: Double? = when {
         bands.isEmpty() -> null
-        done.all { it.module != "speaking" } && bands.size >= 2 -> {
-            val t1 = bands.first().second
-            val t2 = bands.last().second
-            Math.round((t1 + 2 * t2) / 3.0 * 2.0) / 2.0
-        }
-        else -> Math.round(bands.map { it.second }.average() * 2.0) / 2.0
+        writing -> com.txw.ielts.data.MockScore.writing(t1Band, t2Band)
+        else -> com.txw.ielts.data.MockScore.average(bands.map { it.second })
     }
 
     Column(
@@ -64,12 +68,27 @@ fun MockResultScreen(
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Text(
-                    if (done.all { it.module != "speaking" }) "Task1:Task2 = 1:2 · ${done.size} 段已完成"
+                    if (writing) "Task1:Task2 = 1:2 · ${done.size} 段已完成"
                     else "${done.size} 段已完成",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+        } else if (writing && done.isNotEmpty()) {
+            // 只有一段出分：不合成总分，但要说清为什么没有。
+            Text(
+                "Task1 / Task2 未全部出分，暂不合成模考总分。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        if (sessions.isEmpty()) {
+            Text(
+                "这次模考记录不存在或已被删除。",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         sessions.forEach { s ->
@@ -126,7 +145,10 @@ fun MockResultScreen(
 
 private fun bandOf(s: Session): Double? = runCatching {
     val o = JSONObject(s.scoresJson)
-    if (o.has("overall")) o.optDouble("overall", 0.0) else null
+    if (!o.has("overall")) return@runCatching null
+    val v = o.optDouble("overall", 0.0)
+    // 0/10 等越界值不是成绩：与结果页、首页统计同口径，不能当成一次真实模考。
+    if (com.txw.ielts.llm.ScoreGate.isValidBand(v)) v else null
 }.getOrNull()
 
 private fun scoresOf(s: Session, key: String): String = runCatching {
