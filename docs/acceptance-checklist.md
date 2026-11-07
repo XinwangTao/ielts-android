@@ -15,10 +15,10 @@
 | 写作评分 | 写作业提交 | `e2e_local_ai.sh <设备> score_writing` | ✅ overall 7.5 |
 | 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5 |
 | AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*`；真机 `e2e_local_ai.sh <设备> gen_reading` | ✅ 探针 21/21；真机阅读 4 题通过（questions=4、passage_words=192）、听力 4 题通过（questions=4、transcript_words=252），均 2026-11-07；8 题档待补 |
-| 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 18/18 |
-| 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` / `e2e_local_ai.sh <设备> variant` | ✅ 探针通过；真机待验 |
+| 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 21/21 |
+| 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` / `e2e_local_ai.sh <设备> variant` | ✅ 探针通过；真机生成通过（options=4、answerOk=true，2026-11-07）；UI 排版/答案收起待人工 |
 | 写作换题 | 写作结果页「换一个同类型题目」 | PC 探针 `writing_new_topic`；真机 `e2e_local_ai.sh <设备> newtopic` | ✅ 探针通过；真机生成通过（words=32，2026-11-07） |
-| 图表题干润色 | 出图题「AI 润色题干」 | PC 探针 `chart_prompt_polish` | ✅ 探针 18/18 |
+| 图表题干润色 | 出图题「AI 润色题干」 | PC 探针 `chart_prompt_polish` | ✅ 探针 21/21 |
 
 一键跑全部 PC 探针（不装机）：
 
