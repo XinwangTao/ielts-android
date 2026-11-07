@@ -117,6 +117,9 @@ lint 2 warning / 探针 21/21。下一离线项：verify_all 增加 prefs 读改
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。
 
 **工程**
+- 约定自动化（2026-11-07）：`tools/check_prefs_rmw.py` 扫描 `prefs.x = f(prefs.x, …)` 且未包
+  `editJson` 的写法，接入 `verify_all` 第 3/5 步与 CI；用参数位置区分「读改写」和「旧值兜底」
+  （`snapBand(input, prefs.x)` 不误报），并用临时文件做过正/负向验证。
 - 首页四科口径（2026-11-07）：写作/口语平均改用 `ScoreGate.isValidBand`（0.5–9.0）过滤，
   与首页单条记录同口径，10 分坏记录不再拉高均分；听读正确率把 correct 夹在 0..total，
   坏数据不再算出 >100%。新增 2 例单测（总 495）。

@@ -33,6 +33,10 @@ jobs:
       - name: Unit tests
         run: bash ./gradlew :app:testDebugUnitTest --console=plain --no-daemon
 
+      # 约定检查：JSON 设置读改写必须包在 Prefs.editJson（防止并发丢更新回退）。
+      - name: Convention check
+        run: python tools/check_prefs_rmw.py
+
       # lint 基线为 0 error；出现新的 error 会让任务失败。
       - name: Lint
         run: bash ./gradlew :app:lintDebug --console=plain --no-daemon

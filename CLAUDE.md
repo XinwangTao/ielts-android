@@ -5,7 +5,8 @@
 ## 构建与验证
 
 ```bash
-bash tools/verify_all.sh              # 一键回归：单测 + 打包 + lint + AI 探针
+bash tools/verify_all.sh              # 一键回归：单测 + 打包 + 约定检查 + lint + AI 探针
+python tools/check_prefs_rmw.py       # 单独跑约定检查（JSON 设置读改写必须包 editJson）
 ./gradlew :app:testDebugUnitTest      # JVM 单测（纯逻辑，不依赖设备）
 ./gradlew :app:assembleDebug          # debug APK
 ./gradlew :app:lintDebug              # lint（基线 0 error）
