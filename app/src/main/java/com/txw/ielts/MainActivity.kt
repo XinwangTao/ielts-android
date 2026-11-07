@@ -325,7 +325,11 @@ private data class BankResultData(    val setId: String,
  * 从会话重建题库结果页数据（旋转/进程恢复时用）。
  * setId 用路由里保存的那个，保证与内存快照的 key 一致。
  */
-private fun bankResultFromSession(session: Session, setId: String): BankResultData? {
+private fun bankResultFromSession(
+    session: Session,
+    setId: String,
+    original: com.txw.ielts.data.BankSet? = null,
+): BankResultData? {
     val sum = runCatching { JSONObject(session.scoresJson) }.getOrNull()
     val items = runCatching {
         val arr = JSONObject(session.fixesJson).getJSONArray("items")
@@ -352,9 +356,11 @@ private fun bankResultFromSession(session: Session, setId: String): BankResultDa
         setId = setId,
         title = session.topic,
         module = session.module,
-        passage = "",
-        transcript = "",
-        correct = sum?.optInt("correct") ?: 0,
+        // 历史记录不存文章/听力稿：能按 setId 找到原始套题就补上，找不到再留空。
+        passage = original?.passage.orEmpty(),
+        transcript = original?.transcript.orEmpty(),
+        // 旧数据/坏 JSON 没有 correct 时用每题的对错重算，不能一律显示 0 分。
+        correct = sum?.optInt("correct") ?: items.count { it.ok },
         total = sum?.optInt("total") ?: items.size,
         items = items,
     )
@@ -2708,13 +2714,20 @@ private fun App(
                                 }.getOrNull()
                             }
                         }.getOrDefault(emptyList())
+                        // 历史会话没存文章/听力稿：按标题回到原始套题（手写或 AI），能补就补。
+                        val original = remember(session.topic) {
+                            bankRepo.sets().firstOrNull { it.title == session.topic }
+                                ?: bankRepo.aiSets().firstOrNull { it.title == session.topic }
+                        }
                         BankResultScreen(
                             title = session.topic,
                             module = session.module,
-                            correct = sum?.optInt("correct") ?: 0,
+                            // 旧记录缺少 correct 时按每题对错重算，不能显示 0 分。
+                            correct = sum?.optInt("correct") ?: items.count { it.ok },
                             total = sum?.optInt("total") ?: items.size,
                             items = items,
-                            transcript = "",
+                            passage = original?.passage.orEmpty(),
+                            transcript = original?.transcript.orEmpty(),
                             aiExplains = aiExplains, explainingIds = explainingIds, explainErrors = explainErrors,
                             onAiExplain = { item -> scope.launch { runAiExplain(item, "s${session.id}") } },
                             variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
@@ -3145,8 +3158,10 @@ private fun App(
                                         }
                                         LaunchedEffect(r.sessionId, r.setId, live) {
                                             if (live == null && sessionsOrNull != null) {
+                                                val original = bankRepo.byId(r.setId)
+                                                    ?: bankRepo.aiSets().firstOrNull { it.id == r.setId }
                                                 restored = db.sessions().byId(r.sessionId)
-                                                    ?.let { bankResultFromSession(it, r.setId) }
+                                                    ?.let { bankResultFromSession(it, r.setId, original) }
                                             }
                                         }
                                         val data = live ?: restored
@@ -3221,8 +3236,10 @@ private fun App(
                                 }
                                 LaunchedEffect(r.sessionId, r.setId, live) {
                                     if (live == null && sessionsOrNull != null) {
+                                        val original = bankRepo.byId(r.setId)
+                                            ?: bankRepo.aiSets().firstOrNull { it.id == r.setId }
                                         restored = db.sessions().byId(r.sessionId)
-                                            ?.let { bankResultFromSession(it, r.setId) }
+                                            ?.let { bankResultFromSession(it, r.setId, original) }
                                     }
                                 }
                                 val data = live ?: restored
