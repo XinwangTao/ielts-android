@@ -93,6 +93,10 @@ fun SpeakingPartnerScreen(
     var audioFile by remember { mutableStateOf<File?>(null) }
     var prepLeft by remember { mutableIntStateOf(0) }
     var localError by remember { mutableStateOf<String?>(null) }
+    // 交评分后立刻锁住：onFinish 是异步的，连点会插入两条会话。
+    var finishing by remember { mutableStateOf(false) }
+    // 保存失败时解锁，让用户能重试（错误由上层写入 error）。
+    LaunchedEffect(error) { if (error != null) finishing = false }
     // 忙状态只看本页 phase：全局 stage 由转写/评分函数设置且不会自动清空，
     // 之前用 stage != null 会让「结束并评分」永久禁用。
     val busy = phase == "transcribing"
@@ -172,7 +176,9 @@ fun SpeakingPartnerScreen(
     fun begin() {
         round = 0
         turns = emptyList()
+        totalSeconds = 0
         localError = null
+        finishing = false
         askNext()
     }
 
@@ -240,8 +246,10 @@ fun SpeakingPartnerScreen(
                 }
                 Button(
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !busy && turns.isNotEmpty(),
+                    enabled = !busy && !finishing && turns.isNotEmpty(),
                     onClick = {
+                        if (finishing) return@Button
+                        finishing = true
                         // 过滤 whisper 的 [BLANK_AUDIO]/[Music] 占位，避免噪音词混入评分文本。
                         val merged = turns.mapNotNull { t ->
                             val ans = t.answer
@@ -256,7 +264,7 @@ fun SpeakingPartnerScreen(
                             onFinish(merged, totalSeconds)
                         }
                     },
-                ) { Text(if (busy) "评分中…" else "结束并评分") }
+                ) { Text(if (busy || finishing) "评分中…" else "结束并评分") }
             }
             val hasSaved = turns.isNotEmpty() && phase == "idle"
             Button(

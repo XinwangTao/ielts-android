@@ -2674,17 +2674,23 @@ private fun App(
                     stage = stage, error = error,
                     onFinish = { text, secs ->
                         scope.launch {
-                            val id = db.sessions().insert(
-                                Session(
-                                    module = "speaking",
-                                    topic = "Partner · Part 1-3",
-                                    durationSec = secs,
-                                    status = "pending_eval",
+                            try {
+                                val id = db.sessions().insert(
+                                    Session(
+                                        module = "speaking",
+                                        topic = "Partner · Part 1-3",
+                                        durationSec = secs,
+                                        status = "pending_eval",
+                                    )
                                 )
-                            )
-                            // 先落库转写，评分前进程被杀也能重试
-                            db.sessions().updateResult(id, text, "", "", "", "", "pending_eval")
-                            db.sessions().byId(id)?.let { evaluateSpeaking(it, text) }
+                                // 先落库转写，评分前进程被杀也能重试
+                                db.sessions().updateResult(id, text, "", "", "", "", "pending_eval")
+                                db.sessions().byId(id)?.let { evaluateSpeaking(it, text) }
+                            } catch (e: Exception) {
+                                // 写库失败不能抛到协程外；留在对练页告知，转写仍在页面上。
+                                Log.e(TAG, "partner finish fail: ${e.message}")
+                                error = "保存对练记录失败：${e.message}（本页对话仍在）"
+                            }
                         }
                     },
                     onBack = { route = Route.Speaking },
