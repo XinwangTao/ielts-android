@@ -78,4 +78,7 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
   后台评分/生成并发完成时，裸读改写会互相覆盖。新增 JSON 设置时同时给受锁写入路径。
 - 用脚本改多行 Kotlin/文档时注意仓库部分是 CRLF：断言/替换要按 `\r?\n` 匹配，
   脚本跑完用 grep 复核落盘，不要让断言失败被后台任务日志吞掉。
+- **Bash heredoc 会折叠反斜杠**：脚本里写 `\n`、`\p{L}`、`’` 可能被提前解释成真换行/真字符，
+  产出不可编译的 Kotlin。含转义的文件用 Write/Edit 工具或 `chr(92)` 构造，写完 grep 复核。
+- 可选能力（TTS/播放器）失败可以静默，但不能改变界面状态：恢复播放失败必须复位按钮。
 - 不要提交 `.tmp-shots/`、`.secret/`、录音与模型文件。
