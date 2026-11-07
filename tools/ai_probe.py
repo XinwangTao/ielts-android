@@ -539,19 +539,34 @@ def main() -> int:
     if not selected:
         raise SystemExit(f"没有匹配 --only {args.only!r} 的用例")
 
+    def incomplete_only(issues: list[str]) -> bool:
+        """只有「模型少给答案/双语解析」值得重发，HTTP/格式坏不在这里兜。"""
+        return bool(issues) and all(
+            ("缺 explain_en" in i) or ("缺 answers" in i) or ("为空" in i)
+            for i in issues
+        )
+
     results = []
     for c in selected:
         t0 = time.time()
-        print(f"[{c['name']}] 请求中…", flush=True)
-        try:
-            raw = call_model(args.base, args.model, c["system"], c["user"], max_tokens=c.get("max_tokens", args.max_tokens))
-            issues = validate(c, raw)
-        except urllib.error.HTTPError as e:
-            raw = ""
-            issues = [f"HTTP {e.code}: {e.read()[:200]!r}"]
-        except Exception as e:
-            raw = ""
-            issues = [f"调用失败：{e}"]
+        attempts = 0
+        while True:
+            attempts += 1
+            print(f"[{c['name']}] 请求中…", flush=True)
+            try:
+                raw = call_model(args.base, args.model, c["system"], c["user"], max_tokens=c.get("max_tokens", args.max_tokens))
+                issues = validate(c, raw)
+            except urllib.error.HTTPError as e:
+                raw = ""
+                issues = [f"HTTP {e.code}: {e.read()[:200]!r}"]
+            except Exception as e:
+                raw = ""
+                issues = [f"调用失败：{e}"]
+            # 与 App 一致：题数/答案/双语解析不全时重发一次，取第二次结果（App 也是二选一取更完整）。
+            if attempts == 1 and incomplete_only(issues):
+                print(f"[{c['name']}] 输出不完整，重试一次（与 App 行为一致）", flush=True)
+                continue
+            break
         elapsed = time.time() - t0
         results.append(dict(name=c["name"], ok=not issues, issues=issues, raw=raw, elapsed=elapsed))
         mark = "PASS" if not issues else "FAIL"
