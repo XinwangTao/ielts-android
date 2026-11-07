@@ -129,9 +129,12 @@
   ③非法 Band（0/10）不再显示为成绩（与 ScoreGate 同口径）；④记录被删时显示明确空态。
   合成逻辑抽 `MockScore` 并补 3 例单测（总 502）。
 - 批次 0 免点击脚本（2026-11-07）：`tools/e2e_batch0.sh` 用 `route` 深链直达写作/口语页，
-  停留 6 秒后检查 `dumpsys notification` 里的「正在准备本地模型…」，并查前台与崩溃缓冲；
+  加载窗口内轮询 `dumpsys notification` 判定预热通知，并查前台与崩溃缓冲；
   默认检测前台 App，用户正在用别的应用时退出 3（不抢屏），`--force` 才强跑。
-  已在手机上验证「占用检测」路径（当前前台为微信，脚本正确拒绝执行）。
+  已在手机上验证「占用检测」路径（前台为微信/飞书时脚本正确拒绝执行）。
+  2026-11-07 修正：通知判定改用 ASCII 通道名 `pkg=com.txw.ielts…channel=guard`
+  （中文标题在无线 adb 下会被截断/转义，此前造成假失败）；无通知权限时回退看
+  `loading local model` 日志；补「返回后通知消失」判据，并对仍在加载的情况只记录不判失败。
 - 出题正文长度兜底（2026-11-07）：探针复跑发现模型偶发给出 92 词正文（要求 300–550）；
   `generateReading/Listening` 把正文长度并入完整性判定，不足时重发一次，
   并用 `overallScore`（题数完整度优先、其次正文长度）在两次结果中取更完整的一份；
@@ -193,4 +196,4 @@
 
 - 每一步落地后跑 `bash tools/verify_all.sh`（单测 + lint + AI 探针），全绿才算完成。
 - 涉及 UI 的步骤，若当期不能上机，必须在 `docs/acceptance-checklist.md` 写清「看什么、怎么判」。
-- 当前基线：单测 **499 例**、lint 0 error / 2 warning、探针 21/21、打包通过（`verify_all` EXIT=0）。
+- 当前基线：单测 **502 例**、lint 0 error / 2 warning、探针 21/21、打包通过（`verify_all` EXIT=0）。
