@@ -3074,21 +3074,29 @@ private fun App(
                         // 进程恢复时 Room 首帧还没到：别把「加载中」当成「记录不存在」弹回去。
                         Text("载入中…", style = MaterialTheme.typography.bodyMedium)
                     } else {
-                        val acc = runCatching { JSONObject(session.scoresJson).optInt("accuracy") }.getOrDefault(0)
+                        // 单条坏数据不能让整页结果变空：逐条兜底。
                         val items = runCatching {
                             val arr = JSONObject(session.fixesJson).getJSONArray("items")
-                            (0 until arr.length()).map { i ->
-                                val o = arr.getJSONObject(i)
-                                ShadowResultItem(
-                                    ref = o.optString("ref"),
-                                    hyp = o.optString("hyp"),
-                                    accuracy = o.optDouble("acc"),
-                                    missed = o.optJSONArray("missed")?.let { a ->
-                                        (0 until a.length()).map { a.getString(it) }
-                                    } ?: emptyList(),
-                                )
+                            (0 until arr.length()).mapNotNull { i ->
+                                runCatching {
+                                    val o = arr.getJSONObject(i)
+                                    ShadowResultItem(
+                                        ref = o.optString("ref"),
+                                        hyp = o.optString("hyp"),
+                                        accuracy = o.optDouble("acc"),
+                                        missed = o.optJSONArray("missed")?.let { a ->
+                                            (0 until a.length()).map { a.getString(it) }
+                                        } ?: emptyList(),
+                                    )
+                                }.getOrNull()
                             }
                         }.getOrDefault(emptyList())
+                        // 总分缺失/坏了就按逐句准确率均值算，不能一律显示 0%。
+                        val storedAcc = runCatching { JSONObject(session.scoresJson) }.getOrNull()
+                            ?.takeIf { it.has("accuracy") }?.optInt("accuracy", -1) ?: -1
+                        val acc = if (storedAcc in 0..100) storedAcc else
+                            if (items.isEmpty()) 0
+                            else (items.sumOf { it.accuracy } / items.size * 100).toInt()
                         ShadowResultScreen(
                             title = session.topic,
                             accuracy = acc,

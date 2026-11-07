@@ -292,6 +292,14 @@ fun ShadowResultScreen(
             }
         }
 
+        if (items.isEmpty()) {
+            Text(
+                "本次没有逐句结果（记录可能不完整），可以重练一遍。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         items.forEachIndexed { i, item ->
             BookCard(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
