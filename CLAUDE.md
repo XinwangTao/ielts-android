@@ -57,7 +57,8 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 - `ui/`：各页面；`ui/ResultScreen.kt` 底部有复用的 `RecordingPlayer`（播放/倍速/进度/拖动）。
 - `data/`：Room（`Session.kt` 含 DAO/AppDb）、`Prefs.kt`（所有持久化开关）。
 - `llm/`：引擎、提示词、解析器、选路、缓存。
-- `tools/`：`ai_probe.py`（PC 探针）、`e2e_local_ai.sh`（真机无点击自测）。
+- `tools/`：`ai_probe.py`（PC 探针）、`e2e_local_ai.sh`（真机无点击自测）、
+  `e2e_smoke.sh`（安装→启动→截图→日志冒烟）、`check_prefs_rmw.py`（约定检查）。
 
 ## 文档
 

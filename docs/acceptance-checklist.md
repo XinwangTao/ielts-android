@@ -93,6 +93,9 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
 
 ## 八、待真机验证（已获授权；按 `docs/device-acceptance-runbook.md` 分批执行）
 
+- ✅ 2026-11-07 冒烟（`tools/e2e_smoke.sh`，PKJ110）：覆盖安装成功、冷启动 485–536ms、
+  进程存活、首页正常渲染、无崩溃缓冲区记录。
+
 - [ ] 预热：进写作 / 口语 / AI 出题页 5 秒后，通知显示「正在准备本地模型…」，返回后消失
 - [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
 - [ ] 设置页「提前加载模型」开关关闭后，进练习页不再触发加载
