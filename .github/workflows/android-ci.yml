@@ -22,7 +22,7 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
 
       # compileSdk = 35：显式装平台与 build-tools，避免依赖 Gradle 的自动下载策略。
       - name: Install Android SDK packages
