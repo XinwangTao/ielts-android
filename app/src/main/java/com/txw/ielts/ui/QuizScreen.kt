@@ -62,6 +62,8 @@ fun QuizScreen(
     onSubmit: () -> Unit,
     /** 交卷失败原因：留在答题页展示，不把用户踢走、也不吞掉异常。 */
     error: String? = null,
+    /** 进入本套题时的提示（如 AI 生成时音频合成失败、题目按文字版保留）。 */
+    notice: String? = null,
     onBack: () -> Unit,
     onAddWord: (String, String, String) -> Unit = { _, _, _ -> },
 ) {
@@ -121,6 +123,15 @@ fun QuizScreen(
                 style = MaterialTheme.typography.titleMedium,
                 color = if (limitMinutes > 0 && remainingSec <= 60) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        // 入口提示：例如听力音频合成失败，题目仍可用，但不能让用户以为「这题本来就没有音频」。
+        notice?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 

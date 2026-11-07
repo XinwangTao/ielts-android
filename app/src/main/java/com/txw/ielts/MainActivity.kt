@@ -1089,6 +1089,10 @@ private fun App(
     var bankAnswers by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     // 交卷失败（DB 写失败/套题被删）留在答题页提示，答案不丢。
     var quizError by remember { mutableStateOf<String?>(null) }
+    // 进入套题时的提示（AI 听力音频合成失败等），与交卷错误分开。
+    var quizNotice by remember { mutableStateOf<String?>(null) }
+    // 用户已回首页时生成完成：提示按 setId 暂存，等首页卡片点进来再带进答题页。
+    var pendingQuizNotices by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     // 用 rememberSaveable：旋转/进程重建后计时与限时不能归零。
     var quizStartAt by rememberSaveable { mutableStateOf(0L) }
     var quizLimitMin by rememberSaveable { mutableStateOf(0) }
@@ -1118,8 +1122,10 @@ private fun App(
         }
     }
 
-    fun openSet(setId: String, limitMin: Int = 0) {
+    fun openSet(setId: String, limitMin: Int = 0, notice: String? = null) {
         quizError = null
+        quizNotice = notice
+        pendingQuizNotices = pendingQuizNotices - setId
         bankAnswers = bankRepo.savedAnswers(setId)
         quizStartAt = System.currentTimeMillis()
         quizLimitMin = limitMin
@@ -1970,6 +1976,8 @@ private fun App(
         // 云端出题是长 HTTP 等待：窗口不可见约 7 秒进程就被冻，请求会一起停住。
         // 本地分支内部已包 Guard（LocalLlmEngine），这里再包一层靠引用计数，不会重复占资源。
         Guard.start(context)
+        var producedAudio: File? = null
+        var audioNotice: String? = null
         try {
             val setId = "ai-${System.currentTimeMillis()}"
             val set: BankSet
@@ -2010,9 +2018,11 @@ private fun App(
                     transcript = gen.transcript,
                     questions = toQuestions(gen.questions),
                 )
+                producedAudio = outFile.takeIf { ok }
                 if (!ok) {
                     runCatching { outFile.delete() }
-                    aiGenError = "音频合成失败（检查系统 TTS 引擎），题目已按文字版保留"
+                    // 题目仍会保存并进入答题页：提示必须带过去，否则用户只看到「没有音频」。
+                    audioNotice = "音频合成失败（检查系统 TTS 引擎），题目已按文字版保留"
                 }
             } else {
                 val gen = withContext(Dispatchers.IO) {
@@ -2045,13 +2055,22 @@ private fun App(
                     questions = toQuestions(gen.questions),
                 )
             }
-            bankRepo.saveAiSet(set)
+            try {
+                bankRepo.saveAiSet(set)
+            } catch (e: Exception) {
+                // 生成成功但落盘失败：不说清会像「模型生成失败」，音频文件也要清掉。
+                Log.e(TAG, "ai save fail: ${e.message}")
+                producedAudio?.let { runCatching { it.delete() } }
+                aiGenError = "题目生成成功但保存失败：${e.message}"
+                return
+            }
             aiSets = bankRepo.aiSets()
             // 用户还在 AI 出题页就直接进题；已返回首页则只在首页提示，不打断
             if (route is Route.AiGen) {
-                openSet(setId)
+                openSet(setId, notice = audioNotice)
             } else {
                 aiGenReady = setId
+                audioNotice?.let { pendingQuizNotices = pendingQuizNotices + (setId to it) }
             }
         } catch (e: Exception) {
             Log.e(TAG, "ai gen fail: ${e.message}")
@@ -2459,7 +2478,10 @@ private fun App(
                         aiGenStage = aiGenStage,
                         aiGenReadyId = aiGenReady,
                         aiGenError = if (aiGenBusy) null else aiGenError,
-                        onOpenReadySet = { id -> aiGenReady = null; openSet(id) },
+                        onOpenReadySet = { id ->
+                            aiGenReady = null
+                            openSet(id, notice = pendingQuizNotices[id])
+                        },
                         onDismissAiGenError = { aiGenError = null },
                         plan = dailyPlan,
                         targetBand = prefs.targetBand,
@@ -3141,7 +3163,7 @@ private fun App(
                                                     if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                                 },
                                                 onSubmit = { scope.launch { submitQuiz(set.id) } },
-                                                error = quizError,
+                                                error = quizError, notice = quizNotice,
                                                 onBack = {
                                                     if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                                     route = if (isAi) Route.AiGen else Route.Bank
@@ -3219,7 +3241,7 @@ private fun App(
                                             if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                         },
                                         onSubmit = { scope.launch { submitQuiz(set.id) } },
-                                        error = quizError,
+                                        error = quizError, notice = quizNotice,
                                         onBack = {
                                             if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                             route = if (isAi) Route.AiGen else Route.Bank

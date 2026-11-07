@@ -117,6 +117,9 @@ lint 2 warning / 探针 21/21。下一离线项：verify_all 增加 prefs 读改
 - `CLAUDE.md`、`tools/verify_all.sh`、验收清单、archify 图、复盘流程；compileSdk 35 + lifecycle 2.8.7。
 
 **工程**
+- AI 出题失败可见性（2026-11-07）：①听力 TTS 合成失败原来设置 `aiGenError` 后立刻跳进答题页，
+  提示无处显示 → 新增 `quizNotice` 带到答题页顶部；回首页再进入也按 setId 暂存；
+  ②`saveAiSet` 写盘失败被外层 catch 统一报成「生成失败」→ 单独提示「生成成功但保存失败」并清理音频文件。
 - 约定自动化（2026-11-07）：`tools/check_prefs_rmw.py` 扫描 `prefs.x = f(prefs.x, …)` 且未包
   `editJson` 的写法，接入 `verify_all` 第 3/5 步与 CI；用参数位置区分「读改写」和「旧值兜底」
   （`snapBand(input, prefs.x)` 不误报），并用临时文件做过正/负向验证。
