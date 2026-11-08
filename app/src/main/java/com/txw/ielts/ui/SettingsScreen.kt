@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -379,8 +380,13 @@ fun SettingsScreen(
         var backupRefresh by remember { mutableStateOf(0) }
         var pendingDeleteBackup by remember { mutableStateOf<java.io.File?>(null) }
         var showAllBackups by remember { mutableStateOf(false) }
-        // 导入预览（只读）：选文件 → 解析 → 只看摘要，不写库（写库仍属 L1 待确认）。
+        // 导入：选文件 → 解析 → 预览摘要；确认后才写库（新增不覆盖、设置可选、单事务）。
         var backupPreview by remember { mutableStateOf<String?>(null) }
+        var importPlan by remember { mutableStateOf<com.txw.ielts.data.BackupRestore.Plan?>(null) }
+        var importApplySettings by remember { mutableStateOf(false) }
+        var importBusy by remember { mutableStateOf(false) }
+        var importDone by remember { mutableStateOf<String?>(null) }
+        var confirmImport by remember { mutableStateOf(false) }
         val pickBackup = androidx.activity.compose.rememberLauncherForActivityResult(
             androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
         ) { uri ->
@@ -393,6 +399,9 @@ fun SettingsScreen(
                     }
                     // 带上文件名：用户可能一次选错文件，得知道自己预览的是哪个。
                     val name = uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() } ?: "备份文件"
+                    importPlan = null
+                    importApplySettings = false
+                    importDone = null
                     backupPreview = if (text == null) {
                         "$name：读取文件失败"
                     } else {
@@ -405,6 +414,7 @@ fun SettingsScreen(
                                 db.sessions().dedupeKeys().toSet(),
                                 db.cards().dedupeKeys().toSet(),
                             )
+                            importPlan = plan
                             val dup = (plan.sessions.size - kept.sessions.size) +
                                 (plan.cards.size - kept.cards.size)
                             com.txw.ielts.data.BackupRestore.summary(kept) +
@@ -441,12 +451,96 @@ fun SettingsScreen(
 
         TextButton(onClick = {
             pickBackup.launch(arrayOf("application/json", "text/plain", "*/*"))
-        }) { Text("预览备份文件（只读）") }
+        }) { Text("导入备份（先预览）") }
         backupPreview?.let {
             Text(
                 it,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        importPlan?.let { plan ->
+            val settingsCount = plan.settings?.length() ?: 0
+            if (settingsCount > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = importApplySettings,
+                        onCheckedChange = { importApplySettings = it },
+                        enabled = !importBusy,
+                    )
+                    Text(
+                        "同时恢复设置（$settingsCount 项；学习计划个人覆盖不导入）",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+            }
+            TextButton(
+                enabled = !importBusy,
+                onClick = { confirmImport = true },
+            ) { Text(if (importBusy) "正在导入…" else "确认导入") }
+        }
+        importDone?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (confirmImport) {
+            AlertDialog(
+                onDismissRequest = { confirmImport = false },
+                title = { Text("导入这份备份？") },
+                text = {
+                    Text(
+                        "不会删除本机现有记录；重复条目按「模块+题目+开始时间」和「类型+正面」跳过。" +
+                            (if (importApplySettings) " 设置将按勾选覆盖。" else "") +
+                            " 导入前会自动导出一份当前数据快照。"
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        confirmImport = false
+                        val plan = importPlan ?: return@TextButton
+                        importBusy = true
+                        exportScope.launch {
+                            val snapshot = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                com.txw.ielts.Backup.export(context)
+                            }
+                            if (snapshot == null) {
+                                importDone = "导入前快照失败（存储不可写），本次导入已取消"
+                                importBusy = false
+                                return@launch
+                            }
+                            val db = com.txw.ielts.data.AppDb.get(context)
+                            val outcome = runCatching {
+                                com.txw.ielts.data.BackupImporter.apply(
+                                    context, db, prefs, plan, importApplySettings,
+                                )
+                            }
+                            importBusy = false
+                            importDone = outcome.fold(
+                                onSuccess = { o ->
+                                    buildString {
+                                        append("已导入 ${o.sessions} 条练习、${o.cards} 张卡片")
+                                        if (o.aiSets > 0) append("、${o.aiSets} 套 AI 题")
+                                        if (o.settingsApplied) append("；设置已恢复")
+                                        o.modelWarning?.let { append("；$it") }
+                                        append("；导入前快照：${snapshot.file.name}")
+                                    }
+                                },
+                                onFailure = { e ->
+                                    "导入失败：${e.message ?: "未知错误"}；导入前快照：${snapshot.file.name}"
+                                },
+                            )
+                            backupPreview = null
+                            importPlan = null
+                            backupRefresh++
+                        }
+                    }) { Text("导入") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmImport = false }) { Text("取消") }
+                },
             )
         }
 

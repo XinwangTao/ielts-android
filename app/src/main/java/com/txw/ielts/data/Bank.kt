@@ -171,7 +171,33 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
     private fun writeAiSets(sets: List<BankSet>) {
         val arr = JSONArray()
         sets.forEach { arr.put(setToJson(it)) }
-        val text = JSONObject().put("sets", arr).toString()
+        writeAiSetsText(JSONObject().put("sets", arr).toString())
+    }
+
+    /**
+     * 备份导入：把备份里的 AI 套题按 id 合并进 `files/ai_bank.json`。
+     *
+     * 只新增不覆盖（同 id 保留本机版本），与确认页「新增不覆盖」口径一致；返回新增套题数。
+     * 文件写失败会抛异常，调用方负责提示（数据库已经写入，不能假装整体失败）。
+     */
+    @Synchronized
+    fun mergeAiSets(incoming: JSONArray?): Int {
+        if (incoming == null || incoming.length() == 0) return 0
+        val before = aiSets().map { it.id }.toSet()
+        val existingText = runCatching {
+            if (aiBankFile.exists()) aiBankFile.readText() else null
+        }.getOrNull()
+        val merged = BackupImporter.mergeAiSets(existingText, incoming)
+        writeAiSetsText(merged)
+        val after = runCatching {
+            JSONObject(merged).optJSONArray("sets")?.let { arr ->
+                (0 until arr.length()).mapNotNull { arr.optJSONObject(it)?.optString("id") }
+            }.orEmpty()
+        }.getOrDefault(emptyList())
+        return after.count { it.isNotBlank() && it !in before }
+    }
+
+    private fun writeAiSetsText(text: String) {
         // 原子写：先写 .tmp 再改名。直接 writeText 截断重写，进程被杀/磁盘满会留下半截 JSON，
         // 下次打开列表静默变空，再保存一次就把剩余套题永久覆盖。
         val tmp = File(aiBankFile.parentFile, "ai_bank.json.tmp")

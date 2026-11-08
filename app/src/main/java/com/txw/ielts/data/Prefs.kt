@@ -194,6 +194,22 @@ class Prefs(context: Context) {
      * 不清就会在清空后继续显示旧内容，看起来像「数据没清干净」。
      * 不动用户主动设置的项（目标分、考期、通道、模型、课表手动覆盖）。
      */
+    /**
+     * 备份导入时按确认页勾选恢复设置。
+     *
+     * 只写本机认识的字段；`studyPlanOverrides` 这类与日期强相关的个人覆盖不导入（跨机无意义）。
+     * 写入顺序无关，每个 setter 自己做区间/取值校验。
+     */
+    fun applyImported(s: BackupImporter.ImportSettings) {
+        s.targetBand?.let { targetBand = it }
+        s.examDate?.takeIf { it.isNotBlank() }?.let { examDate = it }
+        s.dailyNewCards?.let { dailyNewCards = it }
+        s.scoreChannel?.takeIf { it in setOf("local", "cloud", "auto") }?.let { scoreChannel = it }
+        s.localModel?.takeIf { it.isNotBlank() }?.let { localModel = it }
+        s.readerFontSize?.let { readerFontSize = it }
+        s.readerLineHeight?.let { readerLineHeight = it }
+    }
+
     fun clearDerivedCaches() {
         aiReviewCache = ""
         studyAiCache = "{}"

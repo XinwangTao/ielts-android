@@ -48,11 +48,12 @@
 
 ## 阻塞（写清解除条件，不在本阶段空等）
 
-1. **备份导入写库**（L1）
-   - 解除条件：确认三项决策（冲突策略 / 设置是否覆盖 / 单事务还是分批）。
-   - 就绪度：图 `docs/archify/ielts-backup-restore_workflow.{html,json}`；实现设计
-     `docs/backup-import-implementation.md`；纯逻辑已落地 `BackupImporter.mergeAiSets / parseSettings / modelWarning`
-     （7 例单测）。确认后可照单接线。
+1. ~~备份导入写库~~（2026-11-08 已接线，按默认决策：新增不覆盖 / 设置默认不导入、勾选才覆盖 / 单事务）
+   - 代码：`BackupImporter.apply`（去重 + Room 事务 + AI 套题合并 + 设置恢复 + 缓存失效）、
+     `Prefs.applyImported`、`BankRepo.mergeAiSets`；设置页新增「导入备份（先预览）→ 确认导入」，
+     导入前自动导出一份快照，失败在页面显示原因。
+   - 验证：`compileDebugKotlin`、`testDebugUnitTest` 通过；真机路径与幂等/设置/坏文件用例记入
+     `docs/acceptance-checklist.md` 第八节，等设备接入后执行（不属于无线调试）。
 2. **Stage C（targetSdk 35）**
    - 解除条件：真机回归 edge-to-edge、前台服务、安装与 MNN/Whisper 加载。
    - 就绪度：`compileSdk 35` 已就位（targetSdk 仍 34），16KB 对齐静态验证通过，迁移步骤见

@@ -1,5 +1,7 @@
 package com.txw.ielts.data
 
+import android.content.Context
+import androidx.room.withTransaction
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -86,5 +88,69 @@ object BackupImporter {
         val capped = JSONArray()
         for (i in 0 until out.length().coerceAtMost(MAX_AI_SETS)) capped.put(out.get(i))
         return JSONObject().put("sets", capped).toString()
+    }
+
+    /** 导入结果：界面据此显示「新增了多少」。 */
+    data class Outcome(
+        val sessions: Int,
+        val cards: Int,
+        val aiSets: Int,
+        val settingsApplied: Boolean,
+        val modelWarning: String? = null,
+    )
+
+    /**
+     * 按确认页的决策落库：新增不覆盖、设置默认不导入、DB 单事务。
+     *
+     * 调用前已由预览确认「会新增多少」；这里再按当前去重键过滤一次，避免预览后本机又新增数据。
+     * AI 套题是文件（files/ai_bank.json），不在事务内：DB 成功后按 id 合并写回；失败会抛给调用方。
+     */
+    suspend fun apply(
+        context: Context,
+        db: AppDb,
+        prefs: Prefs,
+        plan: BackupRestore.Plan,
+        applySettings: Boolean,
+    ): Outcome {
+        val kept = BackupRestore.keepNew(
+            plan,
+            db.sessions().dedupeKeys().toSet(),
+            db.cards().dedupeKeys().toSet(),
+        )
+
+        db.withTransaction {
+            kept.sessions.forEach { db.sessions().insert(it) }
+            if (kept.cards.isNotEmpty()) db.cards().insertAll(kept.cards)
+        }
+
+        val addedAiSets = BankRepo(context, prefs).mergeAiSets(kept.aiSets)
+
+        var settingsApplied = false
+        var warning: String? = null
+        if (applySettings) {
+            val imported = parseSettings(plan.settings)
+            if (!imported.isEmpty) {
+                prefs.applyImported(imported)
+                settingsApplied = true
+                val available = runCatching {
+                    val dirs = listOf(
+                        java.io.File(context.filesDir, "models/mnn"),
+                        java.io.File(context.getExternalFilesDir(null), "models/mnn"),
+                    )
+                    dirs.flatMap { dir -> dir.listFiles().orEmpty().filter { it.isDirectory }.map { it.name } }.toSet()
+                }.getOrDefault(emptySet())
+                warning = modelWarning(imported.localModel, available)
+            }
+        }
+        // 复盘/提纲缓存指向旧数据，导入后必须失效，否则会读到导入前的统计。
+        prefs.clearDerivedCaches()
+
+        return Outcome(
+            sessions = kept.sessions.size,
+            cards = kept.cards.size,
+            aiSets = addedAiSets,
+            settingsApplied = settingsApplied,
+            modelWarning = warning,
+        )
     }
 }
