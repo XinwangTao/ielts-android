@@ -26,7 +26,6 @@ jobs:
       # 2026-11-08 的 run 42491705173 就是在这里失败的。ubuntu-latest 自带
       # Android SDK 与 sdkmanager，直接装本项目需要的平台与 build-tools。
       - name: Install Android SDK packages
-      - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
           sdkmanager "platforms;android-35" "build-tools;35.0.0"
