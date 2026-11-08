@@ -22,14 +22,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      # cmdline-tools 16 起不再提供 `tools` 包；动作默认安装 tools+platform-tools 会直接失败。
-      - uses: android-actions/setup-android@v3
-        with:
-          packages: 'platform-tools'
-
-      # compileSdk = 35：显式装平台与 build-tools，避免依赖 Gradle 的自动下载策略。
+      # 不用 android-actions/setup-android：它初始化时会找已被移除的 `tools` 包，
+      # 2026-11-08 的 run 42491705173 就是在这里失败的。ubuntu-latest 自带
+      # Android SDK 与 sdkmanager，直接装本项目需要的平台与 build-tools。
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
       - uses: gradle/actions/setup-gradle@v3
 
