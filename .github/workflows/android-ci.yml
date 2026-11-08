@@ -22,7 +22,10 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # cmdline-tools 16 起不再提供 `tools` 包；动作默认安装 tools+platform-tools 会直接失败。
       - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       # compileSdk = 35：显式装平台与 build-tools，避免依赖 Gradle 的自动下载策略。
       - name: Install Android SDK packages
