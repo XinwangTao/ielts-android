@@ -23,7 +23,7 @@ jobs:
           java-version: '17'
 
       # cmdline-tools 16 起不再提供 `tools` 包；动作默认安装 tools+platform-tools 会直接失败。
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
 
