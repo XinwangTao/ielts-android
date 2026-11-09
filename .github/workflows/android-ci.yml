@@ -39,7 +39,7 @@ jobs:
           yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
           "$SDKMANAGER" "platforms;android-35" "build-tools;35.0.0"
 
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v6
 
       # runner 首次跑 wrapper 会去 GitHub Releases 拉 gradle-8.13-bin.zip，
       # 2026-11-09 的 run 42582946115 在这里收到 504（非代码问题）。重试兜住这类网络抖动。
