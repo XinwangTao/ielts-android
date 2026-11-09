@@ -13,8 +13,8 @@
 | AI 复盘 | 首页「AI 复盘」→ 生成 | `e2e_local_ai.sh <设备> review` | ✅ 真机 3 条行动 |
 | Part 3 追问 | 口语结果页「生成追问」 | `e2e_local_ai.sh <设备> followup` | ✅ 真机 83 字符单句 |
 | 写作评分 | 写作业提交 | `e2e_local_ai.sh <设备> score_writing` | ✅ overall 7.5 |
-| 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5 |
-| AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*`；真机 `e2e_local_ai.sh <设备> gen_reading` / `gen_listening` | ✅ 探针 18/18；真机阅读 4 题生成通过（questions=4、passage_words=192，2026-11-07）；真机听力生成通过（questions=3、transcript_words=187，2026-11-09）；8 题档真机待补 |
+| 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5（2026-11-06）；2026-11-09 复跑 overall 7.0（FC8/LR7/GRA6.5/P7，414 tokens） |
+| AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*`；真机 `e2e_local_ai.sh <设备> gen_reading\|gen_reading8\|gen_listening\|gen_listening8` | ✅ 探针 18/18；真机阅读 4 题（2026-11-07）、听力 4 题（2026-11-09）；**8 题档真机通过**（2026-11-09）：阅读 8/8 complete=8 / 文章 224 词 / 869 tokens，听力 8/8 complete=8 / 听力稿 197 词 / 808 tokens；漏题时 App 自动重发一次 |
 | 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 18/18 |
 | 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` / `e2e_local_ai.sh <设备> variant` | ✅ 探针通过；真机通过（options=4、answerOk=true，2026-11-09） |
 | 写作换题 | 写作结果页「换一个同类型题目」 | PC 探针 `writing_new_topic`；真机 `e2e_local_ai.sh <设备> newtopic` | ✅ 探针通过；真机生成通过（words=32，2026-11-07） |
