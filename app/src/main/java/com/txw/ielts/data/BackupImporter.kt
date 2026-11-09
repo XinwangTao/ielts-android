@@ -94,11 +94,12 @@ object BackupImporter {
     data class Outcome(
         val sessions: Int,
         val cards: Int,
+        val essays: Int = 0,
         val aiSets: Int,
         val settingsApplied: Boolean,
         val modelWarning: String? = null,
-        /** AI 套题文件（不在 DB 事务内）写入失败时的说明：练习记录已经入库，不能说「导入失败」。 */
-        val aiSetsWarning: String? = null,
+        /** AI 套题/范文这类文件（不在 DB 事务内）写入失败时的说明：练习记录已经入库，不能说「导入失败」。 */
+        val fileWarning: String? = null,
     )
 
     /**
@@ -119,6 +120,8 @@ object BackupImporter {
             plan,
             db.sessions().dedupeKeys().toSet(),
             db.cards().dedupeKeys().toSet(),
+            runCatching { ModelEssayStore.load(context).map { ModelEssayStore.essayKey(it) }.toSet() }
+                .getOrDefault(emptySet()),
         )
 
         db.withTransaction {
@@ -128,9 +131,17 @@ object BackupImporter {
 
         val aiMerge = runCatching { BankRepo(context, prefs).mergeAiSets(kept.aiSets) }
         val addedAiSets = aiMerge.getOrDefault(0)
-        val aiSetsWarning = aiMerge.exceptionOrNull()?.let {
-            "AI 套题写入失败：${it.message ?: "未知错误"}（练习记录已导入，可重试导入补齐套题）"
-        }
+        // 范文与 AI 套题一样是文件存储：失败只记提示，不能让界面把已入库的练习说成导入失败。
+        val essayMerge = runCatching { ModelEssayStore.mergeImported(context, kept.essays) }
+        val addedEssays = essayMerge.getOrDefault(0)
+        val fileWarning = listOfNotNull(
+            aiMerge.exceptionOrNull()?.let {
+                "AI 套题写入失败：${it.message ?: "未知错误"}（练习记录已导入，可重试导入补齐套题）"
+            },
+            essayMerge.exceptionOrNull()?.let {
+                "范文写入失败：${it.message ?: "未知错误"}（练习记录已导入，可重试导入补齐范文）"
+            },
+        ).takeIf { it.isNotEmpty() }?.joinToString("；")
 
         var settingsApplied = false
         var warning: String? = null
@@ -155,10 +166,11 @@ object BackupImporter {
         return Outcome(
             sessions = kept.sessions.size,
             cards = kept.cards.size,
+            essays = addedEssays,
             aiSets = addedAiSets,
             settingsApplied = settingsApplied,
             modelWarning = warning,
-            aiSetsWarning = aiSetsWarning,
+            fileWarning = fileWarning,
         )
     }
 }

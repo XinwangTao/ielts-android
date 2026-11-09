@@ -22,10 +22,12 @@ object BackupRestore {
         val version: Int,
         val sessions: List<Session>,
         val cards: List<Card>,
+        val essays: List<ModelEssay> = emptyList(),
         val aiSets: JSONArray?,
         val settings: JSONObject?,
         val skippedSessions: Int,
         val skippedCards: Int,
+        val skippedEssays: Int = 0,
     )
 
     /**
@@ -99,14 +101,36 @@ object BackupRestore {
             }
         }
 
+        var skippedEssays = 0
+        val essays = ArrayList<ModelEssay>()
+        val rawEssays = root.optJSONArray("modelEssays")
+        if (rawEssays != null) {
+            for (i in 0 until rawEssays.length()) {
+                val o = rawEssays.optJSONObject(i)
+                if (o == null) { skippedEssays++; continue }
+                val polished = o.optString("polished").trim()
+                // 正文为空没有收藏价值；sessionId 在导入时重新分配，这里不读。
+                if (polished.isBlank()) { skippedEssays++; continue }
+                essays += ModelEssay(
+                    sessionId = 0L,
+                    topic = o.optString("topic").trim(),
+                    polished = polished,
+                    band = o.optDouble("band", 0.0).takeIf { it.isFinite() } ?: 0.0,
+                    savedAt = o.optLong("savedAt", 0L),
+                )
+            }
+        }
+
         return Plan(
             version = version,
             sessions = sessions,
             cards = cards,
+            essays = essays,
             aiSets = root.optJSONArray("aiSets"),
             settings = root.optJSONObject("settings"),
             skippedSessions = skippedSessions,
             skippedCards = skippedCards,
+            skippedEssays = skippedEssays,
         )
     }
 
@@ -124,11 +148,12 @@ object BackupRestore {
         val parts = mutableListOf<String>()
         parts += "${plan.sessions.size} 条练习"
         parts += "${plan.cards.size} 张卡片"
+        if (plan.essays.isNotEmpty()) parts += "${plan.essays.size} 篇范文"
         val ai = plan.aiSets?.length() ?: 0
         if (ai > 0) parts += "$ai 套 AI 题"
         val settingsCount = plan.settings?.length() ?: 0
         if (settingsCount > 0) parts += "设置 $settingsCount 项"
-        val skipped = plan.skippedSessions + plan.skippedCards
+        val skipped = plan.skippedSessions + plan.skippedCards + plan.skippedEssays
         val head = "将新增 " + parts.joinToString("、")
         return if (skipped > 0) "$head；跳过 $skipped 条坏数据" else head
     }
@@ -138,8 +163,10 @@ object BackupRestore {
         plan: Plan,
         existingSessionKeys: Set<String>,
         existingCardKeys: Set<String>,
+        existingEssayKeys: Set<String> = emptySet(),
     ): Plan = plan.copy(
         sessions = plan.sessions.filter { sessionKey(it) !in existingSessionKeys },
         cards = plan.cards.filter { cardKey(it) !in existingCardKeys },
+        essays = plan.essays.filter { ModelEssayStore.essayKey(it) !in existingEssayKeys },
     )
 }

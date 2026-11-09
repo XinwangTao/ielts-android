@@ -415,9 +415,12 @@ fun SettingsScreen(
                                     plan,
                                     db.sessions().dedupeKeys().toSet(),
                                     db.cards().dedupeKeys().toSet(),
+                                    com.txw.ielts.data.ModelEssayStore.load(context)
+                                        .map { com.txw.ielts.data.ModelEssayStore.essayKey(it) }.toSet(),
                                 )
                                 val dup = (plan.sessions.size - kept.sessions.size) +
-                                    (plan.cards.size - kept.cards.size)
+                                    (plan.cards.size - kept.cards.size) +
+                                    (plan.essays.size - kept.essays.size)
                                 plan to (com.txw.ielts.data.BackupRestore.summary(kept) +
                                     if (dup > 0) "；本机已有 $dup 条将跳过" else "")
                             }
@@ -501,7 +504,8 @@ fun SettingsScreen(
                 title = { Text("导入这份备份？") },
                 text = {
                     Text(
-                        "不会删除本机现有记录；重复条目按「模块+题目+开始时间」和「类型+正面」跳过。" +
+                        "不会删除本机现有记录；重复条目按「模块+题目+开始时间」、「类型+正面」跳过，" +
+                            "范文按「题目+正文」跳过。" +
                             (if (importApplySettings) " 设置将按勾选覆盖。" else "") +
                             " 导入前会自动导出一份当前数据快照。"
                     )
@@ -534,10 +538,11 @@ fun SettingsScreen(
                                 onSuccess = { o ->
                                     buildString {
                                         append("已导入 ${o.sessions} 条练习、${o.cards} 张卡片")
+                                        if (o.essays > 0) append("、${o.essays} 篇范文")
                                         if (o.aiSets > 0) append("、${o.aiSets} 套 AI 题")
                                         if (o.settingsApplied) append("；设置已恢复")
                                         o.modelWarning?.let { append("；$it") }
-                                        o.aiSetsWarning?.let { append("；$it") }
+                                        o.fileWarning?.let { append("；$it") }
                                         append("；导入前快照：${snapshot.file.name}")
                                     }
                                 },

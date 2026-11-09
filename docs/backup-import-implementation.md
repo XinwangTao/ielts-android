@@ -8,6 +8,7 @@
 | 决策 | 默认建议 | 影响 |
 |---|---|---|
 | 冲突策略 | **新增不覆盖**（id 重新分配，按 key 去重） | 不会破坏本机已有练习；重复导入不会翻倍 |
+| 范文库 | **按「题目+正文」去重后并入**，导入条目发负数 id | 别机 sessionId 已失效，不能沿用；负数 id 不与本机会话冲突，仍可单独删除 |
 | 设置是否导入 | **默认不覆盖**，确认页勾选才应用 | 避免换机时误把旧目标分/模型覆盖 |
 | 写入方式 | **单事务**（Room `withTransaction`） | 全成或全败；失败时界面直接报错，不留半套 |
 
@@ -20,7 +21,8 @@
 2. **写入器**（新增 `data/BackupImporter.kt`）
    ```kotlin
    object BackupImporter {
-       data class Outcome(val sessions: Int, val cards: Int, val aiSets: Int, val settingsApplied: Boolean)
+       data class Outcome(val sessions: Int, val cards: Int, val essays: Int, val aiSets: Int,
+                          val settingsApplied: Boolean, val modelWarning: String?, val fileWarning: String?)
        suspend fun apply(context: Context, db: AppDb, prefs: Prefs, plan: BackupRestore.Plan,
                          existingSessionKeys: Set<String>, existingCardKeys: Set<String>,
                          applySettings: Boolean): Outcome
@@ -29,6 +31,9 @@
    - `plan = BackupRestore.keepNew(plan, existingSessionKeys, existingCardKeys)`
    - `db.withTransaction { plan.sessions.forEach { db.sessions().insert(it) }; plan.cards.forEach { db.cards().insert(it) } }`
    - AI 套题：`plan.aiSets` 与 `files/ai_bank.json` 现有的 `sets` 按 `id` 合并去重后整体写回。
+   - 范文：`plan.essays` 与 `files/model_essays.json` 按「题目+正文」去重后合并；导入条目发负数 id
+     （备份里的 sessionId 指向别机练习，导入后已失效）。文件写入失败只返回 `fileWarning`，
+     不能把已入库的练习记录报成「导入失败」。
    - 设置：仅 `applySettings` 时写入 `targetBand/examDate/dailyNewCards/scoreChannel/localModel/readerFontSize/readerLineHeight`，
      **不导入** `studyPlanOverrides`（日期相关的个人覆盖，跨机无意义）。
    - 成功后调用 `prefs.clearDerivedCaches()`（复盘/提纲缓存指向旧数据，必须失效）。

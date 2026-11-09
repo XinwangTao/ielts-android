@@ -107,6 +107,44 @@ class BackupRestoreTest {
     }
 
     @Test
+    fun `解析范文并跳过空正文`() {
+        val p = BackupRestore.parse(
+            """{"version":1,"modelEssays":[
+                {"sessionId":7,"topic":"Education","polished":"Body text","band":6.5,"savedAt":123},
+                {"topic":"X","polished":"   "},
+                "不是对象"
+            ]}"""
+        )
+        assertEquals(1, p.essays.size)
+        assertEquals(2, p.skippedEssays)
+        // 别机 sessionId 不沿用：导入时重新分配，避免指向本机不相干的练习。
+        assertEquals(0L, p.essays[0].sessionId)
+        assertEquals("Education", p.essays[0].topic)
+        assertEquals(6.5, p.essays[0].band, 0.0)
+        assertEquals(123L, p.essays[0].savedAt)
+        val s = BackupRestore.summary(p)
+        assertTrue(s, s.contains("1 篇范文"))
+        assertTrue(s, s.contains("跳过 2 条坏数据"))
+    }
+
+    @Test
+    fun `范文按题目与正文去重`() {
+        val plan = BackupRestore.parse(
+            """{"version":1,"modelEssays":[
+                {"topic":"Education","polished":"Body text"},
+                {"topic":"  education ","polished":" body TEXT "}
+            ]}"""
+        )
+        assertEquals(2, plan.essays.size)
+        // 忽略大小写/首尾空白后两篇同键：本机已有这篇时全部跳过。
+        val key = com.txw.ielts.data.ModelEssayStore.essayKey(plan.essays[0])
+        val kept = BackupRestore.keepNew(plan, emptySet(), emptySet(), setOf(key))
+        assertTrue(kept.essays.isEmpty())
+        // 本机没有时才保留。
+        assertEquals(2, BackupRestore.keepNew(plan, emptySet(), emptySet()).essays.size)
+    }
+
+    @Test
     fun `去重键格式与 SQL 拼接一致`() {
         // SessionDao.dedupeKeys: module || char(1) || topic || char(1) || startedAt
         assertEquals(

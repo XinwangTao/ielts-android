@@ -62,6 +62,38 @@ object ModelEssayStore {
     fun contains(context: Context, sessionId: Long): Boolean =
         load(context).any { it.sessionId == sessionId }
 
+    /** 范文去重键：同题目 + 同润色正文（忽略大小写与首尾空白）。 */
+    fun essayKey(e: ModelEssay): String =
+        e.topic.trim().lowercase() + "\u0001" + e.polished.trim().lowercase()
+
+    /**
+     * 备份导入：把别机的范文并进来（新增不覆盖）。
+     *
+     * 备份里的 sessionId 指向另一台手机的练习记录，导入后练习已被重新分配主键，直接沿用会
+     * 关联到本机不相干的记录。这里统一改发负数 id（本机真实会话 id 恒为正），既能在列表里
+     * 单独展开/删除，也不会与之后新保存的范文撞键。
+     *
+     * @return 实际新增篇数（已在库里或正文为空的跳过）；文件写入失败会抛出。
+     */
+    fun mergeImported(context: Context, incoming: List<ModelEssay>): Int {
+        if (incoming.isEmpty()) return 0
+        val list = load(context).toMutableList()
+        val seen = list.map { essayKey(it) }.toMutableSet()
+        val usedIds = list.map { it.sessionId }.toMutableSet()
+        var added = 0
+        var nextId = -1L
+        incoming.forEach { e ->
+            if (e.polished.isBlank()) return@forEach
+            if (!seen.add(essayKey(e))) return@forEach
+            while (nextId in usedIds) nextId -= 1
+            usedIds += nextId
+            list.add(e.copy(sessionId = nextId))
+            added += 1
+        }
+        if (added > 0) write(context, list)
+        return added
+    }
+
     private fun write(context: Context, list: List<ModelEssay>) {
         val arr = JSONArray()
         list.forEach { e ->
