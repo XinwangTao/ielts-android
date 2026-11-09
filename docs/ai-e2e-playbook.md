@@ -14,12 +14,12 @@ bash tools/e2e_local_ai.sh <设备> <模式> [--force]
 # adb-afa99023-q6q7Cb._adb-tls-connect._tcp
 # 模式：
 #   outline | sample | vocab | review | followup | variant | newtopic
-#   gen_reading | gen_listening
+#   gen_reading | gen_reading8 | gen_listening | gen_listening8
 #   score_writing | score_speaking
 ```
 
-脚本会 `force-stop` → 带 `--es e2e_ai <模式>` 启动 → 轮询
-`E2E: RESULT ai ...` 日志（最长 8 分钟），命中即打印该行并退出 0。
+脚本会等旧进程真正退出 → 带 `--es e2e_ai <模式>` 启动 → **只看本轮启动后的日志**，
+用 `E2E: RESULT ai <模式>` 精确匹配（最长 15 分钟），命中即打印该行并退出 0。
 
 ## 已验证结果（PKJ110 / qwen3-4b-instruct）
 
@@ -29,9 +29,11 @@ bash tools/e2e_local_ai.sh <设备> <模式> [--force]
 | `sample` | 195 词 / 5 关键词 / 3 结构 | ~90s | 首版 146 词，自动重试后达标 |
 | `vocab` | 6 条搭配，中文释义 | ~40s | |
 | `score_writing` | overall 7.5（TR8/CC7/LR8/GRA7.5），fixes 3 / 逐句 2 | ~100s | 299 词强作文 |
-| `score_speaking` | overall 7.5（FC8/LR7.5/GRA7/P7.5），fixes 3 / 逐句 2 | ~90s | 149 词 Part 2 |
+| `score_speaking` | overall 7.5（FC8/LR7.5/GRA7/P7.5），fixes 3 / 逐句 2 | ~90s | 149 词 Part 2；2026-11-09 复跑 overall 7.0（FC8/LR7/GRA6.5/P7），414 tokens/30.8s |
 | `gen_reading` | 4 题 / 文章 180 词 / JSON 可解析 | ~55s | 4 题档 |
-| `gen_listening` | 3 题 / 听力原文 187 词 / 标题 20 字 | ~20s（模型已热） | 2026-11-09 真机 |
+| `gen_listening` | 4 题 / 听力稿 214 词 / JSON 可解析；同日另一次 3 题 / 187 词 | ~60s | 2026-11-09 真机；3 题那次触发重试兜底 |
+| `gen_listening8` | 8 题 / complete=8 / 听力稿 197 词 / 808 tokens | ~70s（含冷加载） | 2026-11-09 真机，未触发重试 |
+| `gen_reading8` | 8 题 / complete=8 / 文章 224 词 / 869 tokens | ~90s（含冷加载） | 2026-11-09 真机，未触发重试 |
 | `review` | tasks=3 / summary / encouragement 均非空 | ~30s | 2026-11-06 真机 |
 | `followup` | 83 字符单句追问 | ~15s | 2026-11-06 真机 |
 | `variant` | 4 选项 / answerOk=true / 题干非空 | ~20s（模型已热） | 2026-11-09 真机 |
@@ -49,12 +51,19 @@ bash tools/e2e_local_ai.sh <设备> <模式> [--force]
 
 - **前台被抢**：并行会话/其他 App（TickFlow、飞书、语音助手）会把雅思切走；
   进程被冻结后日志永远不出现。脚本会告警/快速失败，先回桌面再跑。
+- **两个会话同时用一台手机（2026-11-09 实测）**：旧脚本每轮 `logcat -c` 清全局缓冲、
+  再 grep 任意 `E2E: RESULT ai`，并发时会把对方模式的结果当成自己的（`score_speaking`
+  拿到 `gen_listening` 的假 PASS）。现在不清缓冲，改按设备时间戳 `logcat -T` 过滤，
+  并且只认本轮模式；另一条同样重要：`am force-stop` 是异步的，紧接着 `am start`
+  会把新 Intent 交给旧 Activity，Compose 仍读创建时的旧 intent → 上一轮模式再跑一遍。
+  脚本会等 `pidof` 为空再启动。
 - **安装授权弹窗**：ColorOS 的 `InstallGrantActivity` 会盖住 App；安装后如出现先返回。
 - **主线程 ANR**：e2e 钩子必须在 `withContext(Dispatchers.IO)` 里调引擎；
   主线程直接 `submit` 会 5 秒 ANR（已修，`14c7352`）。
 - **设备名**：IP 在 `192.168.236/237` 间漂移，且同网段可能有其他设备；
   优先用 mDNS 名，用 `getprop ro.product.model` 确认是 `PKJ110`。
-- **模型首次加载**：冷加载 20-40s，生成 30-100s；脚本超时 8 分钟。
+- **模型首次加载**：冷加载 20-40s，生成 30-100s；出题漏题时 App 会自动重发一次，
+  脚本超时相应放宽到 15 分钟。
 
 ## 失败判定
 

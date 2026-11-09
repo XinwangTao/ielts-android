@@ -2360,21 +2360,25 @@ private fun App(
                         "lr=${ev.lexical} gra=${ev.grammar} p=${ev.pronunciation} fixes=${ev.fixes.size} " +
                         "sentences=${ev.sentenceFixes.size} raw=${ev.rawJson.length}")
                 }
-                "gen_reading" -> {
+                "gen_reading", "gen_reading8" -> {
+                    val count = if (mode.endsWith("8")) 8 else 4
                     val r = com.txw.ielts.llm.LocalLlmEngine.generateReading(
-                        context, model, "7.0", listOf("choice", "tfng"), 4,
+                        context, model, "7.0", listOf("choice", "tfng"), count,
                     )
                     val words = r.passage.split(Regex("\\s+")).count { it.isNotBlank() }
-                    Log.i(TAG, "E2E: RESULT ai gen_reading questions=${r.questions.size} " +
-                        "passage_words=$words title_chars=${r.title.length}")
+                    val complete = r.questions.count { it.answers.isNotEmpty() && it.explainEn.isNotBlank() }
+                    Log.i(TAG, "E2E: RESULT ai $mode questions=${r.questions.size} " +
+                        "complete=$complete passage_words=$words title_chars=${r.title.length}")
                 }
-                "gen_listening" -> {
+                "gen_listening", "gen_listening8" -> {
+                    val count = if (mode.endsWith("8")) 8 else 4
                     val r = com.txw.ielts.llm.LocalLlmEngine.generateListening(
-                        context, model, "6.5", listOf("choice", "gap"), 4,
+                        context, model, "6.5", listOf("choice", "gap"), count,
                     )
                     val words = r.transcript.split(Regex("\\s+")).count { it.isNotBlank() }
-                    Log.i(TAG, "E2E: RESULT ai gen_listening questions=${r.questions.size} " +
-                        "transcript_words=$words title_chars=${r.title.length}")
+                    val complete = r.questions.count { it.answers.isNotEmpty() && it.explainEn.isNotBlank() }
+                    Log.i(TAG, "E2E: RESULT ai $mode questions=${r.questions.size} " +
+                        "complete=$complete transcript_words=$words title_chars=${r.title.length}")
                 }
                 else -> Log.w(TAG, "E2E: RESULT ai unknown=$mode")
             }
