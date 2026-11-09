@@ -31,11 +31,11 @@ bash tools/e2e_local_ai.sh <设备> <模式> [--force]
 | `score_writing` | overall 7.5（TR8/CC7/LR8/GRA7.5），fixes 3 / 逐句 2 | ~100s | 299 词强作文 |
 | `score_speaking` | overall 7.5（FC8/LR7.5/GRA7/P7.5），fixes 3 / 逐句 2 | ~90s | 149 词 Part 2 |
 | `gen_reading` | 4 题 / 文章 180 词 / JSON 可解析 | ~55s | 4 题档 |
-| `gen_listening` | **待补** | — | 被前台 App 抢占未跑完；目前由 PC 探针覆盖 |
+| `gen_listening` | 3 题 / 听力原文 187 词 / 标题 20 字 | ~20s（模型已热） | 2026-11-09 真机 |
 | `review` | tasks=3 / summary / encouragement 均非空 | ~30s | 2026-11-06 真机 |
 | `followup` | 83 字符单句追问 | ~15s | 2026-11-06 真机 |
-| `variant` | **待补** | — | 入口已就绪；设备阶段禁止实测，先由 PC `bank_variant` 覆盖 |
-| `newtopic` | **待补** | — | 同上，PC `writing_new_topic` 覆盖 |
+| `variant` | 4 选项 / answerOk=true / 题干非空 | ~20s（模型已热） | 2026-11-09 真机 |
+| `newtopic` | 题干 32 词 / `new_prompt` JSON 可解析 | ~20s（模型已热） | 2026-11-09 真机 |
 
 ## 前置条件
 
