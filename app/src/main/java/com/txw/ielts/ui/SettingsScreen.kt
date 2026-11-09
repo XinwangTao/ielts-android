@@ -405,21 +405,30 @@ fun SettingsScreen(
                     backupPreview = if (text == null) {
                         "$name：读取文件失败"
                     } else {
-                        "$name — " + runCatching {
-                            val plan = com.txw.ielts.data.BackupRestore.parse(text)
-                            // 与本机现有数据对一遍：预览要显示「真正会新增多少」，不是文件里有多少。
-                            val db = com.txw.ielts.data.AppDb.get(context)
-                            val kept = com.txw.ielts.data.BackupRestore.keepNew(
-                                plan,
-                                db.sessions().dedupeKeys().toSet(),
-                                db.cards().dedupeKeys().toSet(),
-                            )
-                            importPlan = plan
-                            val dup = (plan.sessions.size - kept.sessions.size) +
-                                (plan.cards.size - kept.cards.size)
-                            com.txw.ielts.data.BackupRestore.summary(kept) +
-                                if (dup > 0) "；本机已有 $dup 条将跳过" else ""
-                        }.getOrElse { it.message ?: "解析失败" }
+                        // 解析 + 去重预演都是 CPU/数据库活：备份可达上万条，别在主线程做。
+                        val preview = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            runCatching {
+                                val plan = com.txw.ielts.data.BackupRestore.parse(text)
+                                // 与本机现有数据对一遍：预览要显示「真正会新增多少」，不是文件里有多少。
+                                val db = com.txw.ielts.data.AppDb.get(context)
+                                val kept = com.txw.ielts.data.BackupRestore.keepNew(
+                                    plan,
+                                    db.sessions().dedupeKeys().toSet(),
+                                    db.cards().dedupeKeys().toSet(),
+                                )
+                                val dup = (plan.sessions.size - kept.sessions.size) +
+                                    (plan.cards.size - kept.cards.size)
+                                plan to (com.txw.ielts.data.BackupRestore.summary(kept) +
+                                    if (dup > 0) "；本机已有 $dup 条将跳过" else "")
+                            }
+                        }
+                        preview.fold(
+                            onSuccess = { (plan, summary) ->
+                                importPlan = plan
+                                "$name — $summary"
+                            },
+                            onFailure = { "$name — ${it.message ?: "解析失败"}" },
+                        )
                     }
                 }
             }
@@ -513,9 +522,12 @@ fun SettingsScreen(
                             }
                             val db = com.txw.ielts.data.AppDb.get(context)
                             val outcome = runCatching {
-                                com.txw.ielts.data.BackupImporter.apply(
-                                    context, db, prefs, plan, importApplySettings,
-                                )
+                                // 事务 + AI 套题文件合并（读改写 ai_bank.json）都不该占主线程。
+                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                                    com.txw.ielts.data.BackupImporter.apply(
+                                        context, db, prefs, plan, importApplySettings,
+                                    )
+                                }
                             }
                             importBusy = false
                             importDone = outcome.fold(
