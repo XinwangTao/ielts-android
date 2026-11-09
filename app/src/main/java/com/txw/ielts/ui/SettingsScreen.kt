@@ -537,6 +537,7 @@ fun SettingsScreen(
                                         if (o.aiSets > 0) append("、${o.aiSets} 套 AI 题")
                                         if (o.settingsApplied) append("；设置已恢复")
                                         o.modelWarning?.let { append("；$it") }
+                                        o.aiSetsWarning?.let { append("；$it") }
                                         append("；导入前快照：${snapshot.file.name}")
                                     }
                                 },

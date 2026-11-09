@@ -97,13 +97,16 @@ object BackupImporter {
         val aiSets: Int,
         val settingsApplied: Boolean,
         val modelWarning: String? = null,
+        /** AI 套题文件（不在 DB 事务内）写入失败时的说明：练习记录已经入库，不能说「导入失败」。 */
+        val aiSetsWarning: String? = null,
     )
 
     /**
      * 按确认页的决策落库：新增不覆盖、设置默认不导入、DB 单事务。
      *
      * 调用前已由预览确认「会新增多少」；这里再按当前去重键过滤一次，避免预览后本机又新增数据。
-     * AI 套题是文件（files/ai_bank.json），不在事务内：DB 成功后按 id 合并写回；失败会抛给调用方。
+     * AI 套题是文件（files/ai_bank.json），不在事务内：DB 已提交后写入失败只记提示，
+     * 不能让界面把已经进库的练习记录说成「导入失败」。
      */
     suspend fun apply(
         context: Context,
@@ -123,7 +126,11 @@ object BackupImporter {
             if (kept.cards.isNotEmpty()) db.cards().insertAll(kept.cards)
         }
 
-        val addedAiSets = BankRepo(context, prefs).mergeAiSets(kept.aiSets)
+        val aiMerge = runCatching { BankRepo(context, prefs).mergeAiSets(kept.aiSets) }
+        val addedAiSets = aiMerge.getOrDefault(0)
+        val aiSetsWarning = aiMerge.exceptionOrNull()?.let {
+            "AI 套题写入失败：${it.message ?: "未知错误"}（练习记录已导入，可重试导入补齐套题）"
+        }
 
         var settingsApplied = false
         var warning: String? = null
@@ -151,6 +158,7 @@ object BackupImporter {
             aiSets = addedAiSets,
             settingsApplied = settingsApplied,
             modelWarning = warning,
+            aiSetsWarning = aiSetsWarning,
         )
     }
 }
