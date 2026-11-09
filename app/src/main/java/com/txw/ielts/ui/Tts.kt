@@ -11,9 +11,25 @@ import androidx.compose.ui.platform.LocalContext
 import com.txw.ielts.data.TtsVoice
 import java.util.Locale
 
+/**
+ * 系统 TTS 句柄：跟读和听力共用同一套发音（音色、语速全跟随系统引擎设置）。
+ * stop 用于「播放器开始放音频」时把没读完的朗读掐掉，避免两路声音叠在一起。
+ */
+class TtsController(
+    val available: Boolean,
+    val speak: (String) -> Unit,
+    val stop: () -> Unit,
+)
+
 /** 系统 TTS；引擎缺失时 available=false，界面自动隐藏朗读按钮。 */
 @Composable
 fun rememberTts(): Pair<Boolean, (String) -> Unit> {
+    val c = rememberTtsController()
+    return c.available to c.speak
+}
+
+@Composable
+fun rememberTtsController(): TtsController {
     val context = LocalContext.current
     var engine by remember { mutableStateOf<TextToSpeech?>(null) }
     var available by remember { mutableStateOf(false) }
@@ -46,5 +62,6 @@ fun rememberTts(): Pair<Boolean, (String) -> Unit> {
             engine?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "card")
         }
     }
-    return available to speak
+    val stop: () -> Unit = { runCatching { engine?.stop() } }
+    return TtsController(available, speak, stop)
 }

@@ -368,6 +368,16 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
         file = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { repo.audioFile(set) }
     }
     val player = remember { MediaPlayer() }
+    // 跟读页同款系统 TTS：听力也能点一句读一句，音色与跟读完全一致（同一引擎设置）。
+    val tts = rememberTtsController()
+    fun speakText(text: String) {
+        if (!tts.available || text.isBlank()) return
+        // 两路声音不能叠：先掐掉音频播放，再朗读。
+        runCatching { player.pause() }
+        playing = false
+        currentSentence = null
+        tts.speak(text)
+    }
     DisposableEffect(Unit) {
         player.setOnCompletionListener { playing = false }
         onDispose { runCatching { player.release() } }
@@ -375,6 +385,7 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
 
     fun prepareAndPlay(fromBeginning: Boolean) {
         val f = file ?: run { failure = "音频文件缺失"; return }
+        tts.stop()
         runCatching {
             player.reset()
             player.setDataSource(f.absolutePath)
@@ -460,6 +471,11 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = { togglePlay() }) { Text(if (playing) "暂停" else "播放") }
                 OutlinedButton(onClick = { prepareAndPlay(fromBeginning = true) }) { Text("重播") }
+                if (tts.available) {
+                    OutlinedButton(onClick = {
+                        speakText(currentSentence?.text ?: syncSentence?.text ?: set.transcript)
+                    }) { Text("朗读") }
+                }
             }
             if (durSec > 0) {
                 // 可拖动进度条：用户想跳着听某一段时不必等播放。
@@ -503,13 +519,19 @@ private fun AudioCard(set: BankSet, repo: BankRepo) {
                     )
                     set.sentences.forEachIndexed { i, s ->
                         val active = currentSentence == s || (currentSentence == null && syncSentence == s)
-                        Text(
-                            "${i + 1}. ${s.text}",
-                            modifier = Modifier.fillMaxWidth().clickable { playSentence(s) },
-                            style = if (active) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
-                            fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "${i + 1}. ${s.text}",
+                                modifier = Modifier.weight(1f).clickable { playSentence(s) },
+                                style = if (active) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
+                                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                            )
+                            // 点「朗读」= 跟读页那套系统 TTS，音色一致；点句子本体仍是循环听音频。
+                            if (tts.available) {
+                                TextButton(onClick = { speakText(s.text) }) { Text("朗读") }
+                            }
+                        }
                     }
                 }
             }
