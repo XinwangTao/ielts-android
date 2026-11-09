@@ -41,8 +41,17 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v3
 
+      # runner 首次跑 wrapper 会去 GitHub Releases 拉 gradle-8.13-bin.zip，
+      # 2026-11-09 的 run 42582946115 在这里收到 504（非代码问题）。重试兜住这类网络抖动。
       - name: Unit tests
-        run: bash ./gradlew :app:testDebugUnitTest --console=plain --no-daemon
+        run: |
+          for attempt in 1 2 3; do
+            echo "unit-test attempt $attempt"
+            bash ./gradlew :app:testDebugUnitTest --console=plain --no-daemon && exit 0
+            echo "attempt $attempt failed; retrying in 15s" >&2
+            sleep 15
+          done
+          exit 1
 
       # 约定检查：JSON 设置读改写必须包在 Prefs.editJson（防止并发丢更新回退）。
       - name: Convention check
@@ -50,7 +59,14 @@ jobs:
 
       # lint 基线为 0 error；出现新的 error 会让任务失败。
       - name: Lint
-        run: bash ./gradlew :app:lintDebug --console=plain --no-daemon
+        run: |
+          for attempt in 1 2 3; do
+            echo "lint attempt $attempt"
+            bash ./gradlew :app:lintDebug --console=plain --no-daemon && exit 0
+            echo "attempt $attempt failed; retrying in 15s" >&2
+            sleep 15
+          done
+          exit 1
 
       - name: Upload test & lint reports
         if: always()
