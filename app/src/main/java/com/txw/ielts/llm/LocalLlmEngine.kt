@@ -291,21 +291,55 @@ object LocalLlmEngine {
     suspend fun generateReading(
         context: Context, model: String, difficulty: String, types: List<String>, count: Int,
     ): GeneratedReading = withContext(Dispatchers.IO) {
-        val raw = generate(
-            context, model, LlmClient.READING_GEN_SYSTEM,
-            "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count" + COMPACT_HINT,
-        )
-        GeneratedParser.reading(raw, count)
+        val prompt = "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count" + COMPACT_HINT
+        withGenerationRetry(count, { it.questions }) {
+            GeneratedParser.reading(generate(context, model, LlmClient.READING_GEN_SYSTEM, prompt), count)
+        }
     }
 
     suspend fun generateListening(
         context: Context, model: String, difficulty: String, types: List<String>, count: Int,
     ): GeneratedListening = withContext(Dispatchers.IO) {
-        val raw = generate(
-            context, model, LlmClient.LISTENING_GEN_SYSTEM,
-            "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count" + COMPACT_HINT,
+        val prompt = "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count" + COMPACT_HINT
+        withGenerationRetry(count, { it.questions }) {
+            GeneratedParser.listening(generate(context, model, LlmClient.LISTENING_GEN_SYSTEM, prompt), count)
+        }
+    }
+
+    /**
+     * 本地出题的完整性兜底：漏题/漏英文解析时重发一次，取更完整的一份。
+     * 4B 实测会给出 3/4 题（2026-11-09 PKJ110），只提示「少给 N 题」对用户没帮助。
+     * 只按题数/答案/解析判定，不用正文词数——COMPACT_HINT 本就把正文压在 250-300 词，
+     * 套用云端的 300/200 词阈值会让每次生成都触发重发。
+     * 第二次失败或仍不完整时保留第一次结果，不把已经能做的题丢掉。
+     */
+    private suspend fun <T> withGenerationRetry(
+        count: Int,
+        questionsOf: (T) -> List<GeneratedQuestion>,
+        block: suspend () -> T,
+    ): T {
+        val first = block()
+        if (GeneratedParser.isComplete(questionsOf(first), count)) return first
+        // 日志要能回答「这次为什么多等了一轮」：题数与完整题数都记下来。
+        val got = questionsOf(first)
+        Log.i(
+            TAG,
+            "local generation incomplete: questions=${got.size}/$count " +
+                "complete=${got.count { it.answers.isNotEmpty() && it.explainEn.isNotBlank() }}, retrying once",
         )
-        GeneratedParser.listening(raw, count)
+        val second = try {
+            block()
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // 页面离开/任务取消：必须继续向上抛，不能当成「第二次生成失败」吞掉。
+            throw e
+        } catch (e: Exception) {
+            return first
+        }
+        val chosen = if (GeneratedParser.completeness(questionsOf(second)) >
+            GeneratedParser.completeness(got)
+        ) second else first
+        Log.i(TAG, "local generation retry -> questions=${questionsOf(chosen).size}/$count")
+        return chosen
     }
 
     /** 仅预加载模型而不生成（诊断用：验证加载后的 RSS 与 release 是否真的释放）。 */

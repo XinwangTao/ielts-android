@@ -3,6 +3,7 @@ package com.txw.ielts
 import com.txw.ielts.llm.GeneratedParser
 import com.txw.ielts.llm.GeneratedQuestion
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -344,6 +345,20 @@ class GeneratedParserTest {
         } catch (e: Exception) {
             assertTrue(e.message!!.isNotBlank())
         }
+    }
+
+    @Test
+    fun `完整性判定要求题数与答案解析齐全`() {
+        fun q(i: Int, answers: Boolean = true, en: Boolean = true) = GeneratedQuestion(
+            type = "gap", prompt = "p$i", options = emptyList(),
+            answers = if (answers) listOf("a") else emptyList(),
+            explain = "e", explainEn = if (en) "en" else "", keys = emptyList(),
+        )
+        assertTrue(GeneratedParser.isComplete((1..4).map { q(it) }, 4))
+        // 少一题不算完整：本地 4B 实测会返回 3/4 题，需要触发一次重发。
+        assertFalse(GeneratedParser.isComplete((1..3).map { q(it) }, 4))
+        assertFalse(GeneratedParser.isComplete((1..4).map { q(it, en = it != 4) }, 4))
+        assertFalse(GeneratedParser.isComplete((1..4).map { q(it, answers = it != 2) }, 4))
     }
 
     @Test

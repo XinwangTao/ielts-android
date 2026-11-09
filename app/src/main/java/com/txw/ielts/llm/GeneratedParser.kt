@@ -33,6 +33,13 @@ object GeneratedParser {
     ): List<GeneratedQuestion> = if (completeness(b) > completeness(a)) b else a
 
     /**
+     * 题数够且每题都有答案与英文解析，才算一次完整生成。
+     * 云端与本地共用：本地 4B 也会漏题/漏解析，不能只靠「解析成功」当合格。
+     */
+    fun isComplete(questions: List<GeneratedQuestion>, count: Int): Boolean =
+        questions.size >= count && questions.all { it.answers.isNotEmpty() && it.explainEn.isNotBlank() }
+
+    /**
      * 整份生成结果的打分：题数/完整题优先，其次正文长度（阅读 300+ 词、听力 200+ 词）。
      * 只重发一次时用它决定保留哪一份，避免「第二份题更全但正文只有两句话」。
      */

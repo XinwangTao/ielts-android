@@ -177,7 +177,7 @@ class LlmClient(
         val prompt = "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count"
         val maxTokens = if (count >= 8) 8000 else 6000
         val first = GeneratedParser.reading(chat(READING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
-        if (isComplete(first.questions, count) && wordCount(first.passage) >= 300) return first
+        if (GeneratedParser.isComplete(first.questions, count) && wordCount(first.passage) >= 300) return first
         // 模型漏题/漏答案/正文过短：重发一次（同一 client，不重复扣额度），取更完整的一份。
         val second = runCatching {
             GeneratedParser.reading(chat(READING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
@@ -192,7 +192,7 @@ class LlmClient(
         val prompt = "Difficulty: $difficulty\nQuestion types: ${types.joinToString(", ")}\nQuestion count: $count"
         val maxTokens = if (count >= 8) 8000 else 6000
         val first = GeneratedParser.listening(chat(LISTENING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
-        if (isComplete(first.questions, count) && wordCount(first.transcript) >= 200) return first
+        if (GeneratedParser.isComplete(first.questions, count) && wordCount(first.transcript) >= 200) return first
         val second = runCatching {
             GeneratedParser.listening(chat(LISTENING_GEN_SYSTEM, prompt, maxTokens = maxTokens), count)
         }.getOrNull() ?: return first
@@ -200,10 +200,6 @@ class LlmClient(
             GeneratedParser.overallScore(first.transcript, first.questions)
         ) second else first
     }
-
-    /** 题数够且每题都有答案与双语解析，才算一次合格的 8 题档输出。 */
-    private fun isComplete(questions: List<GeneratedQuestion>, count: Int): Boolean =
-        questions.size >= count && questions.all { it.answers.isNotEmpty() && it.explainEn.isNotBlank() }
 
     private fun wordCount(text: String): Int = text.split(Regex("""\s+""")).count { it.isNotBlank() }
 
