@@ -11,12 +11,13 @@
 
 1. [x] **CI 自动回归**（2026-11-07）：`.github/workflows/android-ci.yml`——push/PR 自动跑单测 + lint，
    装 `platforms;android-35` 与 build-tools，失败上传报告。配套 `.github/dependabot.yml`（Gradle 周更 / Actions 月更）。
-   **未推送**（推送需用户确认后 CI 才会首次运行）。
+   **2026-11-09 已推送并在 main 跑绿**（`1fc2b2e`，首次因 runner 下载 Gradle 收到 504，
+   `gh run rerun --failed` 后 success）。
 
 暂无其他安全项；无设备期间不新增低价值 UI 改动。
-（2026-11-07 第 85 轮复盘确认：5 个提交（对练加固/验收 runbook/冒烟脚本+真机实跑/正文长度兜底/
-批次 0 脚本）；回归 499 例 / lint 2 warning / 探针 21/21。
-设备 PKJ110 已在线但前台常被微信占用：脚本默认不抢屏，空闲时跑 `bash tools/e2e_batch0.sh`。）
+（2026-11-09 第 90 轮复盘确认：20 个提交（CI 接通/备份导入写库+范文/本地出题重发/e2e 串场修复/
+听力 TTS）；回归 505 例 0 失败、lint 0 error/2 warning、探针 21/21。
+真机 e2e 11 个模式均有证据，批次 0 通过；剩余为点按类验收。）
 
 ## 进行中
 
@@ -46,6 +47,14 @@
   正确做法是加 `firstLearnedAt` 列（v4 + 迁移），但迁移必须在真机/仪器测试里验证后再上；
   解除条件：允许 androidTest 或真机跑 MigrationTestHelper。
 
+- **CI 对 Gradle 发行包下载抖动无免疫**：2026-11-09 首次 CI 因 GitHub Releases 返回 504 在 22s 失败，
+  rerun 后通过。可给单测/lint 步骤包「失败重试 3 次」（同一提交内），或把 wrapper 指向稳定镜像；
+  解除条件：用户同意新增一次提交+推送。
+
+- **Dependabot 大版本升级待评估**：Kotlin 2.4.21 / AGP 9.5.1 / Room 2.8.5 / actions v6-v7 共 7 个 PR。
+  AGP 9 需要 Gradle 9 与 compileSdk 迁移，Room 2.8 有 KSP 兼容要求；应单独立项验证，
+  不在例行小步里顺手上。
+
 ## 阻塞（写清解除条件，不在本阶段空等）
 
 1. ~~备份导入写库~~（2026-11-08 已接线，按默认决策：新增不覆盖 / 设置默认不导入、勾选才覆盖 / 单事务）
@@ -54,16 +63,17 @@
      导入前自动导出一份快照，失败在页面显示原因。
    - 验证：`compileDebugKotlin`、`testDebugUnitTest` 通过；真机路径与幂等/设置/坏文件用例记入
      `docs/acceptance-checklist.md` 第八节，等设备接入后执行（不属于无线调试）。
+   - 2026-11-09 补完：范文库随备份恢复（按题目+正文去重、负数 id）、预览/写库移出主线程、
+     AI 套题/范文写失败不再谎报整次失败；`BackupRestoreTest` +2 例。
 2. **Stage C（targetSdk 35）**
    - 解除条件：真机回归 edge-to-edge、前台服务、安装与 MNN/Whisper 加载。
    - 就绪度：`compileSdk 35` 已就位（targetSdk 仍 34），16KB 对齐静态验证通过，迁移步骤见
      `docs/android-upgrade-notes.md`。
-3. **推送 CI / Dependabot**
-   - 解除条件：用户确认推送（本机规则：推送属对外动作）。
-   - 就绪度：两份 YAML 已校验，workflow 内命令与 `verify_all` 一致。
-4. **真机验收约 75 项**
-   - 状态：已授权 adb 无线调试（2026-11-07），设备稍后接入；已备好分批 runbook，
-     接入后照单执行即可，不再现场整理。
+3. ~~推送 CI / Dependabot~~（2026-11-09 已推送 `1fc2b2e`，main CI 跑绿）
+   - 剩余决策：7 个 Dependabot PR（Kotlin 2.4 / AGP 9.5 / Room 2.8 / actions v6-v7）是否升级，
+     需单独立项（AGP 9 牵动 Gradle 与 compileSdk），不在小步迭代里顺手升。
+4. **真机验收约 70 项（点按类）**
+   - 状态：AI e2e 11 个模式与批次 0 已有真机证据；剩余导入幂等、弹窗、旋转、清空等点按项。
    - 入口：`docs/device-acceptance-runbook.md`（连接/安装/日志/失败注入命令 + 4 个批次 + 判据），
      结果回填 `docs/acceptance-checklist.md` 第八节。
 

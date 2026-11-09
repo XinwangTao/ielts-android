@@ -48,6 +48,9 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
 - `adb devices` 可能混入非 Android 端点（如电脑 ICS 地址，能 install 却没有 pm/am/logcat）：
   选设备必须用 `getprop ro.build.version.sdk` 验证，别取第一台就开工。
 - Git Bash 访问设备路径（`/sdcard/...`）要加 `MSYS_NO_PATHCONV=1`，否则被改写成本机路径。
+- 两个会话/两个脚本同时用一台手机时：不要 `logcat -c`（会互相清缓冲），按设备时间戳
+  `logcat -T` 只看本轮，并精确匹配 `E2E: RESULT ai <模式>`；`am force-stop` 是异步的，
+  必须等 `pidof` 为空再 `am start`，否则旧 Activity 会复跑上一轮 intent（2026-11-09 假 PASS 根因）。
 - 冒烟/批次 0：`tools/e2e_smoke.sh`、`tools/e2e_batch0.sh`；详细批次见 `docs/device-acceptance-runbook.md`。
 
 ## 后台执行
@@ -87,6 +90,9 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|variant
   后台评分/生成并发完成时，裸读改写会互相覆盖。新增 JSON 设置时同时给受锁写入路径。
 - 用脚本改多行 Kotlin/文档时注意仓库部分是 CRLF：断言/替换要按 `\r?\n` 匹配，
   脚本跑完用 grep 复核落盘，不要让断言失败被后台任务日志吞掉。
+- 编辑工具可能把 LF 文件整篇写成 CRLF：提交前看 `git diff --stat`，出现「整文件同增同减」
+  就是行尾被换；先用 `perl -pi -e 's/\r\n/\n/g' <文件>` 还原，再用
+  `git -c core.autocrlf=false add` 提交（本仓库时区里已踩过两次）。
 - **Bash heredoc 会折叠反斜杠**：脚本里写 `\n`、`\p{L}`、`’` 可能被提前解释成真换行/真字符，
   产出不可编译的 Kotlin。含转义的文件用 Write/Edit 工具或 `chr(92)` 构造，写完 grep 复核。
 - 脚本里判「大输出里有没有某串」不要写 `cmd | grep -q`：`tools/*.sh` 多带 `set -o pipefail`，
