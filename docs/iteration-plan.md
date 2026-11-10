@@ -64,10 +64,12 @@
      `docs/acceptance-checklist.md` 第八节，等设备接入后执行（不属于无线调试）。
    - 2026-11-09 补完：范文库随备份恢复（按题目+正文去重、负数 id）、预览/写库移出主线程、
      AI 套题/范文写失败不再谎报整次失败；`BackupRestoreTest` +2 例。
-2. **Stage C（targetSdk 35）**
-   - 解除条件：真机回归 edge-to-edge、前台服务、安装与 MNN/Whisper 加载。
-   - 就绪度：`compileSdk 35` 已就位（targetSdk 仍 34），16KB 对齐静态验证通过，迁移步骤见
-     `docs/android-upgrade-notes.md`。
+2. **Stage C（targetSdk 35）— 2026-11-10 已实施**
+   - 代码：`targetSdk = 35`、`enableEdgeToEdge()`、根容器 `safeDrawing` 让位、
+     Manifest `adjustResize`、Theme 删除失效栏色（见 `docs/android-upgrade-notes.md`）。
+   - 已验证：装机启动 + 首页/写作/设置/键盘四张截图，无系统栏遮挡；截图在
+     `F:/projects/_agent-runs/ielts-stagec-*.png`。
+   - 待补：MNN 模型加载、Whisper 转写、前台服务评分（设备掉线中断，重新上线即补）。
 3. ~~推送 CI / Dependabot~~（2026-11-09 已推送 `1fc2b2e`，main CI 跑绿）
    - 剩余决策：7 个 Dependabot PR（Kotlin 2.4 / AGP 9.5 / Room 2.8 / actions v6-v7）是否升级，
      需单独立项（AGP 9 牵动 Gradle 与 compileSdk），不在小步迭代里顺手升。

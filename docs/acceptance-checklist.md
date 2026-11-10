@@ -129,7 +129,10 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
 - [ ] 录音回放「拖动定位」：拖进度条能跳到对应位置继续播（对练逐轮不显示）
 - [ ] 录音回放「单实例」：在对练列表播第 2 轮时，第 1 轮应自动暂停（同时只响一条）
 - [ ] 录音回放「切后台暂停」：播放中按 Home/锁屏，录音应立即停止
-- [ ] 系统栏遮挡（targetSdk 35 预检）：状态栏/导航栏与页头、底部按钮组不重叠；键盘弹出不遮挡输入框
+- [x] 系统栏遮挡（targetSdk 35）：状态栏/导航栏与页头、底部按钮组不重叠；键盘弹出不遮挡输入框
+      —— 2026-11-10 PKJ110 实装（0.1-spike，lastUpdate 10:54:38）验证：首页/写作/设置底部按钮均在导航栏上方；
+      键盘弹出后输入框完整可见（截图 `F:/projects/_agent-runs/ielts-stagec-home2.png`、`ielts-stagec-writing.png`、
+      `ielts-stagec-settings-end.png`、`ielts-stagec-ime4.png`）
 - [ ] 设置页「清理无主录音」：只删「无记录引用且超过 1 天」的 .wav，并显示释放空间
 - [ ] 清理后校验：对练「继续上次对练」的逐轮回放仍可用（partner_*.wav 已并入引用集）
 - [ ] 设置页「存储占用」：显示录音/模型/数据库/备份/AI 缓存条数；清理录音或备份后数字应下降

@@ -9,7 +9,11 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -227,6 +231,9 @@ private val RouteSaver: Saver<Route, String> = Saver(
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // targetSdk 35 起 edge-to-edge 强制生效：让内容绘制到系统栏后面，
+        // 页面内容再按 safeDrawing 统一让位（见下方 Surface 内的 Box）。
+        enableEdgeToEdge()
         val prefs = Prefs(this)
         intent?.getStringExtra("apikey")?.let { prefs.apiKey = it }
         intent?.getStringExtra("baseurl")?.let { prefs.baseUrl = it }
@@ -264,17 +271,21 @@ class MainActivity : ComponentActivity() {
         setContent {
             IeltsTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    App(
-                        prefs,
-                        if (e2eSpeaking) e2eWav else null,
-                        if (e2eSpeaking) null else e2eWav,
-                        startRoute,
-                        bankAuto,
-                        e2eTts,
-                        freshStart,
-                        e2eLoadModel,
-                        e2eAi,
-                    )
+                    // safeDrawing 已含状态栏/导航栏/刘海与输入法：统一在这里让位，
+                    // 各页面不必逐页加 insets（键盘弹出时内容整体上移，不会盖住输入框）。
+                    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+                        App(
+                            prefs,
+                            if (e2eSpeaking) e2eWav else null,
+                            if (e2eSpeaking) null else e2eWav,
+                            startRoute,
+                            bankAuto,
+                            e2eTts,
+                            freshStart,
+                            e2eLoadModel,
+                            e2eAi,
+                        )
+                    }
                 }
             }
         }

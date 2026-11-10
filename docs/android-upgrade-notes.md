@@ -1,12 +1,12 @@
-# 依赖与 targetSdk 评估（2026-11-06）
+# 依赖与 targetSdk 评估（2026-11-06，2026-11-10 补 Stage C 实施）
 
-> 只做评估，不改版本。结论先行：**Stage A/B 可做且低风险；Stage C（targetSdk 35）有一个硬门槛要先验——原生库 16KB 页对齐。**
+> 2026-11-10：Stage C 已实施并装机验证 UI/键盘；MNN/Whisper 加载回归待设备重新上线后补。
 
 ## 现状
 
 | 项 | 当前值 | 备注 |
 |---|---|---|
-| compileSdk / targetSdk | 34 | lint `OldTargetApi` 持续告警；Play 新提交/更新自 2025-08 起要求 target ≥ 35 |
+| compileSdk / targetSdk | 35 / 35 | 2026-11-10 升 targetSdk；Play 新提交/更新自 2025-08 起要求 target ≥ 35 |
 | minSdk | 26 | 通知渠道、`startForegroundService` 等已按 26 简化过 |
 | Compose BOM | 2024.10.01 | 与 Kotlin/AGP 版本绑定，单独升级风险高 |
 | AGP | 8.7.3 | 支持 compileSdk 35，Stage B 不需要升 AGP |
@@ -29,17 +29,31 @@
   其余（`SCREEN_DIM_WAKE_LOCK`、`statusBarColor`/`navigationBarColor`）属 API 35 提示，逐步处理。
 - 收益：为 core-ktx / lifecycle 更新铺路；**运行时行为不变**（targetSdk 未动）。
 
-### Stage C（升 targetSdk 35，需真机回归）
+### Stage C（升 targetSdk 35）— 2026-11-10 实施
+
+实施内容：
+- `app/build.gradle.kts`：`targetSdk = 35`（compileSdk 已是 35）。
+- `MainActivity`：`onCreate` 调 `enableEdgeToEdge()`；`Surface` 内根容器加
+  `Modifier.windowInsetsPadding(WindowInsets.safeDrawing)`，一次性覆盖状态栏/导航栏/刘海/IME。
+- `AndroidManifest.xml`：MainActivity 加 `android:windowSoftInputMode="adjustResize"`。
+  实测不写时系统选 `adjust=pan`，键盘弹出会整窗上移、内容跑到状态栏下面（第一次装机截图复现）。
+- `ui/Theme.kt`：删除 API 35 已失效的 `statusBarColor` / `navigationBarColor`，只保留图标明暗设置。
+
+真机验证（PKJ110，APK `0.1-spike`，lastUpdate 2026-11-10 10:54:38）：
+- 装机、启动、截图三件事均发生；首页/写作/设置底部按钮都在导航栏上方，没有被系统栏压住。
+- 键盘场景：输入框完整显示在键盘上方，页面不再平移进状态栏。
+- 截图：`F:/projects/_agent-runs/ielts-stagec-home2.png`、`ielts-stagec-writing.png`、
+  `ielts-stagec-settings-end.png`、`ielts-stagec-ime4.png`。
+
+待补（设备当时掉线）：MNN 模型加载、Whisper 转写、前台服务评分三项运行时回归。
 
 行为变化清单（**必须逐项验，不能只看编译通过**）：
 
-1. **Edge-to-edge 强制生效**：Activity 默认绘制到系统栏后面。
-   本 App 大量全屏 Compose 页面，需要确认 `WindowInsets` / `systemBarsPadding` 覆盖；
-   尤其底部输入框、结果页长列表、录音按钮组。
+1. **Edge-to-edge 强制生效**：已按上表迁移并截图验证 UI；长列表/录音按钮组随后续页面抽查。
 2. **16KB 页大小**：target ≥ 35 且带原生库时的上架门槛。
    **已静态验证通过**：解包 `app-debug.apk`，8 个 `.so`（MNN / mnnllm / onnxruntime / sherpa / c++_shared / graphics.path）
    的 PT_LOAD 段 `p_align` 均为 16384。仍需在真机上做一次安装/加载回归（MNN 加载 + Whisper 转写）。
-3. **前台服务类型**：已声明 `dataSync` / `mediaPlayback` / `microphone`，但需确认后台启动限制的新细则。
+3. **前台服务类型**：已声明 `dataSync` / `mediaPlayback` / `microphone`，需在真机跑一次评分确认通知与保活。
 4. **广播/隐式 Intent**：target 35 起部分隐式广播限制收紧；目前只在设置页拉起系统页，风险低。
 5. **通知**：渠道已建；权限流程已按 33+ 处理，预计无变化。
 
@@ -54,7 +68,7 @@
   2. 在 `MainActivity` 的根容器统一加 `Modifier.windowInsetsPadding(WindowInsets.systemBars)`（或每页 `contentPadding`）。
   3. 逐页确认：首页顶部标题、写作业顶部计时/底部「提交」、口语录音按钮组、结果页长列表底部、设置页底部按钮。
   4. 键盘（IME）场景：输入框用 `imePadding()`，避免被键盘遮挡。
-- **结论**：代码改动集中但回归面覆盖全部页面，**留到 Stage C 与真机一起做**；
+- **结论**：代码改动集中但回归面覆盖全部页面；**2026-11-10 已按上述步骤实施并装机验证**（见 Stage C 实施记录）。
   已把「系统栏遮挡」加入 `docs/acceptance-checklist.md` 第八节。
 
 ### Stage D（targetSdk 36，暂不建议）
