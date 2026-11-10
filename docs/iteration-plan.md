@@ -44,8 +44,9 @@
 
 - **今日新卡额度计数不准**：`countFirstLearnedSince` 用 `reps=1 AND lastReviewed>=今天` 代理，
   会把「昨天忘掉、今天重新评」的旧卡算成新卡，也漏掉「今天新学但评了 Again」的卡。
-  正确做法是加 `firstLearnedAt` 列（v4 + 迁移），但迁移必须在真机/仪器测试里验证后再上；
-  解除条件：允许 androidTest 或真机跑 MigrationTestHelper。
+  ①已修（2026-11-10）：Card 新增 `firstLearnedAt`，评级时经 `FirstLearned.next` 只在首次写入；
+  DB v4 + 迁移 3→4（加列、旧卡按 lastReviewed 回填）；备份导出/导入兼容旧文件。
+  单测 5 例、schema 4.json 已导出。**真机 v3→v4 迁移与计数复验待设备恢复**。
 
 ## 阻塞（写清解除条件，不在本阶段空等）
 
