@@ -67,17 +67,18 @@ object ModelEssayStore {
         e.topic.trim().lowercase() + "\u0001" + e.polished.trim().lowercase()
 
     /**
-     * 备份导入：把别机的范文并进来（新增不覆盖）。
+     * 纯合并（不碰文件）：按 [essayKey] 去重、给新条目发负数 id。
      *
-     * 备份里的 sessionId 指向另一台手机的练习记录，导入后练习已被重新分配主键，直接沿用会
-     * 关联到本机不相干的记录。这里统一改发负数 id（本机真实会话 id 恒为正），既能在列表里
-     * 单独展开/删除，也不会与之后新保存的范文撞键。
+     * 已有条目原样保留（新增不覆盖）；负数 id 从 -1 往下取，跳过库里已占用的 id，
+     * 不会与之后的真实会话 id（恒为正）或此前导入的负数 id 撞键。
      *
-     * @return 实际新增篇数（已在库里或正文为空的跳过）；文件写入失败会抛出。
+     * @return 合并后的列表 + 实际新增篇数（正文为空或重复的不计）。
      */
-    fun mergeImported(context: Context, incoming: List<ModelEssay>): Int {
-        if (incoming.isEmpty()) return 0
-        val list = load(context).toMutableList()
+    fun mergeList(
+        existing: List<ModelEssay>,
+        incoming: List<ModelEssay>,
+    ): Pair<List<ModelEssay>, Int> {
+        val list = existing.toMutableList()
         val seen = list.map { essayKey(it) }.toMutableSet()
         val usedIds = list.map { it.sessionId }.toMutableSet()
         var added = 0
@@ -90,7 +91,21 @@ object ModelEssayStore {
             list.add(e.copy(sessionId = nextId))
             added += 1
         }
-        if (added > 0) write(context, list)
+        return list to added
+    }
+
+    /**
+     * 备份导入：把别机的范文并进来（新增不覆盖）。
+     *
+     * 备份里的 sessionId 指向另一台手机的练习记录，导入后练习已被重新分配主键，直接沿用会
+     * 关联到本机不相干的记录。合并规则见 [mergeList]。
+     *
+     * @return 实际新增篇数（已在库里或正文为空的跳过）；文件写入失败会抛出。
+     */
+    fun mergeImported(context: Context, incoming: List<ModelEssay>): Int {
+        if (incoming.isEmpty()) return 0
+        val (merged, added) = mergeList(load(context), incoming)
+        if (added > 0) write(context, merged)
         return added
     }
 
