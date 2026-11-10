@@ -68,7 +68,7 @@ ksp {
 dependencies {
     implementation(files("libs/sherpa-onnx-2.0.1.aar"))
 
-    val room = "2.6.1"
+    val room = "2.8.5"
     implementation("androidx.room:room-runtime:$room")
     implementation("androidx.room:room-ktx:$room")
     ksp("androidx.room:room-compiler:$room")
