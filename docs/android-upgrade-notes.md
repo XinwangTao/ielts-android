@@ -1,6 +1,6 @@
 # 依赖与 targetSdk 评估（2026-11-06，2026-11-10 补 Stage C 实施）
 
-> 2026-11-10：Stage C 已实施并装机验证 UI/键盘；MNN/Whisper 加载回归待设备重新上线后补。
+> 2026-11-10：Stage C 已实施并完成真机回归（UI/键盘、MNN 加载、Whisper 转写、本地评分/前台服务）。
 
 ## 现状
 
@@ -44,8 +44,6 @@
 - 键盘场景：输入框完整显示在键盘上方，页面不再平移进状态栏。
 - 截图：`F:/projects/_agent-runs/ielts-stagec-home2.png`、`ielts-stagec-writing.png`、
   `ielts-stagec-settings-end.png`、`ielts-stagec-ime4.png`。
-
-待补（设备当时掉线）：MNN 模型加载、Whisper 转写、前台服务评分三项运行时回归。
 
 运行时回归（2026-11-10 17:50–17:54，PKJ110，targetSdk 35 + DB v4 测试包）：
 - MNN 提纲：`E2E: RESULT ai outline stance=153 args=3 phrases=5`；

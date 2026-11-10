@@ -53,21 +53,19 @@
 
 ## 阻塞（写清解除条件，不在本阶段空等）
 
-1. **备份导入写库**（L1）
-   - 解除条件：确认三项决策（冲突策略 / 设置是否覆盖 / 单事务还是分批）。
-   - 就绪度：图 `docs/archify/ielts-backup-restore_workflow.{html,json}`；实现设计
-     `docs/backup-import-implementation.md`；纯逻辑已落地 `BackupImporter.mergeAiSets / parseSettings / modelWarning`
-     （7 例单测）。确认后可照单接线。
-2. **Stage C（targetSdk 35）**
-   - 解除条件：真机回归 edge-to-edge、前台服务、安装与 MNN/Whisper 加载。
-   - 就绪度：`compileSdk 35` 已就位（targetSdk 仍 34），16KB 对齐静态验证通过，迁移步骤见
-     `docs/android-upgrade-notes.md`。
-3. **推送 CI / Dependabot**
-   - 解除条件：用户确认推送（本机规则：推送属对外动作）。
-   - 就绪度：两份 YAML 已校验，workflow 内命令与 `verify_all` 一致。
-4. **真机验收约 75 项**
-   - 状态：已授权 adb 无线调试（2026-11-07），设备稍后接入；已备好分批 runbook，
-     接入后照单执行即可，不再现场整理。
+1. ~~备份导入写库~~（2026-11-08 已接线，按默认决策：新增不覆盖 / 设置默认不导入、勾选才覆盖 / 单事务）
+   - 2026-11-09 补完：范文库随备份恢复（题目+正文去重、负数 id）、预览/写库移出主线程、
+     AI 套题/范文写失败不再谎报整次失败；预览按 id 过滤 AI 套题。
+   - 验证：`BackupRestoreTest` / `ModelEssayStoreTest`；真机导入幂等/范文导入待点按验收。
+2. **Stage C（targetSdk 35）— 2026-11-10 已实施并回归**
+   - 代码：`targetSdk = 35`、`enableEdgeToEdge()`、根容器 `safeDrawing` 让位、
+     Manifest `adjustResize`、Theme 删除失效栏色。
+   - 已验证：PKJ110 装机截图无系统栏遮挡（`F:/projects/_agent-runs/ielts-stagec-*.png`）；
+     MNN 提纲、Whisper 转写、本地评分（Guard 前台服务）全部通过，无 FGS 超时/崩溃。
+3. ~~推送 CI / Dependabot~~（2026-11-09 已推送，main CI 绿；已补 assembleDebug 与 3 次重试）
+   - 剩余决策：Dependabot 大版本（Kotlin 2.4 / AGP 9.5 / Room 2.8 / actions v6-v7）需单独立项。
+4. **真机验收约 70 项（点按类）**
+   - 状态：AI e2e 11 个模式与批次 0 有证据；剩余导入幂等、弹窗、旋转、清空等点按项。
    - 入口：`docs/device-acceptance-runbook.md`（连接/安装/日志/失败注入命令 + 4 个批次 + 判据），
      结果回填 `docs/acceptance-checklist.md` 第八节。
 
