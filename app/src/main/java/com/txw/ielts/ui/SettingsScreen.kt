@@ -417,10 +417,13 @@ fun SettingsScreen(
                                     db.cards().dedupeKeys().toSet(),
                                     com.txw.ielts.data.ModelEssayStore.load(context)
                                         .map { com.txw.ielts.data.ModelEssayStore.essayKey(it) }.toSet(),
+                                    com.txw.ielts.data.BankRepo(context, prefs).aiSets()
+                                        .map { it.id }.toSet(),
                                 )
                                 val dup = (plan.sessions.size - kept.sessions.size) +
                                     (plan.cards.size - kept.cards.size) +
-                                    (plan.essays.size - kept.essays.size)
+                                    (plan.essays.size - kept.essays.size) +
+                                    ((plan.aiSets?.length() ?: 0) - (kept.aiSets?.length() ?: 0))
                                 plan to (com.txw.ielts.data.BackupRestore.summary(kept) +
                                     if (dup > 0) "；本机已有 $dup 条将跳过" else "")
                             }

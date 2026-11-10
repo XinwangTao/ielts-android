@@ -164,9 +164,21 @@ object BackupRestore {
         existingSessionKeys: Set<String>,
         existingCardKeys: Set<String>,
         existingEssayKeys: Set<String> = emptySet(),
+        existingAiSetIds: Set<String> = emptySet(),
     ): Plan = plan.copy(
         sessions = plan.sessions.filter { sessionKey(it) !in existingSessionKeys },
         cards = plan.cards.filter { cardKey(it) !in existingCardKeys },
         essays = plan.essays.filter { ModelEssayStore.essayKey(it) !in existingEssayKeys },
+        // AI 套题按 id 去重，与 `BackupImporter.mergeAiSets` 同口径；没有 id 的条目
+        // 合并时会被丢弃，预览也不该把它算进「将新增」。
+        aiSets = plan.aiSets?.let { arr ->
+            JSONArray().apply {
+                for (i in 0 until arr.length()) {
+                    val o = arr.optJSONObject(i) ?: continue
+                    val id = o.optString("id").trim()
+                    if (id.isNotBlank() && id !in existingAiSetIds) put(o)
+                }
+            }
+        },
     )
 }

@@ -116,12 +116,14 @@ object BackupImporter {
         plan: BackupRestore.Plan,
         applySettings: Boolean,
     ): Outcome {
+        val bank = BankRepo(context, prefs)
         val kept = BackupRestore.keepNew(
             plan,
             db.sessions().dedupeKeys().toSet(),
             db.cards().dedupeKeys().toSet(),
             runCatching { ModelEssayStore.load(context).map { ModelEssayStore.essayKey(it) }.toSet() }
                 .getOrDefault(emptySet()),
+            runCatching { bank.aiSets().map { it.id }.toSet() }.getOrDefault(emptySet()),
         )
 
         db.withTransaction {
@@ -129,7 +131,7 @@ object BackupImporter {
             if (kept.cards.isNotEmpty()) db.cards().insertAll(kept.cards)
         }
 
-        val aiMerge = runCatching { BankRepo(context, prefs).mergeAiSets(kept.aiSets) }
+        val aiMerge = runCatching { bank.mergeAiSets(kept.aiSets) }
         val addedAiSets = aiMerge.getOrDefault(0)
         // 范文与 AI 套题一样是文件存储：失败只记提示，不能让界面把已入库的练习说成导入失败。
         val essayMerge = runCatching { ModelEssayStore.mergeImported(context, kept.essays) }

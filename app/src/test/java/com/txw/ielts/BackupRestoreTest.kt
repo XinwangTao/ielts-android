@@ -145,6 +145,20 @@ class BackupRestoreTest {
     }
 
     @Test
+    fun `预演按id过滤AI套题并丢弃无id条目`() {
+        val plan = BackupRestore.parse(
+            """{"version":1,"aiSets":[{"id":"a"},{"id":"b"},{"title":"没有 id"},"坏条目"]}"""
+        )
+        // 本机已有 a：预览只应算 b 一套；无 id 的条目合并时也会被丢，不进水数。
+        val kept = BackupRestore.keepNew(plan, emptySet(), emptySet(), existingAiSetIds = setOf("a"))
+        assertEquals(1, kept.aiSets?.length())
+        assertEquals("b", kept.aiSets?.optJSONObject(0)?.optString("id"))
+        assertTrue(BackupRestore.summary(kept), BackupRestore.summary(kept).contains("1 套 AI 题"))
+        // 本机没有时才全部保留（含 id 的）。
+        assertEquals(2, BackupRestore.keepNew(plan, emptySet(), emptySet()).aiSets?.length())
+    }
+
+    @Test
     fun `去重键格式与 SQL 拼接一致`() {
         // SessionDao.dedupeKeys: module || char(1) || topic || char(1) || startedAt
         assertEquals(
