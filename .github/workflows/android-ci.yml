@@ -53,6 +53,17 @@ jobs:
           done
           exit 1
 
+      # 打包能抓住单测覆盖不到的资源/资产问题（历史上新增 mp3 曾没进 APK）。
+      - name: Package debug APK
+        run: |
+          for attempt in 1 2 3; do
+            echo "assemble attempt $attempt"
+            bash ./gradlew :app:assembleDebug --console=plain --no-daemon && exit 0
+            echo "attempt $attempt failed; retrying in 15s" >&2
+            sleep 15
+          done
+          exit 1
+
       # 约定检查：JSON 设置读改写必须包在 Prefs.editJson（防止并发丢更新回退）。
       - name: Convention check
         run: python tools/check_prefs_rmw.py
