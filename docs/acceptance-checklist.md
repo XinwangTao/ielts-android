@@ -14,7 +14,7 @@
 | Part 3 追问 | 口语结果页「生成追问」 | `e2e_local_ai.sh <设备> followup` | ✅ 真机 83 字符单句 |
 | 写作评分 | 写作业提交 | `e2e_local_ai.sh <设备> score_writing` | ✅ overall 7.5 |
 | 口语评分 | 口语页提交 | `e2e_local_ai.sh <设备> score_speaking` | ✅ overall 7.5 |
-| AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*`；真机 `e2e_local_ai.sh <设备> gen_reading` | ✅ 探针 21/21；真机阅读 4 题通过（questions=4、passage_words=192）、听力 4 题通过（questions=4、transcript_words=252），均 2026-11-07；8 题档待补 |
+| AI 出题 | 首页「AI 出题」 | PC 探针 `reading_generation*` / `listening_generation*`；真机 `e2e_local_ai.sh <设备> gen_reading` | ✅ 探针 21/21；真机阅读 4 题（questions=4、passage_words=192）、听力 4 题（questions=4、transcript_words=252），2026-11-07；8 题档 2026-11-10 首次 JSON 截断、重跑成功并进答题页（见 `docs/device-acceptance-results-20261110.md`） |
 | 错题精讲 | 题库结果页「精讲」 | PC 探针 `bank_explain` | ✅ 探针 21/21 |
 | 错题变式题 | 题库结果页「再来一道同考点新题」 | PC 探针 `bank_variant` / `e2e_local_ai.sh <设备> variant` | ✅ 探针通过；真机生成通过（options=4、answerOk=true，2026-11-07）；UI 排版/答案收起待人工 |
 | 写作换题 | 写作结果页「换一个同类型题目」 | PC 探针 `writing_new_topic`；真机 `e2e_local_ai.sh <设备> newtopic` | ✅ 探针通过；真机生成通过（words=32，2026-11-07） |
@@ -105,8 +105,10 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
 - [ ] 预热：进写作 / 口语 / AI 出题页 5 秒后，通知显示「正在准备本地模型…」，返回后消失；
       触发时进程不崩（真机曾因主线程阻塞导致 FGS 超时崩溃，已修）——写作页路径已由批次 0 覆盖，
       口语 / 出题页待补
-- [ ] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
-- [ ] 设置页「提前加载模型」开关关闭后，进练习页不再触发加载
+- [x] 预热期间点「AI 提纲」不弹「本地模型正在忙」，而是等待加载后继续生成
+      —— 2026-11-10 真机通过：预热加载中点提纲，显示「已等待 16 秒」，无忙碌提示，约 40 秒出提纲
+- [x] 设置页「提前加载模型」开关关闭后，进练习页不再触发加载
+      —— 2026-11-10 真机通过：关闭后进写作页保持前台 15 秒，无 LocalLlm 日志、无 guard 通知（测后已恢复）
 - [ ] 错题「再来一道同考点新题」：生成、选项排版、答案默认收起、查看答案
       —— 生成与答案对齐已在真机通过（`e2e_local_ai.sh variant`：options=4、answerOk=true，
       2026-11-07 16:13）；排版/默认收起仍需人工看一眼

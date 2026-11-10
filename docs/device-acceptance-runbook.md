@@ -69,6 +69,11 @@ bash tools/e2e_local_ai.sh <设备> variant|newtopic|outline|sample|vocab|review
 >
 > 2026-11-07 16:26 补跑 `gen_listening`：questions=4、transcript_words=252、title_chars=20，EXIT=0。
 > 免点击项已全部覆盖；8 题档、以及所有需要点按钮的条目仍待人工。
+>
+> 2026-11-10 人工项（PKJ110）：**1.1 / 1.2 通过**（1.1 预热加载中点提纲显示「已等待 16 秒」，
+> 无「本地模型正在忙」；1.2 关闭预热后 15 秒无加载日志/通知，测后已恢复设置）。
+> **1.3 八题档波动**：首次 JSON 截断（`Unterminated array at character 4030`），重跑成功并进答题页；
+> 详见 `docs/device-acceptance-results-20261110.md`。
 
 | # | 操作 | 判据 |
 |---|---|---|
