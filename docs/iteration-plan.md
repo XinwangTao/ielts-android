@@ -47,9 +47,8 @@
   正确做法是加 `firstLearnedAt` 列（v4 + 迁移），但迁移必须在真机/仪器测试里验证后再上；
   解除条件：允许 androidTest 或真机跑 MigrationTestHelper。
 
-- **CI 对 Gradle 发行包下载抖动无免疫**：2026-11-09 首次 CI 因 GitHub Releases 返回 504 在 22s 失败，
-  rerun 后通过。可给单测/lint 步骤包「失败重试 3 次」（同一提交内），或把 wrapper 指向稳定镜像；
-  解除条件：用户同意新增一次提交+推送。
+- ~~**CI 对 Gradle 发行包下载抖动无免疫**~~（2026-11-10 已修）：单测/lint/打包三步各包 3 次重试；
+  同时补了 `assembleDebug` 步骤抓资源漏打包（历史上新增 mp3 曾没进 APK）。`5132169` CI 绿（4m57s）。
 
 - **Dependabot 大版本升级待评估**：Kotlin 2.4.21 / AGP 9.5.1 / Room 2.8.5 / actions v6-v7 共 7 个 PR。
   AGP 9 需要 Gradle 9 与 compileSdk 迁移，Room 2.8 有 KSP 兼容要求；应单独立项验证，
