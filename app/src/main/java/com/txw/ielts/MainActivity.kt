@@ -11,6 +11,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -422,6 +423,9 @@ private fun App(
     val isWide = LocalConfiguration.current.screenWidthDp >= 600
     val db = remember { AppDb.get(context) }
     val scope = rememberCoroutineScope()
+    // AI 生成任务的状态与生命周期作用域：旋转/配置变更时任务不取消（见 AiTaskViewModel 注释）。
+    val ai: AiTaskViewModel = viewModel()
+    LaunchedEffect(Unit) { Log.i(TAG, "ai_vm_instance=${System.identityHashCode(ai)}") }
     // null = Room Flow 还没吐出第一帧。结果页直达要在「加载完成」后才判断记录不存在，
     // 否则 App 冷启动时会话列表为空，会被误判为「记录已删除」瞬间弹回首页。
     val sessionsOrNull by db.sessions().observeAll().collectAsState(initial = null)
@@ -452,46 +456,46 @@ private fun App(
     // 否则 A 篇评分时打开 B 篇会看到 A 的「评分中/转写中」，按钮还被禁用。
     var activeSessionId by remember { mutableStateOf<Long?>(null) }
     var practiceFocus by remember { mutableStateOf<PracticeFocus?>(null) }
-    var speakingPresetQuestion by remember { mutableStateOf<String?>(null) }
+    var speakingPresetQuestion by ai.speakingPresetQuestion
     // 预设题目的所属 Part：追问生成的是 Part 3 问题，不能当 Part 2 练。为空时按原来的 Part 2 处理。
-    var speakingPresetPart by remember { mutableStateOf<String?>(null) }
-    var writingPresetTopic by remember { mutableStateOf<String?>(null) }
+    var speakingPresetPart by ai.speakingPresetPart
+    var writingPresetTopic by ai.writingPresetTopic
     // 预设题目的 Task：换题生成的是同类型题目，回填时不能一律当 Task 2。
-    var writingPresetTask by remember { mutableStateOf<String?>(null) }
-    var writingPresetChart by remember { mutableStateOf<com.txw.ielts.data.ChartSpec?>(null) }
+    var writingPresetTask by ai.writingPresetTask
+    var writingPresetChart by ai.writingPresetChart
 
     // 本地 AI 学习助手（图：docs/archify/ielts-local-ai_workflow）：
     // 提纲/范例/生词卡都只在用户点击时生成，不自动跑，避免和评分抢引擎。
-    var writingOutline by remember { mutableStateOf<com.txw.ielts.llm.StudyOutline?>(null) }
-    var writingOutlineTopic by remember { mutableStateOf<String?>(null) }
-    var writingOutlineBusy by remember { mutableStateOf(false) }
-    var writingOutlineError by remember { mutableStateOf<String?>(null) }
-    var speakingSample by remember { mutableStateOf<com.txw.ielts.llm.SpeakingSample?>(null) }
-    var speakingSampleQuestion by remember { mutableStateOf<String?>(null) }
-    var speakingSampleBusy by remember { mutableStateOf(false) }
-    var speakingSampleError by remember { mutableStateOf<String?>(null) }
-    var vocabResult by remember { mutableStateOf<com.txw.ielts.llm.VocabResult?>(null) }
-    var vocabSessionId by remember { mutableStateOf<Long?>(null) }
+    // 状态放在 AiTaskViewModel：旋转不会把进行中的生成取消，也不会丢结果。
+    var writingOutline by ai.writingOutline
+    var writingOutlineTopic by ai.writingOutlineTopic
+    var writingOutlineBusy by ai.writingOutlineBusy
+    var writingOutlineError by ai.writingOutlineError
+    var speakingSample by ai.speakingSample
+    var speakingSampleQuestion by ai.speakingSampleQuestion
+    var speakingSampleBusy by ai.speakingSampleBusy
+    var speakingSampleError by ai.speakingSampleError
+    var vocabResult by ai.vocabResult
+    var vocabSessionId by ai.vocabSessionId
     // 「加入背诵」的实际入库账目（按会话存内存）：结果页据此说清加了几张、几条重复。
     var corpusAdd by remember { mutableStateOf<Pair<Long, com.txw.ielts.data.IngestResult>?>(null) }
-    var vocabBusy by remember { mutableStateOf(false) }
-    var vocabError by remember { mutableStateOf<String?>(null) }
+    var vocabBusy by ai.vocabBusy
+    var vocabError by ai.vocabError
     // Part 3 追问：真实考试 Part 2 之后考官会追着问，这里让本地模型扮演考官。
-    var followUpQuestion by remember { mutableStateOf<String?>(null) }
-    var followUpSessionId by remember { mutableStateOf<Long?>(null) }
-    var followUpBusy by remember { mutableStateOf(false) }
-    var followUpError by remember { mutableStateOf<String?>(null) }
+    var followUpQuestion by ai.followUpQuestion
+    var followUpSessionId by ai.followUpSessionId
+    var followUpBusy by ai.followUpBusy
+    var followUpError by ai.followUpError
     // 写作：换一个同类型新题（结果页按钮）。
-    var newTopicBusy by remember { mutableStateOf(false) }
-    var newTopicError by remember { mutableStateOf<String?>(null) }
+    var newTopicBusy by ai.newTopicBusy
+    var newTopicError by ai.newTopicError
     // 出题归属：生成中用户可能已经离开这个结果页，忙/错提示和跳转都要按会话判断。
-    var newTopicSessionId by remember { mutableStateOf<Long?>(null) }
+    var newTopicSessionId by ai.newTopicSessionId
     // 冷启动先恢复上次 AI 复盘：不只省一次 30-60 秒端侧推理，也避免为同样的输入再花云端额度。
-    val cachedAiReview = remember { com.txw.ielts.llm.AiReviewCache.fromJson(prefs.aiReviewCache) }
-    var aiReviewCache by remember { mutableStateOf(cachedAiReview) }
-    var aiReview by remember { mutableStateOf(cachedAiReview?.review) }
-    var aiReviewBusy by remember { mutableStateOf(false) }
-    var aiReviewError by remember { mutableStateOf<String?>(null) }
+    var aiReviewCache by ai.aiReviewCache
+    var aiReview by ai.aiReview
+    var aiReviewBusy by ai.aiReviewBusy
+    var aiReviewError by ai.aiReviewError
     var recoveryNotice by remember { mutableStateOf<String?>(null) }
 
     // 本地评分或本地 AI 生成在跑时钉住屏幕：熄屏会让 ColorOS 冻结进程，
@@ -1103,26 +1107,26 @@ private fun App(
     // 进入套题时的提示（AI 听力音频合成失败等），与交卷错误分开。
     var quizNotice by remember { mutableStateOf<String?>(null) }
     // 用户已回首页时生成完成：提示按 setId 暂存，等首页卡片点进来再带进答题页。
-    var pendingQuizNotices by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    var pendingQuizNotices by ai.pendingQuizNotices
     // 用 rememberSaveable：旋转/进程重建后计时与限时不能归零。
     var quizStartAt by rememberSaveable { mutableStateOf(0L) }
     var quizLimitMin by rememberSaveable { mutableStateOf(0) }
     var bankResult by remember { mutableStateOf<BankResultData?>(null) }
     var aiSets by remember { mutableStateOf(bankRepo.aiSets()) }
-    var aiGenBusy by remember { mutableStateOf(false) }
-    var aiGenError by remember { mutableStateOf<String?>(null) }
-    var aiGenStage by remember { mutableStateOf<String?>(null) }
-    var aiGenReady by remember { mutableStateOf<String?>(null) }   // 后台生成完成待查看的套题 id
+    var aiGenBusy by ai.aiGenBusy
+    var aiGenError by ai.aiGenError
+    var aiGenStage by ai.aiGenStage
+    var aiGenReady by ai.aiGenReady   // 后台生成完成待查看的套题 id
     // 精讲按「作用域#题号」存，跨套题不串。
-    var aiExplains by remember { mutableStateOf<Map<String, BankExplain>>(emptyMap()) }
-    var explainingIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var aiExplains by ai.aiExplains
+    var explainingIds by ai.explainingIds
     // 精讲失败按「作用域#题号」展示：写进全局 error 会跑到无关作文结果页上，题库页又看不到。
-    var explainErrors by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
+    var explainErrors by ai.explainErrors
     // 键是「结果页作用域#题号」：不同套题/不同会话的同号题不能共用变式。
-    var bankVariants by remember { mutableStateOf<Map<String, com.txw.ielts.llm.BankVariant>>(emptyMap()) }
-    var variantBusyIds by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var bankVariants by ai.bankVariants
+    var variantBusyIds by ai.variantBusyIds
     // 变式题的失败原因按题展示在卡片里：写进全局 error 结果页根本不显示，用户只看到「点了没反应」。
-    var variantErrors by remember { mutableStateOf<Map<String, String?>>(emptyMap()) }
+    var variantErrors by ai.variantErrors
 
     // Route 恢复了但答题 Map 只在内存：从已保存进度回填，避免空 Map 把整套答案覆盖掉。
     LaunchedEffect(route) {
@@ -1774,7 +1778,8 @@ private fun App(
     }
 
     suspend fun submitQuiz(setId: String) {
-        val set = bankRepo.byId(setId) ?: run {
+        // AI 出题的套题存在 ai_bank.json，不在 assets 手写题库里；只查 byId 会把它们误判成「已被删除」。
+        val set = bankRepo.byIdAny(setId) ?: run {
             quizError = "这套题已被删除，无法判分"
             return
         }
@@ -2591,7 +2596,7 @@ private fun App(
                     outlineBusy = writingOutlineBusy,
                     outlineError = writingOutlineError,
                     onRequestOutline = { topic, task ->
-                        scope.launch { requestWritingOutline(topic, task) }
+                        ai.launch { requestWritingOutline(topic, task) }
                     },
                 )
 
@@ -2672,7 +2677,7 @@ private fun App(
                     sampleBusy = speakingSampleBusy,
                     sampleError = speakingSampleError,
                     onRequestSample = { part, question ->
-                        scope.launch { requestSpeakingSample(part, question) }
+                        ai.launch { requestSpeakingSample(part, question) }
                     },
                 )
 
@@ -2778,10 +2783,10 @@ private fun App(
                             passage = original?.passage.orEmpty(),
                             transcript = original?.transcript.orEmpty(),
                             aiExplains = aiExplains, explainingIds = explainingIds, explainErrors = explainErrors,
-                            onAiExplain = { item -> scope.launch { runAiExplain(item, "s${session.id}") } },
+                            onAiExplain = { item -> ai.launch { runAiExplain(item, "s${session.id}") } },
                             variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                             variantScope = "s${session.id}",
-                            onRequestVariant = { item -> scope.launch { runVariant(item, "s${session.id}") } },
+                            onRequestVariant = { item -> ai.launch { runVariant(item, "s${session.id}") } },
                             onAddWrong = {
                                 scope.launch {
                                     repo.addBankWrong(
@@ -2901,7 +2906,7 @@ private fun App(
                             newTopicHere = newTopicSessionId == session.id,
                             newTopicError = newTopicError.takeIf { newTopicSessionId == session.id },
                             onRequestNewTopic = {
-                                scope.launch { requestNewWritingTopic(session, session.resolvedTask()) }
+                                ai.launch { requestNewWritingTopic(session, session.resolvedTask()) }
                             },
                             vocabResult = vocabResult,
                             vocabSessionId = vocabSessionId,
@@ -2909,14 +2914,14 @@ private fun App(
                             vocabHere = vocabSessionId == session.id,
                             vocabError = vocabError,
                             onRequestVocab = { text, fixes ->
-                                scope.launch { requestVocab(session.id, text, fixes) }
+                                ai.launch { requestVocab(session.id, text, fixes) }
                             },
                             followUpQuestion = followUpQuestion.takeIf { followUpSessionId == session.id },
                             followUpBusy = followUpBusy,
                             followUpHere = followUpSessionId == session.id,
                             followUpError = followUpError.takeIf { followUpSessionId == session.id },
                             onRequestFollowUp = {
-                                scope.launch {
+                                ai.launch {
                                     requestFollowUp(
                                         session.id,
                                         session.topic.substringAfter(" · ", session.topic),
@@ -3051,7 +3056,7 @@ private fun App(
                     aiReviewHint = aiReviewHint,
                     aiBusy = aiReviewBusy,
                     aiError = aiReviewError,
-                    onRequestReview = { scope.launch { requestAiReview() } },
+                    onRequestReview = { ai.launch { requestAiReview() } },
                     onOpenAction = { action ->
                         route = when (action) {
                             "writing" -> Route.Writing
@@ -3151,7 +3156,7 @@ private fun App(
                     busy = aiGenBusy,
                     error = aiGenError,
                     stage = aiGenStage,
-                    onGenerate = { m, d, t, c -> scope.launch { runAiGen(m, d, t, c) } },
+                    onGenerate = { m, d, t, c -> ai.launch { runAiGen(m, d, t, c) } },
                     onOpen = { openSet(it) },
                     onDelete = {
                         bankRepo.deleteAiSet(it)
@@ -3239,10 +3244,10 @@ private fun App(
                                                 transcript = data.transcript,
                                                 readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
                                                 aiExplains = aiExplains, explainingIds = explainingIds, explainErrors = explainErrors,
-                                                onAiExplain = { item -> scope.launch { runAiExplain(item, data.setId) } },
+                                                onAiExplain = { item -> ai.launch { runAiExplain(item, data.setId) } },
                                                 variants = bankVariants, variantBusyIds = variantBusyIds, variantErrors = variantErrors,
                                                 variantScope = data.setId,
-                                                onRequestVariant = { item -> scope.launch { runVariant(item, data.setId) } },
+                                                onRequestVariant = { item -> ai.launch { runVariant(item, data.setId) } },
                                                 onAddWrong = {
                                                     scope.launch {
                                                         val rows = data.items.filter { !it.ok }
@@ -3317,11 +3322,11 @@ private fun App(
                                         transcript = data.transcript,
                                         readerFontSize = prefs.readerFontSize, readerLineHeight = prefs.readerLineHeight,
                                         aiExplains = aiExplains, explainingIds = explainingIds, explainErrors = explainErrors,
-                                        onAiExplain = { item -> scope.launch { runAiExplain(item, data.setId) } },
+                                        onAiExplain = { item -> ai.launch { runAiExplain(item, data.setId) } },
                                         variants = bankVariants, variantBusyIds = variantBusyIds,
                                         variantErrors = variantErrors,
                                         variantScope = data.setId,
-                                        onRequestVariant = { item -> scope.launch { runVariant(item, data.setId) } },
+                                        onRequestVariant = { item -> ai.launch { runVariant(item, data.setId) } },
                                         onAddWrong = {
                                             scope.launch {
                                                 val rows = data.items.filter { !it.ok }

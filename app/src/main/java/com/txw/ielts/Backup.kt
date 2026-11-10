@@ -52,6 +52,7 @@ object Backup {
                             put("source", c.source); put("createdAt", c.createdAt)
                             put("ease", c.ease); put("intervalDays", c.intervalDays); put("reps", c.reps)
                             put("lapses", c.lapses); put("dueAt", c.dueAt); put("lastReviewed", c.lastReviewed)
+                            put("firstLearnedAt", c.firstLearnedAt)
                         })
                     }
                 })

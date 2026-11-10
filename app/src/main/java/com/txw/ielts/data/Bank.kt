@@ -46,6 +46,9 @@ class BankRepo(private val context: Context, private val prefs: Prefs) {
 
     fun byId(id: String): BankSet? = sets().firstOrNull { it.id == id }
 
+    /** 按 id 查套题：手写题库在前，AI 生成题库在后（两者 id 前缀不同，不会冲突）。 */
+    fun byIdAny(id: String): BankSet? = byId(id) ?: aiSets().firstOrNull { it.id == id }
+
     private fun load(): List<BankSet> {
         val text = context.assets.open("bank.json").bufferedReader().use { it.readText() }
         val arr = JSONObject(text).getJSONArray("sets")

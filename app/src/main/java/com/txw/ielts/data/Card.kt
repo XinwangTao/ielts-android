@@ -24,6 +24,9 @@ data class Card(
     val lapses: Int = 0,
     val dueAt: Long = 0L,               // 0 = 未学过的新卡
     val lastReviewed: Long = 0L,
+    // 首次通过评级（reps 从 0 变正）的时间；0 = 还没学过。
+    // 每日新卡额度用它计数：lastReviewed 会被「旧卡今天重评」改写，代理不准（见计划长尾池）。
+    val firstLearnedAt: Long = 0L,
 )
 
 @Dao
@@ -55,7 +58,7 @@ interface CardDao {
     @Query("SELECT COUNT(*) FROM cards WHERE reps >= 3")
     suspend fun countMastered(): Int
 
-    @Query("SELECT COUNT(*) FROM cards WHERE reps = 1 AND lastReviewed >= :start")
+    @Query("SELECT COUNT(*) FROM cards WHERE firstLearnedAt >= :start")
     suspend fun countFirstLearnedSince(start: Long): Int
 
     @Query("SELECT COUNT(*) FROM cards WHERE lastReviewed >= :start")
@@ -137,8 +140,8 @@ interface CardDao {
     @Insert
     suspend fun insertAll(cards: List<Card>)
 
-    @Query("UPDATE cards SET ease=:ease, intervalDays=:interval, reps=:reps, lapses=:lapses, dueAt=:dueAt, lastReviewed=:last WHERE id=:id")
-    suspend fun updateSrs(id: Long, ease: Double, interval: Int, reps: Int, lapses: Int, dueAt: Long, last: Long)
+    @Query("UPDATE cards SET ease=:ease, intervalDays=:interval, reps=:reps, lapses=:lapses, dueAt=:dueAt, lastReviewed=:last, firstLearnedAt=:firstLearned WHERE id=:id")
+    suspend fun updateSrs(id: Long, ease: Double, interval: Int, reps: Int, lapses: Int, dueAt: Long, last: Long, firstLearned: Long)
 }
 
 data class TypeCount(val type: String, val n: Int)
