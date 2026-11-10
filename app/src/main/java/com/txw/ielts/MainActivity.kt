@@ -1763,7 +1763,8 @@ private fun App(
     }
 
     suspend fun submitQuiz(setId: String) {
-        val set = bankRepo.byId(setId) ?: run {
+        // AI 出题的套题存在 ai_bank.json，不在 assets 手写题库里；只查 byId 会把它们误判成「已被删除」。
+        val set = bankRepo.byIdAny(setId) ?: run {
             quizError = "这套题已被删除，无法判分"
             return
         }
