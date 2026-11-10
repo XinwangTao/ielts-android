@@ -67,7 +67,7 @@ interface SessionDao {
     suspend fun updateResultIfPending(id: Long, t: String, e: String, s: String, f: String, p: String, st: String): Int
 }
 
-@Database(entities = [Session::class, Card::class], version = 3, exportSchema = true)
+@Database(entities = [Session::class, Card::class], version = 4, exportSchema = true)
 abstract class AppDb : RoomDatabase() {
     abstract fun sessions(): SessionDao
     abstract fun cards(): CardDao
@@ -95,10 +95,19 @@ abstract class AppDb : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : androidx.room.migration.Migration(3, 4) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `cards` ADD COLUMN `firstLearnedAt` INTEGER NOT NULL DEFAULT 0")
+                // 旧数据拿不到真正的首次学习时间：有复习记录的卡用 lastReviewed 近似。
+                // 迁移后的第一个自然日可能把「昨天学过」的卡仍算成今天，之后计数才完全准确。
+                db.execSQL("UPDATE `cards` SET `firstLearnedAt` = `lastReviewed` WHERE `reps` > 0 AND `lastReviewed` > 0")
+            }
+        }
+
         fun get(context: Context): AppDb = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(
                 context.applicationContext, AppDb::class.java, "ielts.db"
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { instance = it }
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { instance = it }
         }
     }
 }

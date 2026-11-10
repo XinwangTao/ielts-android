@@ -95,7 +95,11 @@ class CardRepo(private val context: Context, private val db: AppDb) {
         // 必须用库里的最新状态算 SM-2，否则第一次的 lapses/ease/间隔会被旧值覆盖。
         val fresh = db.cards().byId(card.id) ?: card
         val s = Sm2.next(fresh, grade)
-        db.cards().updateSrs(card.id, s.ease, s.intervalDays, s.reps, s.lapses, s.dueAt, System.currentTimeMillis())
+        val now = System.currentTimeMillis()
+        db.cards().updateSrs(
+            card.id, s.ease, s.intervalDays, s.reps, s.lapses, s.dueAt, now,
+            FirstLearned.next(fresh.firstLearnedAt, s.reps, now),
+        )
     }
 
     /** 手动删除一张卡；返回后调用方负责把它从当前学习队列移除。 */

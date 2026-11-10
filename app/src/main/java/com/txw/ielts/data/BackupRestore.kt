@@ -79,6 +79,8 @@ object BackupRestore {
                 if (o == null) { skippedCards++; continue }
                 val front = o.optString("front").trim()
                 if (front.isBlank()) { skippedCards++; continue }
+                val reps = o.optInt("reps", 0)
+                val lastReviewed = o.optLong("lastReviewed", 0L)
                 cards += Card(
                     id = 0,
                     type = o.optString("type").ifBlank { "word" },
@@ -91,10 +93,16 @@ object BackupRestore {
                     createdAt = o.optLong("createdAt", 0L),
                     ease = o.optDouble("ease", 2.5),
                     intervalDays = o.optInt("intervalDays", 0),
-                    reps = o.optInt("reps", 0),
+                    reps = reps,
                     lapses = o.optInt("lapses", 0),
                     dueAt = o.optLong("dueAt", 0L),
-                    lastReviewed = o.optLong("lastReviewed", 0L),
+                    lastReviewed = lastReviewed,
+                    // 旧备份没有 firstLearnedAt：有复习记录的卡用 lastReviewed 近似，
+                    // 避免导入后已学的卡被重新算成「今天的新卡」。
+                    firstLearnedAt = o.optLong(
+                        "firstLearnedAt",
+                        if (reps > 0) lastReviewed else 0L,
+                    ),
                 )
             }
         }
