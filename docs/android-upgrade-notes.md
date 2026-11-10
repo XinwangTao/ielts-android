@@ -45,6 +45,12 @@
 - 截图：`F:/projects/_agent-runs/ielts-stagec-home2.png`、`ielts-stagec-writing.png`、
   `ielts-stagec-settings-end.png`、`ielts-stagec-ime4.png`。
 
+合并后主分支复验（2026-11-10 19:18，main `9eef260`，DB v4）：
+- 装机 `0.1-spike`（targetSdk 35，lastUpdate 19:18:51）启动正常，首页截图
+  `F:/projects/_agent-runs/ielts-main-9eef260-home.png`；
+- `tools/e2e_batch0.sh` 通过（预热通知出现/返回消失、口语页深链、无崩溃）；
+- `e2e_local_ai.sh outline` 连续两次通过（stance=222/153、args=3、phrases=5）。
+
 运行时回归（2026-11-10 17:50–17:54，PKJ110，targetSdk 35 + DB v4 测试包）：
 - MNN 提纲：`E2E: RESULT ai outline stance=153 args=3 phrases=5`；
 - Whisper 转写：`E2E: RESULT speaking status=pending_eval`，ASR 释放后 RSS 439MB；
