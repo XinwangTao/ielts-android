@@ -310,6 +310,12 @@ object LocalLlmEngine {
 
     /** 仅预加载模型而不生成（诊断用：验证加载后的 RSS 与 release 是否真的释放）。 */
     suspend fun preload(context: Context, model: String) = withContext(Dispatchers.IO) {
+        // 已经加载进内存、或引擎正在加载/生成：不需要再预热。
+        // 旋转屏会重建练习页，LaunchedEffect(route) 的 5 秒预热判定会再跑一次；
+        // 这时无意义的 startForegroundService 会在主线程忙于重建时排队超 5 秒，
+        // 系统直接抛 ForegroundServiceDidNotStartInTimeException（PKJ110 实测两次）。
+        if (session?.isLoaded == true && loadedModel == model) return@withContext
+        if (state != "idle") return@withContext
         // 加载是阻塞 native 调用，必须离开主线程：Guard.start 只是 startForegroundService，
         // 真正的 startForeground 在 Service 的主线程回调里；主线程被加载卡住会让系统 5 秒后
         // 判定「没有及时 startForeground」直接杀进程（真机实测 ForegroundServiceDidNotStartInTime）。
