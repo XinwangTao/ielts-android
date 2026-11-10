@@ -47,6 +47,14 @@
 
 待补（设备当时掉线）：MNN 模型加载、Whisper 转写、前台服务评分三项运行时回归。
 
+运行时回归（2026-11-10 17:50–17:54，PKJ110，targetSdk 35 + DB v4 测试包）：
+- MNN 提纲：`E2E: RESULT ai outline stance=153 args=3 phrases=5`；
+- Whisper 转写：`E2E: RESULT speaking status=pending_eval`，ASR 释放后 RSS 439MB；
+- 本地评分（Guard 前台服务）：`overall=7.5 tr=8.0 cc=7.0 lr=8.0 gra=7.5 fixes=3 sentences=2`。
+- 三项均无 `ForegroundServiceDidNotStartInTime`、无崩溃；16KB 原生库加载正常。
+- 注：本次装在 `worktree-batch1-notes`（DB v4）上打的「v4 + Stage C」测试包，未合入 main；
+  main 的 v3 库装到 v4 设备会触发 Room 降级崩溃，合并前不能混装。
+
 行为变化清单（**必须逐项验，不能只看编译通过**）：
 
 1. **Edge-to-edge 强制生效**：已按上表迁移并截图验证 UI；长列表/录音按钮组随后续页面抽查。

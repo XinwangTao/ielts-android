@@ -69,7 +69,8 @@
      Manifest `adjustResize`、Theme 删除失效栏色（见 `docs/android-upgrade-notes.md`）。
    - 已验证：装机启动 + 首页/写作/设置/键盘四张截图，无系统栏遮挡；截图在
      `F:/projects/_agent-runs/ielts-stagec-*.png`。
-   - 待补：MNN 模型加载、Whisper 转写、前台服务评分（设备掉线中断，重新上线即补）。
+   - 运行时回归（2026-11-10 17:54）：MNN 提纲、Whisper 转写、本地评分（Guard 前台服务）
+     在 targetSdk 35 上全部通过，无 FGS 超时/崩溃（测试包为 DB v4 分支 + Stage C）。
 3. ~~推送 CI / Dependabot~~（2026-11-09 已推送 `1fc2b2e`，main CI 跑绿）
    - 剩余决策：7 个 Dependabot PR（Kotlin 2.4 / AGP 9.5 / Room 2.8 / actions v6-v7）是否升级，
      需单独立项（AGP 9 牵动 Gradle 与 compileSdk），不在小步迭代里顺手升。
