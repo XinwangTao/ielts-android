@@ -37,9 +37,10 @@
 
 - **AI 任务状态未按会话/生命周期归属**：`stage`、`error`、各 AI busy/结果都是 Activity 级 `remember`。
   ①已修：新增 `activeSessionId`，结果页只显示属于本场的 busy/error（A 评分时 B 页不再显示 A 的文案）。
-  ②未修：旋转/进程重建时在跑的本地生成随组合取消，几分钟推理白跑（云端还可能重复点击扣额度）。
-  正确做法是把进行中任务移到 ViewModel 或 SessionScoped 状态容器；解除条件：允许较大改动的重构窗口
-  （需真机验证配置变更行为）。
+  ②已修（2026-11-10）：新增 `AiTaskViewModel`，提纲/范例/生词/追问/换题/复盘/出题/精讲/变式的状态与
+  生成任务都挪到 ViewModel + `viewModelScope`，旋转屏不再取消进行中的本地生成；10 处入口改 `ai.launch`。
+  已编译/单测/打包/装机启动通过；**旋转复验待设备稳定**（本轮设备多次离线，未拿到干净对照）。
+  进程被杀仍会丢（ViewModel 不跨进程），要跨进程需另做持久化，不在本轮范围。
 
 - **今日新卡额度计数不准**：`countFirstLearnedSince` 用 `reps=1 AND lastReviewed>=今天` 代理，
   会把「昨天忘掉、今天重新评」的旧卡算成新卡，也漏掉「今天新学但评了 Again」的卡。
