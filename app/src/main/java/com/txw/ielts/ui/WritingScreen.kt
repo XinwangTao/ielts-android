@@ -45,6 +45,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -576,13 +577,26 @@ fun WritingScreen(
                 }
             }
         } else {
+            val scaffoldColor = MaterialTheme.colorScheme.secondary
+            val slotColor = MaterialTheme.colorScheme.tertiary
+            val scaffold = lastSkeletonInsert
             IosTextField(
                 value = typedText,
                 onValueChange = { typedText = it },
                 enabled = !busy,
                 label = "键入或粘贴你的作文",
                 modifier = Modifier.fillMaxWidth().heightIn(min = 180.dp),
+                visualTransformation = remember(scaffold, scaffoldColor, slotColor) {
+                    AiScaffoldHighlight(scaffold, scaffoldColor, slotColor)
+                },
             )
+            if (scaffold != null && typedText.contains(scaffold.trim())) {
+                Text(
+                    "蓝色是 AI 给的骨架，金色【】是要你填的内容；改写后颜色会退掉，留下的是你自己的。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             // 雅思硬性字数要求：Task 2 250 词、Task 1 150 词，实时显示进度。
             val words = typedText.trim().split(Regex("\\s+")).count { it.isNotBlank() }
             val target = if (task == "task1") 150 else 250
@@ -697,5 +711,39 @@ private fun OutlineCard(outline: com.txw.ielts.llm.StudyOutline) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
+}
+
+/**
+ * 草稿高亮：AI 骨架用冷色（和用户自己写的正文区分开），【】槽位用金色加粗提醒「这里要你填」。
+ *
+ * 按行匹配而不是整段匹配：用户改掉一行，只有那一行失去骨架颜色，其余段落仍能辨认；
+ * 槽位填上内容后金色自动消失，正好是「这段已经变成你自己的」的信号。
+ */
+private class AiScaffoldHighlight(
+    private val skeleton: String?,
+    private val scaffoldColor: Color,
+    private val slotColor: Color,
+) : VisualTransformation {
+    override fun filter(text: AnnotatedString): TransformedText {
+        val raw = text.text
+        val out = AnnotatedString.Builder(text)
+        if (!skeleton.isNullOrBlank()) {
+            skeleton.lineSequence().map { it.trim() }.filter { it.length > 8 }.forEach { line ->
+                var from = raw.indexOf(line)
+                while (from >= 0) {
+                    out.addStyle(SpanStyle(color = scaffoldColor), from, from + line.length)
+                    from = raw.indexOf(line, from + line.length)
+                }
+            }
+        }
+        var start = raw.indexOf('【')
+        while (start >= 0) {
+            val end = raw.indexOf('】', start + 1)
+            if (end < 0) break
+            out.addStyle(SpanStyle(color = slotColor, fontWeight = FontWeight.SemiBold), start, end + 1)
+            start = raw.indexOf('【', end + 1)
+        }
+        return TransformedText(out.toAnnotatedString(), OffsetMapping.Identity)
     }
 }
