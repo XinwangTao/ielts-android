@@ -198,6 +198,14 @@ fun WritingScreen(
     outlineBusy: Boolean = false,
     outlineError: String? = null,
     onRequestOutline: (topic: String, task: String) -> Unit = { _, _ -> },
+    // 句子模板：按分类选一条，AI 按当前题目把槽位填好，可一键插入草稿。
+    templateFill: TemplateFillState? = null,
+    onRequestTemplateFill: (templateId: String, frame: String, whenTo: String, topic: String) -> Unit = { _, _, _, _ -> },
+    // AI 作文框架：按当前题目把模板拼成整篇骨架，学生填完直接提交评分。
+    skeleton: com.txw.ielts.llm.EssaySkeleton? = null,
+    skeletonBusy: Boolean = false,
+    skeletonError: String? = null,
+    onRequestSkeleton: (topic: String, task: String) -> Unit = { _, _ -> },
 ) {
     val context = LocalContext.current
     val draftPrefs = remember { context.getSharedPreferences("ielts_draft", android.content.Context.MODE_PRIVATE) }
@@ -231,6 +239,12 @@ fun WritingScreen(
     var localError by remember { mutableStateOf<String?>(null) }
     // 提交后禁止草稿回写：此前 onDispose 会把刚提交的正文重新存回草稿，重进页面像没提交过。
     var submitted by remember { mutableStateOf(false) }
+    // 模板抽屉：默认收起，选中条目后由 AI 按当前题目填词。
+    var showTemplates by remember { mutableStateOf(false) }
+    // AI 作文框架：整篇骨架，填完直接提交评分。
+    var showSkeleton by remember { mutableStateOf(false) }
+    // 上一次整篇导入的骨架文本：重复点击时替换上一次，而不是再追加一份。
+    var lastSkeletonInsert by remember { mutableStateOf<String?>(null) }
 
     // 草稿自动保存（800ms 防抖）：切走或旋转屏幕不丢已输入内容
     LaunchedEffect(typedText) {
@@ -276,6 +290,44 @@ fun WritingScreen(
         onDispose { recorder?.stop() }
     }
 
+    if (showTemplates) {
+        WritingTemplateSheet(
+            task = task,
+            topic = topic,
+            fill = templateFill,
+            onRequestFill = { t, tpc -> onRequestTemplateFill(t.id, t.frame, t.whenTo, tpc) },
+            onInsert = { filled ->
+                // 同一条模板连点「插入」不该叠两遍：正文里已经有这句就跳过。
+                if (!typedText.contains(filled)) {
+                    typedText = (if (typedText.isBlank()) "" else typedText.trimEnd() + "\n\n") + filled
+                }
+            },
+            onDismiss = { showTemplates = false },
+        )
+    }
+
+    if (showSkeleton) {
+        EssaySkeletonSheet(
+            topic = topic,
+            busy = skeletonBusy,
+            skeleton = skeleton,
+            error = skeletonError,
+            onGenerate = { onRequestSkeleton(topic, task) },
+            inserted = lastSkeletonInsert == skeleton?.toDraftText(),
+            onInsert = { text ->
+                val prev = lastSkeletonInsert
+                typedText = if (prev != null && prev.isNotBlank() && typedText.contains(prev)) {
+                    // 再点一次（或换了新框架）：替换上一次整篇，避免两份骨架叠在草稿里。
+                    typedText.replace(prev, text)
+                } else {
+                    (if (typedText.isBlank()) "" else typedText.trimEnd() + "\n\n") + text
+                }
+                lastSkeletonInsert = text
+            },
+            onDismiss = { showSkeleton = false },
+        )
+    }
+
     val busy = stage != null
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -285,6 +337,12 @@ fun WritingScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onOpenArguments, enabled = !busy && !recording) {
                     Text("论点")
+                }
+                TextButton(onClick = { showSkeleton = true }, enabled = !busy && !recording) {
+                    Text("AI 框架")
+                }
+                TextButton(onClick = { showTemplates = true }, enabled = !busy && !recording) {
+                    Text("模板")
                 }
                 TextButton(onClick = onOpenChartGen, enabled = !busy && !recording) {
                     Text("出图题")

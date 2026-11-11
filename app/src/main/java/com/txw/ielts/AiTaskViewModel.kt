@@ -35,6 +35,20 @@ class AiTaskViewModel(app: Application) : AndroidViewModel(app) {
     val writingOutlineBusy = mutableStateOf(false)
     val writingOutlineError = mutableStateOf<String?>(null)
 
+    // ---- 写作句子模板填词 ----
+    val templateFillId = mutableStateOf<String?>(null)
+    val templateFillTopic = mutableStateOf<String?>(null)
+    val templateFillBusy = mutableStateOf(false)
+    val templateFillText = mutableStateOf<String?>(null)
+    val templateFillWhy = mutableStateOf<String?>(null)
+    val templateFillError = mutableStateOf<String?>(null)
+
+    // ---- 写作作文框架（整篇骨架）----
+    val writingSkeleton = mutableStateOf<com.txw.ielts.llm.EssaySkeleton?>(null)
+    val writingSkeletonTopic = mutableStateOf<String?>(null)
+    val writingSkeletonBusy = mutableStateOf(false)
+    val writingSkeletonError = mutableStateOf<String?>(null)
+
     // ---- 口语范例 ----
     val speakingSample = mutableStateOf<SpeakingSample?>(null)
     val speakingSampleQuestion = mutableStateOf<String?>(null)

@@ -25,6 +25,34 @@ data class StudyOutline(
 }
 
 /** 口语范例答案：答案本身 + 可复用表达 + 中文结构提示。 */
+/** AI 搭好的作文骨架：每段由若干带【中文槽位】的句式组成，学生自己填内容。 */
+data class SkeletonParagraph(
+    val label: String,
+    val lines: List<String>,
+    val hint: String,
+)
+
+data class EssaySkeleton(
+    val paragraphs: List<SkeletonParagraph>,
+    val raw: String = "",
+) {
+    val isEmpty: Boolean get() = paragraphs.isEmpty() && raw.isBlank()
+    fun toDraftText(): String = paragraphs.joinToString(BLANK_LINE) { p -> p.lines.joinToString("\n") }
+
+    private companion object {
+        const val BLANK_LINE = "\n\n"
+    }
+}
+
+/** AI 按当前题目填好的一句模板：句子本身 + 一句中文用法说明。 */
+data class TemplateFill(
+    val text: String,
+    val why: String,
+    val raw: String = "",
+) {
+    val isEmpty: Boolean get() = text.isBlank() && raw.isBlank()
+}
+
 data class SpeakingSample(
     val answer: String,
     val keywords: List<String>,
@@ -213,6 +241,182 @@ object StudyAi {
             context, model, WRITING_TOPIC_SYSTEM, PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
         )
         return cleanPrompt(raw)
+    }
+
+    /**
+     * 按题目搭一篇「可填空的作文骨架」：4 段，每段 2-4 个句式，内容词换成【中文槽位】，
+     * 学生自己往里填；提示词明确禁止写成完整范文。
+     */
+    suspend fun essaySkeleton(
+        context: Context,
+        model: String,
+        topic: String,
+        task: String,
+    ): EssaySkeleton {
+        val taskType = if (task == "task1") "Academic Task 1 (chart/report)" else "Task 2 (essay)"
+        val frames = if (task == "task1") TASK1_FRAMES else TASK2_FRAMES
+        val user = "Task type: " + taskType +
+            "\nPrompt: " + topic.trim() +
+            "\nUseful sentence frames (adapt, do not invent new structure):\n" + frames
+        val raw = LocalLlmEngine.generateText(
+            context, model, SKELETON_SYSTEM,
+            PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
+        )
+        val parsed = parseSkeleton(raw)
+        // 4B 常把槽位也填掉，给出一篇「范文」——那就失去填空的意义了。
+        // 只要整篇带【】的行少于两行，就退回本地固定骨架，保证学生永远有东西填。
+        val slotLines = parsed.paragraphs.flatMap { it.lines }.count { it.contains("【") }
+        // 结构也要认：4B 偶尔把四段塞进一段（Introduction 里出现 First 和 In conclusion），
+        // 这种「AI 版」不如固定骨架，直接退回。
+        return if (slotLines >= 2 && parsed.paragraphs.size >= 3) parsed else fallbackSkeleton(task)
+    }
+
+    /** 本地保底骨架：模型不听话时用它，保证四段结构和【中文槽位】一定到位。 */
+    fun fallbackSkeleton(task: String): EssaySkeleton {
+        val t2 = listOf(
+            SkeletonParagraph(
+                "Introduction",
+                listOf(
+                    "It is often argued that 【观点 A】, while others maintain that 【观点 B】.",
+                    "While I accept that 【对方合理之处】, I would argue that 【你的立场】.",
+                ),
+                "两个观点各写一句（原文换个说法），第二句亮你的立场。",
+            ),
+            SkeletonParagraph(
+                "Body 1",
+                listOf(
+                    "First and foremost, 【支撑你立场的第一个理由】.",
+                    "This is largely because 【解释这个理由为什么成立】.",
+                    "A case in point is 【一个具体例子：人 / 国家 / 场景】.",
+                ),
+                "理由要具体到一个场景，例子只写一句，别编统计数字。",
+            ),
+            SkeletonParagraph(
+                "Body 2",
+                listOf(
+                    "Another factor worth considering is 【第二个理由】.",
+                    "As a consequence, 【这个理由带来的结果】.",
+                    "Admittedly, 【对方可能的反驳】; however, 【你的回应】.",
+                ),
+                "第二段换一个角度（经济 / 公平 / 效率 / 长期影响），最后一句让步一句反驳。",
+            ),
+            SkeletonParagraph(
+                "Conclusion",
+                listOf(
+                    "In conclusion, 【换词重申立场】, and 【一句建议或预测】.",
+                ),
+                "换词不换意地重述立场，末尾给一句展望，不要加新论点。",
+            ),
+        )
+        val t1 = listOf(
+            SkeletonParagraph(
+                "Introduction",
+                listOf("The 【图类型】 illustrates 【主题】 over the period from 【起始年】 to 【结束年】."),
+                "改写题目：图类型 + 主题 + 时间范围，别照抄题干。",
+            ),
+            SkeletonParagraph(
+                "Overview",
+                listOf("Overall, 【最显著趋势】, while 【次要趋势】."),
+                "不写数据，只写两句话能概括的整体趋势；这段没有就上不了 6 分。",
+            ),
+            SkeletonParagraph(
+                "Detail 1",
+                listOf(
+                    "There was a marked increase in 【指标 A】, rising from 【数】 to 【数】.",
+                    "【指标 B】 declined steadily, from 【数】 in 【年】 to 【数】 in 【年】.",
+                ),
+                "挑变化最大的两条线，数据必须来自图表。",
+            ),
+            SkeletonParagraph(
+                "Detail 2",
+                listOf(
+                    "【A】 accounted for 【百分比】 of the total, compared with 【B】 at 【百分比】.",
+                    "While 【A】 rose sharply, 【B】 remained almost unchanged.",
+                ),
+                "补一组对比（占比或倍数），把剩下的关键数据写完。",
+            ),
+        )
+        return EssaySkeleton(if (task == "task1") t1 else t2)
+    }
+
+    /** JSON 优先；模型写坏 JSON 时退化成按空行切段，界面至少还给得出一份骨架。 */
+    fun parseSkeleton(raw: String): EssaySkeleton {
+        val json = runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
+        if (json != null) {
+            val list = runCatching {
+                val root = JSONObject(json)
+                val arr = root.optJSONArray("paragraphs") ?: root.optJSONArray("body")
+                (0 until (arr?.length() ?: 0)).mapNotNull { i ->
+                    val o = arr!!.optJSONObject(i) ?: return@mapNotNull null
+                    val label = o.optString("label").ifBlank { o.optString("name") }
+                    val linesArr = o.optJSONArray("lines")
+                    val lines = if (linesArr != null) {
+                        (0 until linesArr.length()).map { linesArr.optString(it) }.filter { it.isNotBlank() }
+                    } else {
+                        o.optString("text").lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
+                    }
+                    if (lines.isEmpty()) null else SkeletonParagraph(label.ifBlank { "Paragraph" }, lines, o.optString("hint"))
+                }
+            }.getOrNull()
+            if (!list.isNullOrEmpty()) return EssaySkeleton(list, raw)
+        }
+        val blocks = raw.split(Regex("\n\\s*\n")).map { it.trim() }.filter { it.isNotBlank() }
+        if (blocks.isEmpty()) return EssaySkeleton(emptyList(), raw)
+        return EssaySkeleton(
+            blocks.mapIndexed { i, b ->
+                SkeletonParagraph(
+                    label = "Paragraph ${i + 1}",
+                    lines = b.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toList(),
+                    hint = "",
+                )
+            },
+            raw,
+        )
+    }
+
+    /**
+     * 给定题目 + 句子模板，让 AI 填槽位，并给一句中文「为什么这么填」。
+     * 模板是骨架不是答案：提示词要求保留结构、只换内容，输出 1-3 句可直接进正文的英文。
+     */
+    suspend fun fillTemplate(
+        context: Context,
+        model: String,
+        topic: String,
+        frame: String,
+        whenTo: String,
+    ): TemplateFill {
+        val user = "Topic: " + topic.trim() +
+            "\nTemplate: " + frame.trim() +
+            "\nChinese hint about when to use it: " + whenTo.trim()
+        val raw = LocalLlmEngine.generateText(
+            context, model, TEMPLATE_FILL_SYSTEM,
+            PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
+        )
+        return parseTemplateFill(raw)
+    }
+
+    /** 兼容三种输出：JSON、`Filled: ...` 冒号格式、直接一段英文。 */
+    fun parseTemplateFill(raw: String): TemplateFill {
+        val json = runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
+        if (json != null) {
+            val parsed = runCatching {
+                val o = JSONObject(json)
+                val text = o.optString("filled").ifBlank { o.optString("sentence") }.ifBlank { o.optString("text") }
+                val why = o.optString("why").ifBlank { o.optString("explain") }.ifBlank { o.optString("note") }
+                text.trim() to why.trim()
+            }.getOrNull()
+            if (parsed != null && parsed.first.isNotBlank()) return TemplateFill(parsed.first, parsed.second, raw)
+        }
+        val lines = raw.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
+        if (lines.isEmpty()) return TemplateFill("", "", raw)
+        var text = lines.first()
+        var why = ""
+        for (prefix in listOf("Filled:", "Sentence:", "filled:", "sentence:")) {
+            if (text.startsWith(prefix)) text = text.removePrefix(prefix).trim()
+        }
+        val whyLine = lines.drop(1).firstOrNull { it.startsWith("Why:") || it.startsWith("why:") || it.startsWith("说明") }
+        if (whyLine != null) why = whyLine.substringAfter(':').substringAfter("：").trim()
+        return TemplateFill(text.trim('"', '\'', '“', '”', '*', '`').trim(), why, raw)
     }
 
     /** 题目只留第一段纯文本：模型偶尔带 Prompt:/Question: 前缀、引号或「Here is the prompt:」引导语。 */
@@ -465,6 +669,56 @@ object StudyAi {
         - reference a detail the candidate actually said, so it feels like a real examiner listening.
         - one sentence, at most 25 words, ending with a question mark.
         - return plain text only, never JSON, never key-value wrapping.
+    """.trimIndent()
+
+    private val SKELETON_SYSTEM = """
+        You are an IELTS writing coach building a fill-in-the-blank essay skeleton for one prompt.
+        Rules:
+        - Use the given paragraph structure only. Task 2: Introduction, Body 1, Body 2, Conclusion.
+          Task 1: Introduction, Overview, Detail 1, Detail 2.
+        - Each paragraph has 2-4 lines built from the provided sentence frames; adapt the frames to the topic.
+        - Replace all content words with Chinese slot markers in 【】 (for example 【你支持的理由】,
+          【具体例子】, 【数据趋势】). Keep English connectors and grammar words.
+        - Do NOT write a finished essay and do NOT fill the slots with content; the student must think.
+        - hint: one short Chinese sentence telling the student what to put in this paragraph.
+        - Every line MUST contain at least one 【】 slot. Example of an acceptable line:
+          "It is often argued that 【观点 A】, while others maintain that 【观点 B】."
+          If you write a complete sentence with no 【】, it is wrong.
+        - Return JSON only: {"paragraphs":[{"label":"Introduction","lines":["line 1","line 2"],"hint":"中文提示"}]}
+    """.trimIndent()
+
+    /** 给骨架用的句式清单：只喂结构，避免 4B 自由发挥。 */
+    private val TASK2_FRAMES = """
+        - It is often argued that ..., while others maintain that ...
+        - While I accept that ..., I would argue that ...
+        - First and foremost, ...
+        - The primary reason for this is that ...
+        - This is largely because ...
+        - A case in point is ...
+        - As a consequence, ...
+        - Admittedly, ...; however, ...
+        - In conclusion, ..., and ...
+    """.trimIndent()
+
+    private val TASK1_FRAMES = """
+        - The ... illustrates ... over the period from ... to ...
+        - Overall, ..., while ...
+        - There was a marked increase in ..., rising from ... to ...
+        - ... declined steadily, from ... to ...
+        - ... accounted for ... of the total, compared with ... at ...
+        - While ... rose sharply, ... remained almost unchanged.
+    """.trimIndent()
+
+    private val TEMPLATE_FILL_SYSTEM = """
+        You are an IELTS tutor helping a student fill a sentence template for their essay or speaking answer.
+        Input: the exam topic, a template with 【slots】, and a Chinese hint about when to use it.
+        Rules:
+        - Keep the template's structure and connectors; replace only the 【slots】 with content that fits THIS topic.
+        - Output 1-3 natural sentences at band 6.5-7.5 level: concrete, specific, no vague filler.
+        - Never invent statistics that look authoritative; if a number is needed, use a clearly generic phrase
+          such as "around two thirds of respondents" or keep the slot qualitative.
+        - Do not add new arguments that the template does not ask for.
+        - Return JSON only: {"filled": "<final English sentences>", "why": "<one short Chinese sentence on how to use it, max 60 chars>"}
     """.trimIndent()
 
     private val WRITING_TOPIC_SYSTEM = """

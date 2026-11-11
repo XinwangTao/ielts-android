@@ -471,6 +471,16 @@ private fun App(
     var writingOutlineTopic by ai.writingOutlineTopic
     var writingOutlineBusy by ai.writingOutlineBusy
     var writingOutlineError by ai.writingOutlineError
+    var templateFillId by ai.templateFillId
+    var templateFillTopic by ai.templateFillTopic
+    var templateFillBusy by ai.templateFillBusy
+    var templateFillText by ai.templateFillText
+    var templateFillWhy by ai.templateFillWhy
+    var templateFillError by ai.templateFillError
+    var writingSkeleton by ai.writingSkeleton
+    var writingSkeletonTopic by ai.writingSkeletonTopic
+    var writingSkeletonBusy by ai.writingSkeletonBusy
+    var writingSkeletonError by ai.writingSkeletonError
     var speakingSample by ai.speakingSample
     var speakingSampleQuestion by ai.speakingSampleQuestion
     var speakingSampleBusy by ai.speakingSampleBusy
@@ -587,6 +597,99 @@ private fun App(
             if (writingOutlineTopic == topic) writingOutlineError = "提纲生成失败：${e.message}"
         } finally {
             if (writingOutlineTopic == topic) writingOutlineBusy = false
+        }
+    }
+
+    /** AI 作文框架：把模板拼成整篇四段骨架，学生往里填内容，填完提交评分。 */
+    suspend fun requestWritingSkeleton(topic: String, task: String) {
+        if (writingSkeletonBusy) return
+        // 同一题 + 同一 Task 的骨架可复用；界面上已有这道题的骨架时，这次点击是想换一份。
+        val cacheKey = com.txw.ielts.llm.StudyAiCache.key("skeleton_v3", prefs.localModel, task, topic)
+        if (writingSkeleton == null || writingSkeletonTopic != topic) {
+            val cachedRaw = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAiCache.get(prefs.studyAiCache, cacheKey)
+            }
+            if (cachedRaw != null) {
+                val cached = com.txw.ielts.llm.StudyAi.parseSkeleton(cachedRaw)
+                if (!cached.isEmpty) {
+                    writingSkeleton = cached
+                    writingSkeletonTopic = topic
+                    writingSkeletonError = null
+                    return
+                }
+            }
+        }
+        writingSkeleton = null
+        writingSkeletonTopic = topic
+        writingSkeletonBusy = true
+        writingSkeletonError = null
+        if (LocalLlmEngine.isGenerating) {
+            writingSkeletonError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            writingSkeletonBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            writingSkeletonError = "本地模型未就绪：请到设置页确认模型已投递"
+            writingSkeletonBusy = false
+            return
+        }
+        try {
+            val r = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.essaySkeleton(context, prefs.localModel, topic, task)
+            }
+            if (writingSkeletonTopic == topic) {
+                if (r.isEmpty) {
+                    writingSkeletonError = "本地模型没有给出可用的框架，请重试"
+                } else {
+                    writingSkeleton = r
+                    withContext(Dispatchers.IO) {
+                        prefs.editJson { prefs.studyAiCache = com.txw.ielts.llm.StudyAiCache.put(prefs.studyAiCache, cacheKey, r.raw) }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            if (writingSkeletonTopic == topic) writingSkeletonError = "框架生成失败：${e.message}"
+        } finally {
+            if (writingSkeletonTopic == topic) writingSkeletonBusy = false
+        }
+    }
+
+    /** 句子模板填词：按当前题目把一条模板的槽位填好，并给一句中文用法说明。 */
+    suspend fun requestTemplateFill(templateId: String, frame: String, whenTo: String, topic: String) {
+        if (templateFillBusy) return
+        // 归属先写、旧载荷清掉：切换模板时不显示上一条的结果。
+        templateFillId = templateId
+        templateFillTopic = topic
+        templateFillText = null
+        templateFillWhy = null
+        templateFillError = null
+        templateFillBusy = true
+        if (LocalLlmEngine.isGenerating) {
+            templateFillError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            templateFillBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            templateFillError = "本地模型未就绪：请到设置页确认模型已投递"
+            templateFillBusy = false
+            return
+        }
+        try {
+            val r = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.fillTemplate(context, prefs.localModel, topic, frame, whenTo)
+            }
+            if (templateFillId == templateId && templateFillTopic == topic) {
+                if (r.isEmpty) {
+                    templateFillError = "本地模型没有给出可用的句子，请重试"
+                } else {
+                    templateFillText = r.text
+                    templateFillWhy = r.why.ifBlank { null }
+                }
+            }
+        } catch (e: Exception) {
+            if (templateFillId == templateId) templateFillError = "填词失败：${e.message}"
+        } finally {
+            if (templateFillId == templateId) templateFillBusy = false
         }
     }
 
@@ -2597,6 +2700,25 @@ private fun App(
                     outlineError = writingOutlineError,
                     onRequestOutline = { topic, task ->
                         ai.launch { requestWritingOutline(topic, task) }
+                    },
+                    templateFill = templateFillId?.let { id ->
+                        com.txw.ielts.ui.TemplateFillState(
+                            templateId = id,
+                            topic = templateFillTopic ?: "",
+                            busy = templateFillBusy,
+                            text = templateFillText,
+                            why = templateFillWhy,
+                            error = templateFillError,
+                        )
+                    },
+                    onRequestTemplateFill = { id, frame, whenTo, topic ->
+                        ai.launch { requestTemplateFill(id, frame, whenTo, topic) }
+                    },
+                    skeleton = writingSkeleton,
+                    skeletonBusy = writingSkeletonBusy,
+                    skeletonError = writingSkeletonError,
+                    onRequestSkeleton = { topic, task ->
+                        ai.launch { requestWritingSkeleton(topic, task) }
                     },
                 )
 
