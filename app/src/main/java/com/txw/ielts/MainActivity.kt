@@ -481,6 +481,12 @@ private fun App(
     var writingSkeletonTopic by ai.writingSkeletonTopic
     var writingSkeletonBusy by ai.writingSkeletonBusy
     var writingSkeletonError by ai.writingSkeletonError
+    var listeningQa by ai.listeningQa
+    var listeningQaBusy by ai.listeningQaBusy
+    var listeningQaError by ai.listeningQaError
+    var listeningVerdict by ai.listeningVerdict
+    var listeningVerdictBusy by ai.listeningVerdictBusy
+    var listeningVerdictError by ai.listeningVerdictError
     var speakingSample by ai.speakingSample
     var speakingSampleQuestion by ai.speakingSampleQuestion
     var speakingSampleBusy by ai.speakingSampleBusy
@@ -597,6 +603,62 @@ private fun App(
             if (writingOutlineTopic == topic) writingOutlineError = "提纲生成失败：${e.message}"
         } finally {
             if (writingOutlineTopic == topic) writingOutlineBusy = false
+        }
+    }
+
+    /** 听力口语追问：按这段原文出一道能口述回答的理解题。 */
+    suspend fun requestListeningQa(passage: String) {
+        if (listeningQaBusy) return
+        listeningQaBusy = true
+        listeningQaError = null
+        listeningVerdict = null
+        listeningVerdictError = null
+        if (LocalLlmEngine.isGenerating) {
+            listeningQaError = "本地模型正在忙（评分或另一项生成中），请等它完成后再试"
+            listeningQaBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            listeningQaError = "本地模型未就绪：请到设置页确认模型已投递"
+            listeningQaBusy = false
+            return
+        }
+        try {
+            val r = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.listeningQa(context, prefs.localModel, passage)
+            }
+            if (r.isEmpty) listeningQaError = "本地模型没给出可用的问题，请重试" else listeningQa = r
+        } catch (e: Exception) {
+            listeningQaError = "出题失败：${e.message}"
+        } finally {
+            listeningQaBusy = false
+        }
+    }
+
+    /** 口述回答判定：只比内容要点，识别噪声不影响结论。 */
+    suspend fun requestListeningVerdict(question: String, reference: String, answer: String) {
+        if (listeningVerdictBusy) return
+        listeningVerdictBusy = true
+        listeningVerdictError = null
+        listeningVerdict = null
+        if (LocalLlmEngine.isGenerating) {
+            listeningVerdictError = "本地模型正在忙，请稍后再判"
+            listeningVerdictBusy = false
+            return
+        }
+        if (localModelMissing()) {
+            listeningVerdictError = "本地模型未就绪：请到设置页确认模型已投递"
+            listeningVerdictBusy = false
+            return
+        }
+        try {
+            listeningVerdict = withContext(Dispatchers.IO) {
+                com.txw.ielts.llm.StudyAi.judgeListeningAnswer(context, prefs.localModel, question, reference, answer)
+            }
+        } catch (e: Exception) {
+            listeningVerdictError = "判定失败：${e.message}"
+        } finally {
+            listeningVerdictBusy = false
         }
     }
 
@@ -3331,6 +3393,15 @@ private fun App(
                                                 },
                                                 onSubmit = { scope.launch { submitQuiz(set.id) } },
                                                 error = quizError, notice = quizNotice,
+                                                listeningQa = listeningQa,
+                                                listeningQaBusy = listeningQaBusy,
+                                                listeningQaError = listeningQaError,
+                                                listeningVerdict = listeningVerdict,
+                                                listeningVerdictBusy = listeningVerdictBusy,
+                                                listeningVerdictError = listeningVerdictError,
+                                                onRequestListeningQa = { p -> ai.launch { requestListeningQa(p) } },
+                                                onJudgeListeningAnswer = { q, r, a -> ai.launch { requestListeningVerdict(q, r, a) } },
+                                                transcribe = { f -> transcribe(f) },
                                                 onBack = {
                                                     if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                                     route = if (isAi) Route.AiGen else Route.Bank
@@ -3409,6 +3480,15 @@ private fun App(
                                         },
                                         onSubmit = { scope.launch { submitQuiz(set.id) } },
                                         error = quizError, notice = quizNotice,
+                                        listeningQa = listeningQa,
+                                        listeningQaBusy = listeningQaBusy,
+                                        listeningQaError = listeningQaError,
+                                        listeningVerdict = listeningVerdict,
+                                        listeningVerdictBusy = listeningVerdictBusy,
+                                        listeningVerdictError = listeningVerdictError,
+                                        onRequestListeningQa = { p -> ai.launch { requestListeningQa(p) } },
+                                        onJudgeListeningAnswer = { q, r, a -> ai.launch { requestListeningVerdict(q, r, a) } },
+                                        transcribe = { f -> transcribe(f) },
                                         onBack = {
                                             if (bankAnswers.isNotEmpty()) bankRepo.saveAnswers(set.id, bankAnswers)
                                             route = if (isAi) Route.AiGen else Route.Bank

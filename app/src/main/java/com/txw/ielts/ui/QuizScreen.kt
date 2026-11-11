@@ -66,8 +66,20 @@ fun QuizScreen(
     notice: String? = null,
     onBack: () -> Unit,
     onAddWord: (String, String, String) -> Unit = { _, _, _ -> },
+    // 听力口语追问：AI 出理解题 → 口述 → 转写 → AI 判要点。
+    listeningQa: com.txw.ielts.llm.ListeningQa? = null,
+    listeningQaBusy: Boolean = false,
+    listeningQaError: String? = null,
+    listeningVerdict: com.txw.ielts.llm.ListeningVerdict? = null,
+    listeningVerdictBusy: Boolean = false,
+    listeningVerdictError: String? = null,
+    onRequestListeningQa: (passage: String) -> Unit = {},
+    onJudgeListeningAnswer: (question: String, reference: String, answer: String) -> Unit = { _, _, _ -> },
+    transcribe: suspend (java.io.File) -> String = { "" },
 ) {
     val context = LocalContext.current
+    // 听力题的「听题」：把题干和选项按考试顺序念一遍，避免只看文字漏掉语音细节。
+    val (ttsOk, speak) = rememberTts()
     val answered = set.questions.count { !answers[it.id].isNullOrBlank() }
     var elapsedSec by remember { mutableIntStateOf(0) }
     LaunchedEffect(startAtMs) {
@@ -143,6 +155,18 @@ fun QuizScreen(
 
         if (set.module == "listening") {
             AudioCard(set, repo)
+            ListeningQaCard(
+                question = listeningQa?.question,
+                reference = listeningQa?.reference,
+                busy = listeningQaBusy,
+                error = listeningQaError,
+                verdict = listeningVerdict,
+                verdictBusy = listeningVerdictBusy,
+                verdictError = listeningVerdictError,
+                onRequestQa = { onRequestListeningQa(set.passage) },
+                onJudge = { q, r, a -> onJudgeListeningAnswer(q, r, a) },
+                transcribe = transcribe,
+            )
         } else {
             ReadingCard(set.passage, prefs, onAddWord)
         }
@@ -150,7 +174,13 @@ fun QuizScreen(
         // —— 翻页做题：一页一题，上一题/下一题 ——
         var pageIndex by rememberSaveable(set.id) { mutableIntStateOf(0) }
         val page = set.questions.getOrNull(pageIndex) ?: set.questions.first()
-        QuestionCard(pageIndex + 1, page, answers[page.id]) { v -> onAnswer(page.id, v) }
+        val spokenQuestion: (() -> Unit)? = if (set.module == "listening" && ttsOk) {
+            val opts = page.options.mapIndexed { i, o -> (('A' + i)) + ". " + o }.joinToString(". ")
+            val text = "Question " + (pageIndex + 1) + ". " + page.prompt + ". " + opts
+            val speakIt: () -> Unit = { speak(text) }
+            speakIt
+        } else null
+        QuestionCard(pageIndex + 1, page, answers[page.id], spokenQuestion) { v -> onAnswer(page.id, v) }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             OutlinedButton(
@@ -552,7 +582,13 @@ private fun MediaPlayer.setPlaybackSpeedCompat(speed: Float) {
 }
 
 @Composable
-private fun QuestionCard(index: Int, q: BankQuestion, answer: String?, onChange: (String) -> Unit) {
+private fun QuestionCard(
+    index: Int,
+    q: BankQuestion,
+    answer: String?,
+    onSpeak: (() -> Unit)? = null,
+    onChange: (String) -> Unit,
+) {
     BookCard(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -560,6 +596,9 @@ private fun QuestionCard(index: Int, q: BankQuestion, answer: String?, onChange:
                 style = MaterialTheme.typography.bodyMedium,
                 fontFamily = FontFamily.Serif,
             )
+            onSpeak?.let { speakQ ->
+                TextButton(onClick = speakQ) { Text("听题（题干 + 选项）") }
+            }
 
             when (q.type) {
                 "choice" -> q.options.forEachIndexed { i, opt ->

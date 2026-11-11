@@ -26,6 +26,24 @@ data class StudyOutline(
 
 /** 口语范例答案：答案本身 + 可复用表达 + 中文结构提示。 */
 /** AI 搭好的作文骨架：每段由若干带【中文槽位】的句式组成，学生自己填内容。 */
+/** 听力口语追问：一句可口头回答的理解题 + 参考答案。 */
+data class ListeningQa(
+    val question: String,
+    val reference: String,
+    val raw: String = "",
+) {
+    val isEmpty: Boolean get() = question.isBlank()
+}
+
+/** 口述作答的判定：对 / 部分对 / 不对，配一句中文点评。 */
+data class ListeningVerdict(
+    val verdict: String,
+    val comment: String,
+    val raw: String = "",
+) {
+    val isEmpty: Boolean get() = verdict.isBlank() && comment.isBlank()
+}
+
 data class SkeletonParagraph(
     val label: String,
     val lines: List<String>,
@@ -241,6 +259,73 @@ object StudyAi {
             context, model, WRITING_TOPIC_SYSTEM, PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
         )
         return cleanPrompt(raw)
+    }
+
+    /** 按听力原文出一道「能口述回答」的理解题：不走选项，考是否真听懂。 */
+    suspend fun listeningQa(context: Context, model: String, passage: String): ListeningQa {
+        val raw = LocalLlmEngine.generateText(
+            context, model, LISTENING_QA_SYSTEM,
+            PromptBudget.clipText(passage.trim(), PromptBudget.STUDY_INPUT_TOKENS),
+        )
+        return parseListeningQa(raw)
+    }
+
+    fun parseListeningQa(raw: String): ListeningQa {
+        val json = runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
+        if (json != null) {
+            val parsed = runCatching {
+                val o = JSONObject(json)
+                val q = o.optString("question").ifBlank { o.optString("q") }
+                val a = o.optString("reference").ifBlank { o.optString("answer") }
+                q.trim() to a.trim()
+            }.getOrNull()
+            if (parsed != null && parsed.first.isNotBlank()) return ListeningQa(parsed.first, parsed.second, raw)
+        }
+        val lines = raw.lineSequence().map { it.trim() }.filter { it.isNotBlank() }.toList()
+        if (lines.isEmpty()) return ListeningQa("", "", raw)
+        val q = lines.firstOrNull { it.contains("?") }?.removePrefix("Question:").orEmpty()
+        val ref = lines.dropWhile { !it.contains("?") }.drop(1).firstOrNull()?.substringAfter(':')?.trim().orEmpty()
+        return ListeningQa(q.trim(), ref, raw)
+    }
+
+    /** 判口述回答：只比内容要点，不纠语法；转写噪声要容忍。 */
+    suspend fun judgeListeningAnswer(
+        context: Context,
+        model: String,
+        question: String,
+        reference: String,
+        answer: String,
+    ): ListeningVerdict {
+        val user = "Question: " + question.trim() +
+            "  Reference answer: " + reference.trim() +
+            "  Candidate (speech-to-text, may contain recognition errors): " + answer.trim()
+        val raw = LocalLlmEngine.generateText(
+            context, model, LISTENING_JUDGE_SYSTEM,
+            PromptBudget.clipText(user, PromptBudget.STUDY_INPUT_TOKENS),
+        )
+        return parseListeningVerdict(raw)
+    }
+
+    fun parseListeningVerdict(raw: String): ListeningVerdict {
+        val json = runCatching { ScoreSanitizer.extractJson(raw) }.getOrNull()
+        if (json != null) {
+            val parsed = runCatching {
+                val o = JSONObject(json)
+                o.optString("verdict").ifBlank { o.optString("result") } to
+                    o.optString("comment").ifBlank { o.optString("why") }
+            }.getOrNull()
+            if (parsed != null && (parsed.first.isNotBlank() || parsed.second.isNotBlank())) {
+                return ListeningVerdict(parsed.first.trim(), parsed.second.trim(), raw)
+            }
+        }
+        val text = raw.trim()
+        val verdict = when {
+            text.contains("部分") || text.lowercase().contains("partial") -> "部分对"
+            text.contains("不对") || text.contains("错误") || text.lowercase().contains("wrong") -> "不对"
+            text.contains("对") || text.lowercase().contains("correct") -> "对"
+            else -> ""
+        }
+        return ListeningVerdict(verdict, text.take(120), raw)
     }
 
     /**
@@ -669,6 +754,25 @@ object StudyAi {
         - reference a detail the candidate actually said, so it feels like a real examiner listening.
         - one sentence, at most 25 words, ending with a question mark.
         - return plain text only, never JSON, never key-value wrapping.
+    """.trimIndent()
+
+    private val LISTENING_QA_SYSTEM = """
+        You are an IELTS listening tutor. Read the transcript and ask ONE comprehension question
+        that a candidate can answer aloud in 20-40 seconds.
+        Rules:
+        - Ask about a fact, reason, attitude or detail clearly stated in the transcript.
+        - Do not ask yes/no questions; do not ask about spelling or numbers alone.
+        - Give a 1-2 sentence reference answer taken from the transcript.
+        - Return JSON only: {"question": "...", "reference": "..."}
+    """.trimIndent()
+
+    private val LISTENING_JUDGE_SYSTEM = """
+        You are an IELTS listening tutor judging a spoken answer transcribed by speech recognition.
+        Rules:
+        - Compare meaning with the reference answer; ignore grammar, spelling and recognition noise.
+        - If the key point is covered, verdict is "对"; if partly, "部分对"; if missing or contradictory, "不对".
+        - comment: one short Chinese sentence on what was missing or what to listen for.
+        - Return JSON only: {"verdict": "对|部分对|不对", "comment": "中文一句话"}
     """.trimIndent()
 
     private val SKELETON_SYSTEM = """
