@@ -102,6 +102,12 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
   截图 `F:/projects/_agent-runs/ielts-shot.png`。
   （脚本首版有 bug：`pipefail` 下 `printf 大字符串 | grep -q` 被 SIGPIPE 打成 141，误报「无通知」，
   已改 here-string；同一坑在 `e2e_smoke.sh` 崩溃检查里也修了。）
+- ✅ 2026-11-11 无线调试回归（PKJ110，SDK 37，`adb-afa99023-q6q7Cb`）：
+  `e2e_smoke.sh` 覆盖安装成功、冷启动 610ms、首页渲染、无崩溃；
+  `e2e_batch0.sh` 写作页预热通知出现→返回消失、口语页深链直达、崩溃缓冲为空；
+  `e2e_local_ai.sh` 九个模式全绿（outline stance=155／sample words=170／vocab items=6／
+  review tasks=3／followup chars=83／variant options=4 answerOk=true／newtopic words=32／
+  score_writing 7.5／score_speaking 7.0）。下面带 [ ] 的多为 UI 交互与录音回放项，仍需人工或补脚本。
 - [ ] 预热：进写作 / 口语 / AI 出题页 5 秒后，通知显示「正在准备本地模型…」，返回后消失；
       触发时进程不崩（真机曾因主线程阻塞导致 FGS 超时崩溃，已修）——写作页路径已由批次 0 覆盖，
       口语 / 出题页待补
