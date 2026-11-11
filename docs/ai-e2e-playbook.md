@@ -60,6 +60,11 @@ bash tools/e2e_local_ai.sh <设备> <模式> [--force]
 - **安装授权弹窗**：ColorOS 的 `InstallGrantActivity` 会盖住 App；安装后如出现先返回。
 - **主线程 ANR**：e2e 钩子必须在 `withContext(Dispatchers.IO)` 里调引擎；
   主线程直接 `submit` 会 5 秒 ANR（已修，`14c7352`）。
+- **`e2e_wav` 的音频路径必须 App 可读**（2026-11-11 实测）：Android 13+ 分区存储下，
+  传 `/sdcard/xxx.wav` 会在转写时 `open failed: EACCES`，并留下一条永远 `pending_eval`
+  的口语会话（结果页只能反复「重新评分」）。改用
+  `/sdcard/Android/data/com.txw.ielts/files/<name>.wav`，或 `run-as com.txw.ielts`
+  拷进内部 `files/`；已有的坏会话在设置页清空/删除，别留在「待处理」。
 - **设备名**：IP 在 `192.168.236/237` 间漂移，且同网段可能有其他设备；
   优先用 mDNS 名，用 `getprop ro.product.model` 确认是 `PKJ110`。
 - **模型首次加载**：冷加载 20-40s，生成 30-100s；出题漏题时 App 会自动重发一次，
