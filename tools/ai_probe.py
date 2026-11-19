@@ -176,6 +176,16 @@ ESSAY_WEAK = """Some people think students should study what they like. Others t
 
 TRANSCRIPT_SPEAKING = """I would like to talk about learning to swim, which was really difficult for me at the beginning. I learned it when I was 22 years old, during a summer holiday at the coast. My friend Tom taught me the basics in a shallow pool before we moved to the sea. At first I was terrified of putting my face under the water, and I could not float at all. The main reason it was difficult is that I had a bad experience as a child, so I panicked easily. I practiced for about half an hour every morning for two weeks, and I watched short videos to copy the arm movements. Slowly I became confident, and by the end of the holiday I could swim 50 meters without stopping. I feel proud of it now, because it taught me that patience and small daily steps can overcome fear."""
 
+LISTENING_TRANSCRIPT = """Good morning, Riverside Community Library. How can I help you?
+Hello. I would like to join the library, please. What do I need to bring?
+You need one form of identification with your address, such as a utility bill or a driving licence. Membership is free for local residents.
+Great. And what are your opening hours?
+On weekdays we open at nine in the morning and close at eight in the evening. At weekends we close at five.
+Do you have a children's section?
+Yes, the children's room is on the second floor, next to the study area. We also run a reading group for children every Saturday morning.
+Perfect. Is there anywhere I can study quietly?
+You can use the silent room on the third floor, but you need to book a desk online because spaces are limited."""
+
 TABLE_DATA = """Food: 24% (1995) → 18% (2015)
 Housing: 18% → 26%
 Transport: 15% → 16%
@@ -213,6 +223,9 @@ def cases() -> list[dict]:
     sys_explain = from_kotlin("LlmClient.kt", "BANK_EXPLAIN_SYSTEM")
     sys_variant = from_kotlin("StudyAi.kt", "VARIANT_SYSTEM")
     sys_writing_topic = from_kotlin("StudyAi.kt", "WRITING_TOPIC_SYSTEM")
+    sys_skeleton = from_kotlin("StudyAi.kt", "SKELETON_SYSTEM")
+    sys_listen_qa = from_kotlin("StudyAi.kt", "LISTENING_QA_SYSTEM")
+    sys_listen_judge = from_kotlin("StudyAi.kt", "LISTENING_JUDGE_SYSTEM")
 
     weakness = ("\n\nThis student's recurring weaknesses recorded from past attempts: 字数与展开; 主谓一致. "
                 "Check specifically whether these problems appear in this attempt. If they do, list them FIRST in top_fixes "
@@ -297,6 +310,21 @@ def cases() -> list[dict]:
                    "Others think they should only study subjects that will be useful. "
                    "Discuss both views and give your own opinion."),
              validate="topic"),
+        dict(name="writing_skeleton", system=sys_skeleton,
+             user=("Task type: Task 2 (essay)" + "\n"
+                   + "Prompt: " + topic2 + "\n"
+                   + "Useful sentence frames (adapt, do not invent new structure):" + "\n"
+                   + "- It is often argued that ..., while others maintain that ..." + "\n"
+                   + "- First and foremost, ..." + "\n"
+                   + "- A case in point is ..." + "\n"
+                   + "- In conclusion, ..., and ..."),
+             validate="skeleton"),
+        dict(name="listening_qa", system=sys_listen_qa, user=LISTENING_TRANSCRIPT, validate="listen_qa"),
+        dict(name="listening_judge", system=sys_listen_judge,
+             user=("Question: What time does the library open at weekends?"
+                   + "  Reference answer: It closes at five."
+                   + "  Candidate (speech-to-text, may contain recognition errors): It closes at nine in the evening."),
+             validate="listen_judge"),
         dict(name="chart_prompt_polish",
              system="You are an IELTS Writing Task 1 examiner. Rewrite the given Task 1 prompt in natural exam-authentic English. Keep every number, category and unit exactly as given; do not add or remove data. Output only the prompt sentence(s), no explanation.",
              user="Chart type: table\nTitle: household spending by category in 1995 and 2015\nUnit: %\nData:\n" + TABLE_DATA,
@@ -328,6 +356,27 @@ def validate(case: dict, text: str) -> list[str]:
     if not text.strip():
         return ["模型没有输出"]
     v = case["validate"]
+    if v == "skeleton":
+        t = text
+        slots = t.count("【")
+        labels = t.count('"label"')
+        if slots < 4:
+            issues.append(f"槽位不足（只有 {slots} 个【），模型又把内容填满了")
+        if labels < 3:
+            issues.append(f"段落不足（只识别到 {labels} 个 label）")
+        return issues
+    if v == "listen_qa":
+        t = text
+        if "?" not in t:
+            issues.append("没有问题句")
+        if len(t.split()) < 8:
+            issues.append("问题过短")
+        return issues
+    if v == "listen_judge":
+        t = text
+        if not any(k in t for k in ("对", "部分对", "不对")):
+            issues.append("没有给出 对/部分对/不对 的结论")
+        return issues
     if v == "topic":
         t = text.strip()
         twords = t.split()

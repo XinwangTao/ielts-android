@@ -255,4 +255,59 @@ class StudyAiTest {
         )
         assertEquals("", StudyAi.cleanPrompt("   "))
     }
+
+    @Test
+    fun `作文骨架解析 JSON 四段`() {
+        val raw = """
+            {"paragraphs":[{"label":"Introduction","lines":["It is often argued that 【观点 A】."],"hint":"写两个观点"},
+            {"label":"Body 1","lines":["First and foremost, 【理由】."],"hint":"给理由"},
+            {"label":"Body 2","lines":["Another factor is 【理由二】."],"hint":"换角度"},
+            {"label":"Conclusion","lines":["In conclusion, 【立场】."],"hint":"重述立场"}]}
+        """.trimIndent()
+        val sk = StudyAi.parseSkeleton(raw)
+        assertEquals(4, sk.paragraphs.size)
+        assertEquals("Introduction", sk.paragraphs[0].label)
+        assertTrue(sk.paragraphs[0].lines[0].contains("【"))
+        assertTrue(sk.toDraftText().contains("Body 1") == false) // 草稿里不带英文小标题
+        assertTrue(sk.toDraftText().contains("First and foremost"))
+    }
+
+    @Test
+    fun `作文骨架解析失败时按空行切段`() {
+        val raw = "It is often argued that 【A】.\n\nFirst and foremost, 【B】.\n\nIn conclusion, 【C】."
+        val sk = StudyAi.parseSkeleton(raw)
+        assertEquals(3, sk.paragraphs.size)
+        assertTrue(sk.paragraphs[1].lines[0].contains("【B】"))
+    }
+
+    @Test
+    fun `保底骨架永远带槽位和四段`() {
+        val t2 = StudyAi.fallbackSkeleton("task2")
+        assertEquals(4, t2.paragraphs.size)
+        assertTrue(t2.paragraphs.all { p -> p.lines.isNotEmpty() })
+        assertTrue(t2.paragraphs.flatMap { it.lines }.all { it.contains("【") })
+        assertEquals(4, StudyAi.fallbackSkeleton("task1").paragraphs.size)
+    }
+
+    @Test
+    fun `听力追问题解析 JSON 与纯文本`() {
+        val qa = StudyAi.parseListeningQa("""{"question":"What time does the library open?","reference":"At nine."}""")
+        assertEquals("What time does the library open?", qa.question)
+        assertEquals("At nine.", qa.reference)
+
+        val plain = StudyAi.parseListeningQa("Question: Why did the man choose the course?\nReference: Because he wanted to change careers.")
+        assertTrue(plain.question.contains("Why did the man"))
+        assertTrue(plain.reference.contains("change careers"))
+    }
+
+    @Test
+    fun `听力判定解析与兜底`() {
+        val v = StudyAi.parseListeningVerdict("""{"verdict":"部分对","comment":"漏掉了时间"}""")
+        assertEquals("部分对", v.verdict)
+        assertEquals("漏掉了时间", v.comment)
+
+        val plain = StudyAi.parseListeningVerdict("不对，原文说的是早上九点。")
+        assertEquals("不对", plain.verdict)
+        assertTrue(plain.comment.contains("九点"))
+    }
 }
