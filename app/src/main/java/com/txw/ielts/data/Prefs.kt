@@ -322,7 +322,7 @@ class Prefs(context: Context) {
          * 网关只实现 Anthropic 协议，LlmClient 按地址自动识别；想换回智谱直连就把这里填成
          * https://open.bigmodel.cn/api/paas/v4 并填回 key。
          */
-        const val DEFAULT_BASE = "http://192.168.237.7:15721"
+        const val DEFAULT_BASE = "http://192.168.237.200:15721"
         const val DEFAULT_MODEL = "glm-5.3-flash"
         /** 老版本默认值：仅用于「用户没改过」的一次性迁移判断。 */
         private const val LEGACY_DEFAULT_BASE = "https://open.bigmodel.cn/api/paas/v4"
