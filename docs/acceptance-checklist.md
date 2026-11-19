@@ -109,6 +109,7 @@ bash tools/e2e_local_ai.sh <设备> outline|sample|vocab|review|followup|score_w
   review tasks=3／followup chars=83／variant options=4 answerOk=true／newtopic words=32／
   score_writing 7.5／score_speaking 7.0）。下面带 [ ] 的多为 UI 交互与录音回放项，仍需人工或补脚本。
 - [ ] 听力口述追问（2026-11-11 新增）：听力题可「听题（题干 + 选项）」；写作页外的听力答题页新增「听题口述」卡——AI 按原文出一道能口头回答的理解题，念题后直接口述、Whisper 转写、AI 判「对/部分对/不对」并给中文点评，可换一题。
+      探针：`ai_probe.py` 的 writing_skeleton / listening_qa / listening_judge 三例 2026-11-19 全通过（槽位、问句、判定结论均符合预期）。
       待真机验证：出题/念题/录音/转写/判定全链路（本机安装包已就绪，手机被占用未跑）。
 - [ ] 写作模板与 AI 框架（2026-11-11 新增）：写作页「模板」可查 39 条分类句式；「AI 框架」按当前题目生成四段骨架（模型把结构写坏时退回本地保底骨架），「整篇放进草稿」后填【】再提交评分。
       15:52 真机（PKJ110）已见骨架插入草稿（61 词、四段、槽位完整）；填词→评分→改进点闭环待跑。
