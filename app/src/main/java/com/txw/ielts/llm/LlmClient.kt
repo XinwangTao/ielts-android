@@ -212,8 +212,47 @@ class LlmClient(
             )
         )
 
+    /**
+     * 局域网 CC Switch 网关（15721）只实现了 Anthropic /v1/messages，
+     * OpenAI 兼容的 /chat/completions 在它上面会直接 410/429，所以按地址自动选协议。
+     */
+    private val anthropic: Boolean = isAnthropicGateway(baseUrl)
+
+    /**
+     * Anthropic 协议请求：system 单独成字段，正文取 content 里 type=text 的块。
+     * 网关不校验 key，局域网地址留空也能用。
+     */
+    private fun chatAnthropic(system: String, user: String, maxTokens: Int): String {
+        val payload = JSONObject().apply {
+            put("model", model)
+            put("max_tokens", maxTokens)
+            put("temperature", 0.2)
+            put("system", system)
+            put("messages", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("content", user)
+                })
+            })
+        }
+        val body = postWithRetry(anthropicMessagesUrl(baseUrl), payload.toString(), anthropic = true)
+        val o = JSONObject(body)
+        val blocks = o.optJSONArray("content")
+        val sb = StringBuilder()
+        if (blocks != null) {
+            for (i in 0 until blocks.length()) {
+                val b = blocks.optJSONObject(i) ?: continue
+                if (b.optString("type") == "text") sb.append(b.optString("text"))
+            }
+        }
+        val text = sb.toString().trim()
+        if (text.isNotEmpty()) return text
+        throw IOException("模型没有返回正文：${body.take(200)}")
+    }
+
     private fun chat(system: String, user: String, maxTokens: Int = 4000): String {
         if (charged.compareAndSet(false, true)) onBeforeCall()
+        if (anthropic) return chatAnthropic(system, user, maxTokens)
         val payload = JSONObject().apply {
             put("model", model)
             put("max_tokens", maxTokens)
@@ -248,7 +287,7 @@ class LlmClient(
      * 4xx（除 429/408）与配置类错误直接抛出，重试没有意义。
      * 总耗时超过 [TOTAL_BUDGET_MS] 后不再发起新一轮，避免无限拖长。
      */
-    private fun postWithRetry(url: String, body: String): String {
+    private fun postWithRetry(url: String, body: String, anthropic: Boolean = false): String {
         val started = System.currentTimeMillis()
         var attempt = 0
         var last: IOException? = null
@@ -263,12 +302,12 @@ class LlmClient(
                 }
             }
             try {
-                return post(url, body)
+                return post(url, body, anthropic)
             } catch (e: HttpError) {
                 if (!retryable(e.code)) throw e
                 last = e
             } catch (e: IOException) {
-                if (apiKey.isBlank()) throw e
+                if (apiKey.isBlank() && !isLanHost(baseUrl)) throw e
                 last = e
             }
             attempt++
@@ -283,15 +322,20 @@ class LlmClient(
 
     private fun retryable(code: Int): Boolean = code == 408 || code == 429 || code >= 500
 
-    private fun post(url: String, body: String): String {
-        if (apiKey.isBlank()) throw IOException("未配置 API key，请到设置页填写")
+    private fun post(url: String, body: String, anthropic: Boolean = false): String {
+        // 局域网网关（CC Switch）不校验 key，只有外部服务才必须填。
+        if (apiKey.isBlank() && !isLanHost(baseUrl)) throw IOException("未配置 API key，请到设置页填写")
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = CONNECT_TIMEOUT_MS
             readTimeout = READ_TIMEOUT_MS
             doOutput = true
             setRequestProperty("Content-Type", "application/json")
-            setRequestProperty("Authorization", "Bearer $apiKey")
+            if (apiKey.isNotBlank()) {
+                setRequestProperty("Authorization", "Bearer $apiKey")
+                if (anthropic) setRequestProperty("x-api-key", apiKey)
+            }
+            if (anthropic) setRequestProperty("anthropic-version", ANTHROPIC_VERSION)
         }
         try {
             conn.outputStream.use { it.write(body.toByteArray()) }
@@ -501,3 +545,33 @@ class LlmClient(
         """.trimIndent()
     }
 }
+
+/** Anthropic /v1/messages 的版本头；CC Switch 与 Claude 官方一致。 */
+internal const val ANTHROPIC_VERSION = "2023-06-01"
+
+/**
+ * 是不是局域网 CC Switch 网关（Claude 兼容网关，只认 /v1/messages）。
+ * 判据：显式填了 /v1/messages，或端口是网关默认的 15721。
+ */
+internal fun isAnthropicGateway(baseUrl: String): Boolean {
+    val base = baseUrl.trim()
+    if (base.isEmpty()) return false
+    if (Regex("""/(v1/)?messages/?$""").containsMatchIn(base)) return true
+    return Regex("""^https?://[^/]+:15721(?:/|$)""").containsMatchIn(base)
+}
+
+/** 拼接 /v1/messages 地址，兼容用户直接填完整地址或带 /v1。 */
+internal fun anthropicMessagesUrl(baseUrl: String): String {
+    var base = baseUrl.trim()
+    while (base.endsWith("/")) base = base.dropLast(1)
+    if (base.isEmpty()) return "http://192.168.237.7:15721/v1/messages"
+    if (base.endsWith("/messages")) return base
+    if (base.endsWith("/v1")) return "$base/messages"
+    return "$base/v1/messages"
+}
+
+/** 内网地址：网关不校验 key，留空也能调。 */
+internal fun isLanHost(baseUrl: String): Boolean = Regex(
+    """^https?://(127\.0\.0\.1|localhost|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)""",
+    RegexOption.IGNORE_CASE,
+).containsMatchIn(baseUrl.trim())

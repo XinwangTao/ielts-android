@@ -6,6 +6,28 @@ import android.content.Context
 class Prefs(context: Context) {
     private val sp = context.getSharedPreferences("ielts_prefs", Context.MODE_PRIVATE)
 
+    init {
+        migrateCloudToLanGateway()
+    }
+
+    /**
+     * 老版本默认把云端打到智谱直连；现在默认优先走局域网 CC Switch 网关（DESKTOP/THEWANG 的 LAN 共享模型）。
+     * 只迁移「用户没动过、还是老默认值」的配置，自己填过 base/model 的一律不碰；只做一次。
+     */
+    private fun migrateCloudToLanGateway() {
+        if (sp.getBoolean(KEY_LAN_MIGRATION, false)) return
+        val base = (sp.getString(KEY_BASE, "") ?: "").trim().trimEnd('/')
+        val editor = sp.edit().putBoolean(KEY_LAN_MIGRATION, true)
+        if (base.isEmpty() || base == LEGACY_DEFAULT_BASE) {
+            editor.putString(KEY_BASE, DEFAULT_BASE)
+            val model = (sp.getString(KEY_MODEL, "") ?: "").trim()
+            if (model.isEmpty() || model == LEGACY_DEFAULT_MODEL) {
+                editor.putString(KEY_MODEL, DEFAULT_MODEL)
+            }
+        }
+        editor.apply()
+    }
+
     var baseUrl: String
         get() = sp.getString(KEY_BASE, DEFAULT_BASE) ?: DEFAULT_BASE
         set(v) = sp.edit().putString(KEY_BASE, v.trim().trimEnd('/')).apply()
@@ -295,7 +317,16 @@ class Prefs(context: Context) {
 
         /** 四科目标「未设置」哨兵：比任何合法分数都小，snapBand 不可能产出。 */
         private const val UNSET = -1f
-        const val DEFAULT_BASE = "https://open.bigmodel.cn/api/paas/v4"
+        /**
+         * 云端默认走局域网 CC Switch 网关（THEWANG 192.168.237.7:15721，实测 /v1/messages 可用）。
+         * 网关只实现 Anthropic 协议，LlmClient 按地址自动识别；想换回智谱直连就把这里填成
+         * https://open.bigmodel.cn/api/paas/v4 并填回 key。
+         */
+        const val DEFAULT_BASE = "http://192.168.237.7:15721"
         const val DEFAULT_MODEL = "glm-5.3-flash"
+        /** 老版本默认值：仅用于「用户没改过」的一次性迁移判断。 */
+        private const val LEGACY_DEFAULT_BASE = "https://open.bigmodel.cn/api/paas/v4"
+        private const val LEGACY_DEFAULT_MODEL = "glm-5.3-flash"
+        private const val KEY_LAN_MIGRATION = "cloud_lan_migration_v1"
     }
 }

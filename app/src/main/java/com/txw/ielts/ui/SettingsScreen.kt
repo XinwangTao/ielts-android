@@ -63,7 +63,7 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         IosNavBar("设置", onBack = onBack)
-        Text("评分用的 OpenAI 兼容接口（默认智谱）。key 只存在本机。",
+        Text("云端优先走局域网 CC Switch 网关（默认 http://192.168.237.7:15721，自动识别 Anthropic 协议，内网可不填 key）；填智谱等 OpenAI 兼容地址也能用。key 只存在本机。",
             style = MaterialTheme.typography.bodySmall)
 
         // —— 备考目标：目标分决定首页差距提示，考试日期决定临考时今日任务的收紧节奏 ——
@@ -125,9 +125,15 @@ fun SettingsScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
 
-        IosTextField(base, { base = it }, label = "Base URL", modifier = Modifier.fillMaxWidth(), singleLine = true)
+        IosTextField(base, { base = it }, label = "Base URL", modifier = Modifier.fillMaxWidth(), singleLine = true,
+            supportingText = {
+                Text(
+                    if (com.txw.ielts.llm.isAnthropicGateway(base)) "识别为 CC Switch 网关，走 /v1/messages（OpenAI 的 /chat/completions 在该网关不通）"
+                    else "按 OpenAI 兼容的 /chat/completions 调用"
+                )
+            })
         IosTextField(
-            key, { key = it }, label = "API Key", modifier = Modifier.fillMaxWidth(), singleLine = true,
+            key, { key = it }, label = "API Key（内网网关可留空）", modifier = Modifier.fillMaxWidth(), singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
         )
         IosTextField(model, { model = it }, label = "模型", modifier = Modifier.fillMaxWidth(), singleLine = true)
