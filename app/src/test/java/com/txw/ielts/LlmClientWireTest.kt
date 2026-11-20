@@ -170,4 +170,64 @@ class LlmClientWireTest {
             runCatching { server.close() }
         }
     }
+
+    /** 设置页勾选的模型链：第一个不可用就换下一个，额度只按一次逻辑请求扣。 */
+    @Test
+    fun `主模型 404 时自动换下一个且只扣一次额度`() {
+        val requests = mutableListOf<String>()
+        val server = mockServer(
+            listOf(
+                404 to """{"error":{"message":"model not found"}}""",
+                200 to okBody(fixture("reading_generation")),
+            ),
+        ) { requests.add(it) }
+        var charged = 0
+        try {
+            val client = LlmClient(
+                "http://127.0.0.1:${server.localPort}/v1",
+                "test-key",
+                listOf("bad-model", "good-model"),
+                onBeforeCall = { charged++ },
+            )
+            val r = client.generateReading("7.0", listOf("choice", "tfng", "gap"), 6)
+            assertEquals(6, r.questions.size)
+            assertEquals("一次逻辑请求只扣一次额度", 1, charged)
+            assertEquals(2, requests.size)
+            assertEquals("bad-model", JSONObject(requests[0]).getString("model"))
+            assertEquals("good-model", JSONObject(requests[1]).getString("model"))
+        } finally {
+            runCatching { server.close() }
+        }
+    }
+
+    /** 格式类失败重试时，光标前移，下一轮真的换到第二个模型。 */
+    @Test
+    fun `格式坏时 rotateForRetry 让下一次请求换模型`() {
+        val requests = mutableListOf<String>()
+        val server = mockServer(
+            listOf(
+                200 to okBody("not a json"),
+                200 to okBody(fixture("reading_generation")),
+            ),
+        ) { requests.add(it) }
+        try {
+            val client = LlmClient(
+                "http://127.0.0.1:${server.localPort}/v1",
+                "test-key",
+                listOf("m1", "m2"),
+            )
+            val first = runCatching {
+                client.generateReading("7.0", listOf("choice", "tfng", "gap"), 6)
+            }
+            assertTrue("第一次应因 JSON 写坏失败", first.isFailure)
+
+            client.rotateForRetry()
+            val second = client.generateReading("7.0", listOf("choice", "tfng", "gap"), 6)
+            assertEquals(6, second.questions.size)
+            assertEquals("m1", JSONObject(requests[0]).getString("model"))
+            assertEquals("m2", JSONObject(requests[1]).getString("model"))
+        } finally {
+            runCatching { server.close() }
+        }
+    }
 }

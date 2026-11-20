@@ -77,6 +77,23 @@ class LlmClient(
     private val onRetry: (attempt: Int, maxAttempts: Int, reason: String) -> Unit = { _, _, _ -> },
 ) {
 
+    /**
+     * 云端候选队列（含第一个模型）。设置页勾选的顺序即优先级：
+     * 当前模型不可用（HTTP/连不上/返回空）就换下一个，全部失败才抛给 routeLlm 回退本地。
+     */
+    private var modelQueue: List<String> = normalizeCloudModels(listOf(model))
+
+    /** 多模型入口：老的单模型调用点不受影响。 */
+    constructor(
+        baseUrl: String,
+        apiKey: String,
+        models: List<String>,
+        onBeforeCall: () -> Unit = {},
+        onRetry: (attempt: Int, maxAttempts: Int, reason: String) -> Unit = { _, _, _ -> },
+    ) : this(baseUrl, apiKey, models.firstOrNull() ?: "", onBeforeCall, onRetry) {
+        modelQueue = normalizeCloudModels(models)
+    }
+
     /** HTTP 层失败（额度/鉴权/限流/服务端错误）：重试同一请求没有意义，交给 routeLlm 直接回退本地。 */
     internal class HttpError(val code: Int, message: String) : IOException(message)
 
@@ -85,6 +102,17 @@ class LlmClient(
      * 这里保证只调一次 [onBeforeCall]。每个请求链路各建一个 LlmClient，因此不会漏扣。
      */
     private val charged = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    /** 下一次 [chat] 从队列的第几个模型开始；只在格式类重试时前移，正常请求仍从主模型开始。 */
+    private val cursor = java.util.concurrent.atomic.AtomicInteger(0)
+
+    /**
+     * 格式类失败（模型把 JSON 写坏）重试前调用：下一次请求从队列里的下一个模型开始。
+     * 不移动光标时，坏模型会一直挡在最前面，后排模型永远轮不到。
+     */
+    fun rotateForRetry() {
+        if (modelQueue.size > 1) cursor.incrementAndGet()
+    }
 
     /**
      * 把云端错误翻译成用户能照着做的中文。原始返回体照旧附在后面便于排查。
@@ -222,7 +250,13 @@ class LlmClient(
      * Anthropic 协议请求：system 单独成字段，正文取 content 里 type=text 的块。
      * 网关不校验 key，局域网地址留空也能用。
      */
-    private fun chatAnthropic(system: String, user: String, maxTokens: Int): String {
+    private fun chatAnthropic(
+        model: String,
+        system: String,
+        user: String,
+        maxTokens: Int,
+        requireText: Boolean,
+    ): String {
         val payload = JSONObject().apply {
             put("model", model)
             put("max_tokens", maxTokens)
@@ -246,13 +280,69 @@ class LlmClient(
             }
         }
         val text = sb.toString().trim()
-        if (text.isNotEmpty()) return text
+        // 连接测试只要求 HTTP 2xx + 结构正确：推理模型可能把 token 全花在 thinking 上，
+        // 正文为空也说明模型可达；真正的生成请求仍然必须有正文。
+        if (text.isNotEmpty() || !requireText) return text
         throw IOException("模型没有返回正文：${body.take(200)}")
     }
 
-    private fun chat(system: String, user: String, maxTokens: Int = 4000): String {
+    /**
+     * 设置页「测试连接」用：验证地址、key 与模型名是否可用。
+     * 调用方不传 onBeforeCall，因此不扣每日额度。
+     *
+     * 不要求正文：实测 CC Switch 网关的 glm-5.3-flash 默认开思考，
+     * 32/256 token 都可能全被 thinking 占满；HTTP 200 + 结构正确就说明连接和模型都可用。
+     */
+    fun ping(): String = chat(
+        system = "You are a connection probe. Reply with the single word OK.",
+        user = "ping",
+        maxTokens = 64,
+        requireText = false,
+    )
+
+    /**
+     * 按设置页选定的顺序逐个尝试云端模型：当前模型不可用就换下一个，
+     * 全部失败才把最后一个错误抛出去（由 routeLlm 决定是否回退本地）。
+     *
+     * 401 是 key 级失败，换模型没有意义，直接抛；404/403/429/5xx 可能是单个模型的问题，继续试。
+     */
+    private fun chat(
+        system: String,
+        user: String,
+        maxTokens: Int = 4000,
+        requireText: Boolean = true,
+    ): String {
         if (charged.compareAndSet(false, true)) onBeforeCall()
-        if (anthropic) return chatAnthropic(system, user, maxTokens)
+        if (modelQueue.isEmpty()) {
+            throw IOException("还没有选择云端模型：请到设置页填地址和 key，点「测试连接」后选择模型")
+        }
+        val start = ((cursor.get() % modelQueue.size) + modelQueue.size) % modelQueue.size
+        var last: Exception? = null
+        for (offset in modelQueue.indices) {
+            val candidate = modelQueue[(start + offset) % modelQueue.size]
+            try {
+                return chatOnce(candidate, system, user, maxTokens, requireText)
+            } catch (e: Exception) {
+                last = e
+                // 401 是 key 级失败，换模型没有意义；其余失败（404/403/429/5xx、
+                // 连不上、返回体不是 JSON）都可能只是这个模型的问题，继续试下一个。
+                if (e is HttpError && e.code == 401) throw e
+            }
+            if (offset < modelQueue.lastIndex) {
+                onRetry(offset + 1, modelQueue.size, "模型 $candidate 不可用，换下一个云端模型")
+            }
+        }
+        throw (last as? IOException ?: IOException("云端模型全部不可用：${last?.message}", last))
+    }
+
+    private fun chatOnce(
+        model: String,
+        system: String,
+        user: String,
+        maxTokens: Int,
+        requireText: Boolean,
+    ): String {
+        if (anthropic) return chatAnthropic(model, system, user, maxTokens, requireText)
         val payload = JSONObject().apply {
             put("model", model)
             put("max_tokens", maxTokens)

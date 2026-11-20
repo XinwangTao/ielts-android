@@ -177,4 +177,33 @@ class RoutingTest {
         assertEquals("ok", out)
         assertEquals(2, calls)
     }
+
+    @Test
+    fun `格式失败重发前会通知换模型`() = runBlocking {
+        var calls = 0
+        var rotations = 0
+        val out = routeLlm<String>(
+            channel = "auto",
+            label = "测试",
+            onFormatRetry = { rotations++ },
+            cloud = { calls++; if (calls == 1) throw IOException("坏 JSON"); "ok" },
+            local = { "local" },
+        )
+        assertEquals("ok", out)
+        assertEquals(1, rotations)
+    }
+
+    @Test
+    fun `HTTP 失败不通知换模型`() = runBlocking {
+        var rotations = 0
+        val out = routeLlm<String>(
+            channel = "auto",
+            label = "测试",
+            onFormatRetry = { rotations++ },
+            cloud = { throw LlmClient.HttpError(404, "model not found") },
+            local = { "local" },
+        )
+        assertEquals("local", out)
+        assertEquals(0, rotations)
+    }
 }

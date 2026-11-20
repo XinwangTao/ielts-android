@@ -6,13 +6,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,14 +27,20 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.txw.ielts.data.Prefs
+import com.txw.ielts.llm.CloudProbe
+import com.txw.ielts.llm.MAX_CLOUD_MODELS
 
 @SuppressLint("BatteryLife")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     prefs: Prefs,
@@ -51,10 +62,31 @@ fun SettingsScreen(
     var targetW by remember { mutableStateOf("%.1f".format(prefs.targetWriting)) }
     var targetS by remember { mutableStateOf("%.1f".format(prefs.targetSpeaking)) }
     var examDate by remember { mutableStateOf(prefs.examDate) }
+    // —— 云端模型链：测试连接 → 抽屉勾选 → 按顺序回退 ——
+    var cloudModels by remember { mutableStateOf(prefs.cloudModels) }
+    var probeBusy by remember { mutableStateOf(false) }
+    var probeOk by remember { mutableStateOf(false) }
+    var probeMsg by remember { mutableStateOf<String?>(null) }
+    /** 连接测试的批次号：地址/key 改动或重新点击后，旧协程的结果直接丢弃。 */
+    var probeSeq by remember { mutableStateOf(0) }
+    var fetchedModels by remember { mutableStateOf<List<String>>(emptyList()) }
+    var showModelSheet by remember { mutableStateOf(false) }
+    /** 模型名 → testing / ok / fail:原因。只有 ok 的行能勾选。 */
+    var modelTests by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
+    val scope = rememberCoroutineScope()
     var saved by remember { mutableStateOf(false) }
     // 任一字段再编辑就撤销「已保存」标记，避免用户以为改动已生效。
-    LaunchedEffect(base, key, model, asr, channel, localModel, limit, targetBand, examDate, targetL, targetR, targetW, targetS) {
+    LaunchedEffect(base, key, model, asr, channel, localModel, limit, targetBand, examDate, targetL, targetR, targetW, targetS, cloudModels) {
         if (saved) saved = false
+    }
+    // 地址或 key 一改，上次的模型列表与测试结果就作废，避免拿旧结果去配新地址。
+    LaunchedEffect(base, key) {
+        probeSeq++
+        probeBusy = false
+        fetchedModels = emptyList()
+        modelTests = emptyMap()
+        probeOk = false
+        probeMsg = null
     }
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -136,7 +168,94 @@ fun SettingsScreen(
             key, { key = it }, label = "API Key（内网网关可留空）", modifier = Modifier.fillMaxWidth(), singleLine = true,
             visualTransformation = PasswordVisualTransformation(),
         )
-        IosTextField(model, { model = it }, label = "模型", modifier = Modifier.fillMaxWidth(), singleLine = true)
+        Text("云端模型", style = MaterialTheme.typography.labelLarge)
+        Text(
+            "先填地址和 key，点「测试连接」；通过的模型会出现在抽屉里。勾选顺序就是回退顺序：" +
+                "第一个模型失败自动换下一个，云端全部失败才回退本地。",
+            style = MaterialTheme.typography.bodySmall,
+        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Button(
+                enabled = !probeBusy && base.isNotBlank(),
+                onClick = {
+                    probeBusy = true
+                    probeOk = false
+                    probeMsg = "正在连接…"
+                    fetchedModels = emptyList()
+                    modelTests = emptyMap()
+                    val seq = ++probeSeq
+                    scope.launch {
+                        val r = withContext(Dispatchers.IO) { CloudProbe.listModels(base, key) }
+                        if (seq != probeSeq) return@launch
+                        when {
+                            r.models.isNotEmpty() -> {
+                                fetchedModels = r.models
+                                probeOk = true
+                                probeMsg = "连接成功，发现 ${r.models.size} 个模型"
+                                showModelSheet = true
+                                // 已选模型自动补测：旧配置不用逐个手点，抽屉打开就能看到状态。
+                                cloudModels.filter { it in r.models }.forEach { m ->
+                                    if (seq != probeSeq) return@launch
+                                    modelTests = modelTests + (m to "testing")
+                                    val p = withContext(Dispatchers.IO) { CloudProbe.ping(base, key, m) }
+                                    if (seq != probeSeq) return@launch
+                                    modelTests = modelTests + (
+                                        m to p.fold({ "ok" }, { "fail:" + (it.message ?: "测试失败") })
+                                        )
+                                }
+                            }
+                            // 网关连通但不提供 /models：用当前手填模型做一次极短 ping。
+                            r.reachable -> {
+                                val fallback = model.trim().ifBlank { cloudModels.firstOrNull().orEmpty() }
+                                if (fallback.isBlank()) {
+                                    probeOk = false
+                                    probeMsg = "网关连通，但没有模型列表；请手动填写模型名后再测试"
+                                } else {
+                                    val p = withContext(Dispatchers.IO) { CloudProbe.ping(base, key, fallback) }
+                                    if (seq != probeSeq) return@launch
+                                    probeOk = p.isSuccess
+                                    probeMsg = p.fold(
+                                        { "连接成功（网关无模型列表，继续使用手填模型 $fallback）" },
+                                        { "连接失败：${it.message}" },
+                                    )
+                                }
+                            }
+                            else -> {
+                                probeOk = false
+                                probeMsg = "连接失败：${r.error ?: "没有拿到模型列表"}"
+                            }
+                        }
+                        if (seq == probeSeq) probeBusy = false
+                    }
+                },
+            ) { Text(if (probeBusy) "连接中…" else "测试连接") }
+            if (probeOk && fetchedModels.isNotEmpty()) {
+                TextButton(onClick = { showModelSheet = true }) {
+                    Text("选择模型（${cloudModels.size}）")
+                }
+            }
+        }
+        probeMsg?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (probeOk) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.error,
+            )
+        }
+        IosTextField(
+            model, { model = it }, label = "模型（手动兜底）", modifier = Modifier.fillMaxWidth(), singleLine = true,
+            supportingText = { Text("只有网关没有模型列表时才需要手填；保存时若有勾选，以勾选顺序为准") },
+        )
+        Text(
+            if (cloudModels.isEmpty()) "当前未选择云端模型"
+            else "回退顺序：" + cloudModels.mapIndexed { i, m -> "${i + 1}. $m" }.joinToString(" → ") + " → 本地",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (cloudModels.isEmpty()) MaterialTheme.colorScheme.error
+            else MaterialTheme.colorScheme.tertiary,
+        )
 
         IosTextField(
             limit, { limit = it.filter(Char::isDigit) },
@@ -803,7 +922,16 @@ fun SettingsScreen(
             onClick = {
                 prefs.baseUrl = base
                 prefs.apiKey = key
-                prefs.model = model
+                // 勾选顺序即回退顺序；没勾选时退回手填模型，两者都空就保留原配置，不误清空。
+                val chain = cloudModels.ifEmpty {
+                    model.trim().takeIf { it.isNotBlank() }?.let { listOf(it) }.orEmpty()
+                }
+                if (chain.isNotEmpty()) {
+                    prefs.cloudModels = chain
+                    prefs.model = chain.first()
+                    cloudModels = chain
+                    model = chain.first()
+                }
                 prefs.asrModel = asr
                 prefs.scoreChannel = channel
                 prefs.localModel = localModel
@@ -844,6 +972,104 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
                         Text(v, style = MaterialTheme.typography.bodyMedium)
                     }
+                }
+            }
+        }
+    }
+
+    if (showModelSheet) {
+        ModalBottomSheet(onDismissRequest = { showModelSheet = false }) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 16.dp),
+            ) {
+                Text("选择云端模型", style = MaterialTheme.typography.titleLarge)
+                Text(
+                    "先点「测试」，显示「连接通过」后才能勾选；勾选顺序就是回退顺序，最多 $MAX_CLOUD_MODELS 个。" +
+                        "全部失败才会回退本地模型。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+                )
+                LazyColumn(
+                    Modifier.fillMaxWidth().heightIn(max = 360.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                ) {
+                    items(fetchedModels, key = { it }) { m ->
+                        val state = modelTests[m]
+                        val checked = m in cloudModels
+                        val rank = cloudModels.indexOf(m) + 1
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = checked,
+                                // 已勾选的旧配置允许取消；新模型必须先测通。
+                                enabled = state == "ok" || checked,
+                                onCheckedChange = { on ->
+                                    cloudModels = when {
+                                        !on -> cloudModels - m
+                                        cloudModels.size >= MAX_CLOUD_MODELS -> cloudModels
+                                        else -> cloudModels + m
+                                    }
+                                },
+                            )
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    (if (checked) "$rank. " else "") + m,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                                val hint = when {
+                                    state == "testing" -> "测试中…"
+                                    state == "ok" -> "连接通过"
+                                    state?.startsWith("fail:") == true -> state.removePrefix("fail:")
+                                    checked -> "旧配置，未重新测试"
+                                    else -> "未测试"
+                                }
+                                Text(
+                                    hint,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = when {
+                                        state == "ok" -> MaterialTheme.colorScheme.tertiary
+                                        state?.startsWith("fail:") == true -> MaterialTheme.colorScheme.error
+                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
+                                    },
+                                )
+                            }
+                            TextButton(
+                                enabled = state != "testing",
+                                onClick = {
+                                    modelTests = modelTests + (m to "testing")
+                                    scope.launch {
+                                        val r = withContext(Dispatchers.IO) { CloudProbe.ping(base, key, m) }
+                                        modelTests = modelTests + (
+                                            m to r.fold({ "ok" }, { "fail:" + (it.message ?: "测试失败") })
+                                            )
+                                    }
+                                },
+                            ) { Text(if (state == "ok") "重测" else "测试") }
+                        }
+                    }
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = { cloudModels = emptyList() }) { Text("清空") }
+                    Button(
+                        modifier = Modifier.weight(1f),
+                        onClick = {
+                            if (cloudModels.isNotEmpty()) {
+                                prefs.cloudModels = cloudModels
+                                prefs.model = cloudModels.first()
+                                model = cloudModels.first()
+                            }
+                            showModelSheet = false
+                        },
+                    ) { Text("保存选择") }
                 }
             }
         }

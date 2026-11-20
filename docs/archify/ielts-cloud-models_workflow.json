@@ -1,0 +1,96 @@
+{
+  "name": "ielts-cloud-models_workflow",
+  "title": "云端模型选择与失败回退（测试连接 → 模型抽屉 → 云端链 → 本地兜底）",
+  "level": "L1",
+  "version": "v1.1-implemented",
+  "updated": "2026-11-20",
+  "context": "雅思随身练 F:\\projects\\ielts-android。现状：设置页只有 Base URL / API Key / 单个模型文本框与 local-cloud-auto 三态；云端失败直接回退本地，没有模型级回退。本批把「测试连接 → 选择模型 → 云端逐个失败换下一个 → 全部失败回退本地」做成可确认流程。2026-11-20 已按本图实现：LlmClient 持有模型队列，Routing 增加 onFormatRetry，设置页新增测试连接与模型抽屉。",
+  "nodes": [
+    {
+      "id": "settings",
+      "label": "设置页 AI 配置",
+      "kind": "ui",
+      "detail": "Base URL + API Key + 「测试连接」按钮；保留手填模型输入作为兜底入口。key 只存在本机。"
+    },
+    {
+      "id": "probe",
+      "label": "测试连接",
+      "kind": "logic",
+      "detail": "按地址识别协议：Anthropic 网关 GET {base}/v1/models（带 x-api-key），OpenAI 兼容 GET {base}/models（Bearer）。解析 data[].id 与 CC Switch 的 models[].slug。没有列表接口时退化为极短 chat ping（不要求正文，思考占满 token 也算连通），只能手填模型名。成功后自动补测已选模型。"
+    },
+    {
+      "id": "drawer",
+      "label": "模型抽屉",
+      "kind": "ui",
+      "detail": "底部抽屉列出探测到的模型；每行可点「测试」发极短 ping，通过（绿）才可勾选；勾选顺序即优先级（①主用、②备份…），最多 8 个，可清空重选。"
+    },
+    {
+      "id": "save",
+      "label": "保存模型链",
+      "kind": "storage",
+      "detail": "有序列表写入 Prefs.cloudModels；首个同步到 prefs.model，兼容未改造的旧调用点；空选择时保留原 model，不把用户配置清空。"
+    },
+    {
+      "id": "route",
+      "label": "运行时选路",
+      "kind": "logic",
+      "detail": "routeLlm 三态语义不变：auto = 云端链优先；cloud = 仅云端链；local = 只本地。断网/冷却/额度判定仍在 ChannelPick。"
+    },
+    {
+      "id": "chain",
+      "label": "云端递归回退",
+      "kind": "service",
+      "detail": "LlmClient 按队列逐个尝试：HTTP 4xx/5xx、连不上、空返回、返回体不是 JSON 都换下一个模型；401 是 key 级失败直接抛；一次逻辑请求只扣一次每日额度，回退不重复扣。格式类失败（JSON 写坏）由 Routing 的 onFormatRetry 前移光标后再试。"
+    },
+    {
+      "id": "local",
+      "label": "本地兜底",
+      "kind": "service",
+      "detail": "auto 模式下云端链全部失败 → LocalLlmEngine（排队 + 冷加载提示）。cloud 模式不降级，抛最后一个错误。"
+    },
+    {
+      "id": "fail",
+      "label": "失败出口",
+      "kind": "manual",
+      "detail": "连接失败或全链失败且本地未就绪/仅云端：显示最后错误与「去设置页重新测试」；不静默假装成功。"
+    }
+  ],
+  "edges": [
+    { "from": "settings", "to": "probe", "label": "点「测试连接」" },
+    { "from": "probe", "to": "drawer", "label": "拿到模型列表" },
+    { "from": "probe", "to": "fail", "label": "401/403/超时/无列表接口" },
+    { "from": "drawer", "to": "save", "label": "勾选通过项并保存" },
+    { "from": "save", "to": "route", "label": "之后所有 AI 请求" },
+    { "from": "route", "to": "chain", "label": "auto 或 cloud" },
+    { "from": "route", "to": "local", "label": "local" },
+    { "from": "chain", "to": "local", "label": "auto 且队列全失败" },
+    { "from": "chain", "to": "fail", "label": "cloud 且队列全失败" },
+    { "from": "local", "to": "fail", "label": "本地模型未就绪" }
+  ],
+  "scope": {
+    "in": [
+      "设置页「测试连接」与模型列表拉取（Anthropic 网关 / OpenAI 兼容两种协议）",
+      "模型抽屉：多选、勾选顺序=优先级、单项 ping",
+      "云端模型队列的运行时递归回退（HTTP/网络/空返回/格式坏都换下一个）",
+      "auto 模式全链失败后回退本地；cloud 模式保持报错",
+      "模型列表解析兼容 OpenAI data[].id 与 CC Switch models[].slug"
+    ],
+    "out": [
+      "不改本地模型管理、MNN 推理与模型投递",
+      "不做模型能力自动评测/自动排序",
+      "不引入新网络库，继续用 HttpURLConnection",
+      "不把 API Key 写入备份或导出文件",
+      "不改评分提示词与分数口径"
+    ]
+  },
+  "decisions": [
+    "候选模型完全来自「测试连接」返回的列表，不内置白名单",
+    "抽屉多选，勾选顺序即优先级；第一项同步写入 prefs.model 兼容旧调用点",
+    "每个模型必须单独 ping 通过才可勾选；测试连接成功后自动补测已选模型",
+    "「仅云端」全链失败保持报错、不降本地；只有 auto 才回退本地",
+    "一次逻辑请求只扣一次每日额度，模型回退不重复扣"
+  ],
+  "pending": [
+    "真机验收：设置页测试连接、抽屉勾选、主模型失败换下一个、全链失败回退本地（见 docs/acceptance-checklist.md）"
+  ]
+}

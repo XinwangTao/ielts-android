@@ -40,6 +40,27 @@ class Prefs(context: Context) {
         get() = sp.getString(KEY_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL
         set(v) = sp.edit().putString(KEY_MODEL, v.trim()).apply()
 
+    /**
+     * 云端候选模型（按优先级）。设置页「测试连接」后从抽屉里多选，勾选顺序就是回退顺序：
+     * 第一个失败自动换下一个，全部失败才回退本地。空列表时回退到单个 [model]，
+     * 老配置不需要迁移就能继续用。
+     */
+    var cloudModels: List<String>
+        get() {
+            val raw = sp.getString(KEY_CLOUD_MODELS, "") ?: ""
+            val parsed = runCatching {
+                val arr = org.json.JSONArray(raw)
+                (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }
+            }.getOrDefault(emptyList())
+            return com.txw.ielts.llm.normalizeCloudModels(parsed).ifEmpty {
+                com.txw.ielts.llm.normalizeCloudModels(listOf(model)).ifEmpty { listOf(DEFAULT_MODEL) }
+            }
+        }
+        set(v) {
+            val arr = org.json.JSONArray(com.txw.ielts.llm.normalizeCloudModels(v))
+            sp.edit().putString(KEY_CLOUD_MODELS, arr.toString()).apply()
+        }
+
     var asrModel: String
         get() = sp.getString(KEY_ASR, "base.en") ?: "base.en"
         set(v) = sp.edit().putString(KEY_ASR, v).apply()
@@ -285,6 +306,7 @@ class Prefs(context: Context) {
         private const val KEY_BASE = "llm_base_url"
         private const val KEY_API = "llm_api_key"
         private const val KEY_MODEL = "llm_model"
+        private const val KEY_CLOUD_MODELS = "llm_cloud_models"
         private const val KEY_ASR = "asr_model"
         private const val KEY_SCORE_CHANNEL = "score_channel"
         private const val KEY_LOCAL_MODEL = "local_model"

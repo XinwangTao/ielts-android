@@ -1668,9 +1668,9 @@ private fun App(
         com.txw.ielts.Guard.start(context)
         try {
             val eval: WritingEval = withContext(Dispatchers.IO) {
-                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
-                // 模型偶发把 JSON 写坏：格式类失败重发一次，别直接掉到本地白等几分钟。
-                com.txw.ielts.llm.retryOnceOnFormat {
+                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.cloudModels, guard, onRetry)
+                // 模型偶发把 JSON 写坏：格式类失败换下一个云端模型重发一次，别直接掉到本地白等几分钟。
+                com.txw.ielts.llm.retryOnceOnFormat(onRetry = client::rotateForRetry) {
                     if (task == "task1") client.evaluateWritingTask1(session.topic, text)
                     else client.evaluateWriting(session.topic, text, myWeaknesses())
                 }
@@ -1762,9 +1762,9 @@ private fun App(
         com.txw.ielts.Guard.start(context)
         try {
             val eval: SpeakingEval = withContext(Dispatchers.IO) {
-                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
-                // 同上：格式类失败重发一次，避免直接掉本地。
-                com.txw.ielts.llm.retryOnceOnFormat {
+                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.cloudModels, guard, onRetry)
+                // 同上：格式类失败换下一个云端模型重发一次，避免直接掉本地。
+                com.txw.ielts.llm.retryOnceOnFormat(onRetry = client::rotateForRetry) {
                     client.evaluateSpeaking(part, session.topic, text, session.durationSec, myWeaknesses())
                 }
             }
@@ -2171,11 +2171,12 @@ private fun App(
             if (module == "listening") {
                 val gen = withContext(Dispatchers.IO) {
                     // client 建在 retry 之外：格式类重试复用同一实例，额度只扣一次。
-                    val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
+                    val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.cloudModels, guard, retryFeedback)
                     routeLlm(
                         channel = channelNow,
                         label = "AI 出题（听力）",
                         onCloudFail = { markCloudDown(prefs, it) },
+                        onFormatRetry = client::rotateForRetry,
                         cloud = { client.generateListening(difficulty, types, count) },
                         local = {
                             LocalLlmEngine.generateListening(
@@ -2213,11 +2214,12 @@ private fun App(
                 }
             } else {
                 val gen = withContext(Dispatchers.IO) {
-                    val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, retryFeedback)
+                    val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.cloudModels, guard, retryFeedback)
                     routeLlm(
                         channel = channelNow,
                         label = "AI 出题（阅读）",
                         onCloudFail = { markCloudDown(prefs, it) },
+                        onFormatRetry = client::rotateForRetry,
                         cloud = { client.generateReading(difficulty, types, count) },
                         local = {
                             LocalLlmEngine.generateReading(
@@ -2289,11 +2291,12 @@ private fun App(
         Guard.start(context)
         try {
             val exp = withContext(Dispatchers.IO) {
-                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.model, guard, onRetry)
+                val client = LlmClient(prefs.baseUrl, prefs.apiKey, prefs.cloudModels, guard, onRetry)
                 routeLlm(
                     channel = channel,
                     label = "错题精讲",
                     onCloudFail = { markCloudDown(prefs, it) },
+                    onFormatRetry = client::rotateForRetry,
                     cloud = { client.explainBankWrong(item.prompt, item.right, item.yours, item.explain) },
                     local = {
                         LocalLlmEngine.explainBankWrong(

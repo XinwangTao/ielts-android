@@ -17,23 +17,26 @@ suspend fun <T> routeLlm(
     label: String,
     /** 云端失败时的回调（不会收到 CancellationException）：用于标记额度失效、触发冷却。 */
     onCloudFail: (Exception) -> Unit = {},
+    /** 格式类失败、准备重发前调用：让 LlmClient 把队列光标前移，换下一个云端模型。 */
+    onFormatRetry: () -> Unit = {},
     cloud: suspend () -> T,
     local: suspend () -> T,
 ): T {
     return when (channel) {
     "local" -> local()
-    // 显式「仅云端」也要扛住模型偶发写坏 JSON：格式类失败重发一次，HTTP 失败原样抛给界面。
-    "cloud" -> retryOnceOnFormat { cloud() }
+    // 显式「仅云端」也要扛住模型偶发写坏 JSON：格式类失败换下一个模型重发一次，HTTP 失败原样抛给界面。
+    "cloud" -> retryOnceOnFormat(onRetry = onFormatRetry) { cloud() }
     else -> try {
         cloud()
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        // 模型这次把 JSON 写坏（缺冒号、引号没转义）时，重发一次内容不同、大概率能过；
+        // 模型这次把 JSON 写坏（缺冒号、引号没转义）时，换下一个模型重发一次，大概率能过；
         // HTTP 层失败（额度/鉴权/限流/服务端错）重发只会多等一个往返，直接回退本地。
         // 实测 GLM 出 8 题阅读约有 1/3 概率语法坏，重试一次能显著降低「整套题白等」。
         if (isFormatFailure(e)) {
             try {
+                onFormatRetry()
                 return cloud()
             } catch (e2: CancellationException) {
                 throw e2
@@ -56,7 +59,11 @@ suspend fun <T> routeLlm(
  * 云端评分不走 routeLlm（成功路径要落库），但同样会遇到模型偶发语法坏；
  * 直接掉本地要多等几分钟，重发一次内容不同、大概率能过。
  */
-suspend fun <T> retryOnceOnFormat(block: suspend () -> T): T {
+suspend fun <T> retryOnceOnFormat(
+    /** 重发前调用：多模型队列用它把光标移到下一个模型。 */
+    onRetry: () -> Unit = {},
+    block: suspend () -> T,
+): T {
     return try {
         block()
     } catch (e: CancellationException) {
@@ -64,6 +71,7 @@ suspend fun <T> retryOnceOnFormat(block: suspend () -> T): T {
     } catch (e: Exception) {
         if (!isFormatFailure(e)) throw e
         try {
+            onRetry()
             block()
         } catch (e2: CancellationException) {
             throw e2
