@@ -400,6 +400,9 @@ class LlmClient(
                 if (!retryable(e.code)) throw e
                 last = e
             } catch (e: IOException) {
+                // 读/连接超时说明这个模型在当前网络下太慢：同一模型再等一轮大概率还是超时，
+                // 直接抛给模型链换下一个（最后仍有本地兜底），比连续等 3 个 90 秒快得多。
+                if (e is java.net.SocketTimeoutException) throw e
                 if (apiKey.isBlank() && !isLanHost(baseUrl)) throw e
                 last = e
             }
@@ -494,7 +497,7 @@ class LlmClient(
         private const val MAX_RETRIES = 2
         private const val RETRY_DELAY_MS = 2_000L
         private const val CONNECT_TIMEOUT_MS = 15_000
-        private const val READ_TIMEOUT_MS = 60_000
+        private const val READ_TIMEOUT_MS = 90_000
         /** 一次逻辑请求的总耗时上限：超了就不再开新的一轮。 */
         private const val TOTAL_BUDGET_MS = 190_000L
 

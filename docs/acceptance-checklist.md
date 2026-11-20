@@ -42,6 +42,8 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 | 全链失败回退本地 | 自动通道 | 单测覆盖；auto 走本地，`cloud` 报错不降级 | ✅ 单测 |
 | 额度只扣一次 | 设置页「今日已用」 | 单测覆盖：模型回退不重复扣；真机未单独计数 | ✅ 单测 |
 | 假失败回归 | 抽屉单模型「测试」 | 推理模型思考占满 token 时 ping 仍通过（不要求正文） | ✅ 真机 2026-11-20 |
+| 旧模型清理 | 模型抽屉顶部 | 已选但不在当前列表的旧模型会单独列出，可取消勾选移除（避免它一直挡在链首） | ✅ 真机 2026-11-20 |
+| 云端出题耗时 | AI 出题 8 题 | 移除链首旧别名后，8 题听力生成 + TTS 约 1 分钟进入答题页；此前旧别名 60 秒超时后还对同一模型重试，3 分钟仍失败 | ✅ 真机 2026-11-20 |
 
 真机诊断入口（仅调试）：`am start -n com.txw.ielts/.MainActivity --es e2e_ai cloud_explain --es e2e_models "模型A,模型B"`，
 日志看 `E2E: FALLBACK` / `E2E: LOCAL_FALLBACK` / `E2E: RESULT ai cloud_explain`。

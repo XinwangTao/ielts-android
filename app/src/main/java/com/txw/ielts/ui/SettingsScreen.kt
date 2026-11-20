@@ -990,6 +990,34 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
                 )
+                // 旧配置里的模型可能已从网关列表消失（改名/下线）：不显示出来就永远删不掉，
+                // 它还会挡在回退顺序最前面，每次请求都先等它超时。
+                val stale = cloudModels.filter { it !in fetchedModels }
+                if (stale.isNotEmpty()) {
+                    Text(
+                        "已选但不在当前列表（可能已下线或改名），建议取消勾选移除：",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                    stale.forEach { m ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Checkbox(
+                                checked = true,
+                                onCheckedChange = { cloudModels = cloudModels - m },
+                            )
+                            Text(
+                                m,
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                }
                 LazyColumn(
                     Modifier.fillMaxWidth().heightIn(max = 360.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp),
