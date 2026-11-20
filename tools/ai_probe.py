@@ -329,6 +329,14 @@ def cases() -> list[dict]:
              system="You are an IELTS Writing Task 1 examiner. Rewrite the given Task 1 prompt in natural exam-authentic English. Keep every number, category and unit exactly as given; do not add or remove data. Output only the prompt sentence(s), no explanation.",
              user="Chart type: table\nTitle: household spending by category in 1995 and 2015\nUnit: %\nData:\n" + TABLE_DATA,
              validate="polish", expect_numbers=["1995", "2015"]),
+        dict(name="template_fill", system=from_kotlin("StudyAi.kt", "TEMPLATE_FILL_SYSTEM"),
+             user=("Topic: Some people believe university students should study whatever they like. "
+                   "Others think they should only study subjects that will be useful. "
+                   "Discuss both views and give your own opinion.\n"
+                   "Template: It is often argued that 【一种观点】, while others maintain that 【另一种观点】.\n"
+                   "Chinese hint about when to use it: 双边讨论题（Discuss both views）第一句："
+                   "把题干两派装进一句话，别抄题。"),
+             validate="template_fill"),
     ]
 
 
@@ -404,6 +412,28 @@ def validate(case: dict, text: str) -> list[str]:
                 issues.append(f"润色丢了数字 {n}%")
         if re.search(r"[{}]", text):
             issues.append("润色输出里出现 JSON/花括号")
+        return issues
+    if v == "template_fill":
+        # App 的 parseTemplateFill 兼容 JSON / "Filled: ..." / 纯文本三种；探针只看最终句子。
+        filled, why = "", ""
+        try:
+            d0 = json_body(text)
+            filled = str(d0.get("filled") or d0.get("sentence") or d0.get("text") or "").strip()
+            why = str(d0.get("why") or d0.get("explain") or d0.get("note") or "").strip()
+        except Exception:
+            lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+            filled = lines[0] if lines else ""
+            for prefix in ("Filled:", "Sentence:", "filled:", "sentence:"):
+                if filled.startswith(prefix):
+                    filled = filled[len(prefix):].strip()
+        if not filled:
+            issues.append("filled 为空")
+        elif "【" in filled or "】" in filled:
+            issues.append("槽位没有填（残留【】）")
+        elif len(filled.split()) < 8:
+            issues.append(f"filled 过短（{len(filled.split())} 词）")
+        if why and not has_cjk(why):
+            issues.append("why 不是中文")
         return issues
 
     try:

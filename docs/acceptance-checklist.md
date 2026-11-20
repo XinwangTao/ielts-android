@@ -44,6 +44,8 @@ python tools/ai_probe.py --model "ccs-claude-openai--deepseek-v4.1-flash[1m]"
 | 假失败回归 | 抽屉单模型「测试」 | 推理模型思考占满 token 时 ping 仍通过（不要求正文） | ✅ 真机 2026-11-20 |
 | 旧模型清理 | 模型抽屉顶部 | 已选但不在当前列表的旧模型会单独列出，可取消勾选移除（避免它一直挡在链首） | ✅ 真机 2026-11-20 |
 | 云端出题耗时 | AI 出题 8 题 | 移除链首旧别名后，8 题听力生成 + TTS 约 1 分钟进入答题页；此前旧别名 60 秒超时后还对同一模型重试，3 分钟仍失败 | ✅ 真机 2026-11-20 |
+| 改进点条数上限 | 写作/口语评分 | 推理模型按评分维度各写一条（探针实测口语返回 6 条），云端/本地解析层统一截到 5 条 | ✅ 单测 + PC 探针 2026-11-20 |
+| 全功能提示词回归 | `python tools/ai_probe.py` | 24 个用例：写作/口语评分、提纲、范例、生词、复盘、出题、精讲、追问、变式、换题、骨架、听力问答/判分、图表润色全部 PASS | ✅ PC 探针 24/24（2026-11-20，报告 `docs/ai-probe-report-20261120.md`） |
 
 真机诊断入口（仅调试）：`am start -n com.txw.ielts/.MainActivity --es e2e_ai cloud_explain --es e2e_models "模型A,模型B"`，
 日志看 `E2E: FALLBACK` / `E2E: LOCAL_FALLBACK` / `E2E: RESULT ai cloud_explain`。

@@ -23,6 +23,20 @@ import org.json.JSONObject
  */
 object ScoreSanitizer {
 
+    /**
+     * 结果页「改进点」最多展示 5 条。提示词要求「exactly 3」，但推理模型会把每个评分维度
+     * 都写一条（2026-11-20 探针实测口语评分返回 6 条）。多出来的条目和分项重合，
+     * 结果页会变成一长串重复建议，所以解析层统一截断，不依赖模型自觉。
+     */
+    private const val MAX_TOP_FIXES = 5
+
+    /**
+     * 云端与本地共用同一份截断（LlmClient 的三个评分方法只经 [strings] 读 top_fixes）。
+     * 内部常量对外暴露给 [ScoreSanitizer.strings] 的调用方，避免两处各写一个 5。
+     */
+    internal fun topFixes(o: JSONObject, vararg keys: String): List<String> =
+        strings(o, *keys).take(MAX_TOP_FIXES)
+
     /** 公式化连接词表：B6-B7 文章依赖显式连接词，B8 更依赖指代与逻辑推进。 */
     private val FORMULAIC_LINKERS = listOf(
         "on the one hand", "on the other hand", "moreover", "furthermore",
@@ -439,7 +453,7 @@ object ScoreSanitizer {
             ?: throw java.io.IOException("评分缺少 LR：${rawJson.take(160)}")
         val gra = numOrNull(o, "GRA", "grammatical_range_accuracy")
             ?: throw java.io.IOException("评分缺少 GRA：${rawJson.take(160)}")
-        val fixes = strings(o, "top_fixes", "fixes")
+        val fixes = topFixes(o, "top_fixes", "fixes")
         val sentenceFixes = parseSentenceFixes(o)
         val s = sanitizeWriting(
             tr = tr, cc = cc, lr = lr, gra = gra,
@@ -481,7 +495,7 @@ object ScoreSanitizer {
         return SpeakingEval(
             fluency = s.fluency, lexical = s.lexical, grammar = s.grammar,
             pronunciation = s.pronunciation, overall = s.overall,
-            fixes = strings(o, "top_fixes", "fixes"),
+            fixes = topFixes(o, "top_fixes", "fixes"),
             improved = cleanPolished(o.optString("improved", o.optString("model_answer", ""))),
             rawJson = rawJson,
             sentenceFixes = parseSentenceFixes(o),

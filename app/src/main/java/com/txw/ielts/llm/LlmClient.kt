@@ -450,8 +450,12 @@ class LlmClient(
         return 0.0
     }
 
-    /** top_fixes/fixes 的清洗与本地评分共用一套，避免云端路径出现 "null"/"3.0" 这类脏条目。 */
-    private fun strings(o: JSONObject, vararg keys: String): List<String> = ScoreSanitizer.strings(o, *keys)
+    /**
+     * top_fixes/fixes 的清洗与本地评分共用一套，避免云端路径出现 "null"/"3.0" 这类脏条目；
+     * 同时走 ScoreSanitizer.topFixes 统一截到 5 条（推理模型会按评分维度各写一条，实测 6 条）。
+     */
+    private fun strings(o: JSONObject, vararg keys: String): List<String> =
+        ScoreSanitizer.topFixes(o, *keys)
 
     /** 截取第一个完整 JSON 对象，并把字符串值里的裸控制字符替换成空格。 */
     private fun extractJson(content: String): String {
@@ -528,7 +532,7 @@ class LlmClient(
             Return STRICT JSON only, single-line strings, keys in exactly this order:
             {"sentence_fixes":[{"sentence":"exact original","issue":"problem in Chinese","better":"corrected sentence"}],"GRA":x,"LR":x,"TR":x,"CC":x,"overall":x,"top_fixes":["..."],"polished":"..."}
             sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
-            top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
+            top_fixes: at most 5 items, prefer exactly 3, and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
             polished = the same ideas rewritten at band 7.
         """.trimIndent()
 
@@ -551,7 +555,7 @@ class LlmClient(
             Return STRICT JSON only, single-line strings, keys in exactly this order:
             {"sentence_fixes":[{"sentence":"exact original","issue":"problem in Chinese","better":"corrected sentence"}],"GRA":x,"LR":x,"TA":x,"CC":x,"overall":x,"top_fixes":["..."],"polished":"..."}
             sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
-            top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
+            top_fixes: at most 5 items, prefer exactly 3, and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
             polished = the same report rewritten at band 7.
         """.trimIndent()
 
@@ -572,7 +576,7 @@ class LlmClient(
             Output JSON with sentence_fixes FIRST: {"sentence_fixes":[{"sentence":"exact original sentence","issue":"grammar/vocabulary problem in Chinese","better":"corrected natural version"}],"GRA":x,"LR":x,"FC":x,"P":x,"overall":x,"top_fixes":["..."],"improved":"..."}
             All five score keys (FC, LR, GRA, P, overall) are mandatory. Never omit P, even when the transcript is short.
             sentence_fixes: 2 to 5 items and NEVER empty - even when the work is strong, still pick the 2 weakest sentences and give a clearly better rewrite; the issue field MUST be written in Chinese.
-            top_fixes: exactly 3 items and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
+            top_fixes: at most 5 items, prefer exactly 3, and never empty; write each in Chinese; wrap any English phrase in single quotes ('...') and NEVER put a double quote inside a string value, it breaks the JSON; then say how to fix it.
             improved = a band-7 spoken-style version of the same answer (natural, not written prose).
         """.trimIndent()
 

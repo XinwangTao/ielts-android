@@ -87,7 +87,7 @@
       <div class="detail">routeLlm 三态语义不变：auto = 云端链优先；cloud = 仅云端链；local = 只本地。断网/冷却/额度判定仍在 ChannelPick。</div></div>
 
     <div class="node service"><div class="id">chain</div><div class="name">云端递归回退</div>
-      <div class="detail">LlmClient 按队列逐个尝试：HTTP 4xx/5xx、连不上、空返回、返回体不是 JSON 都换下一个模型；401 是 key 级失败直接抛；一次逻辑请求只扣一次每日额度，回退不重复扣。读超时 90 秒且不重试同一模型（超时说明该模型在当前网络下太慢，直接换下一个）。格式类失败（JSON 写坏）由 Routing 的 onFormatRetry 前移光标后再试。</div></div>
+      <div class="detail">LlmClient 按队列逐个尝试：HTTP 4xx/5xx、连不上、空返回、返回体不是 JSON 都换下一个模型；401 是 key 级失败直接抛；一次逻辑请求只扣一次每日额度，回退不重复扣。读超时 90 秒且不重试同一模型（超时说明该模型在当前网络下太慢，直接换下一个）。格式类失败（JSON 写坏）由 Routing 的 onFormatRetry 前移光标后再试。评分结果的 top_fixes 在解析层统一截到 5 条（推理模型按评分维度各写一条，2026-11-20 探针实测口语返回 6 条）。</div></div>
 
     <div class="node service"><div class="id">local</div><div class="name">本地兜底</div>
       <div class="detail">auto 模式下云端链全部失败 → LocalLlmEngine（排队 + 冷加载提示）。cloud 模式不降级，抛最后一个错误。</div></div>

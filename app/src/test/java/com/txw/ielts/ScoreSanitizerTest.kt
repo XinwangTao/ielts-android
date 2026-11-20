@@ -319,6 +319,18 @@ class ScoreSanitizerTest {
     }
 
     @Test
+    fun `top_fixes 超过 5 条时截断到 5 条`() {
+        // 2026-11-20 探针：推理模型把评分维度各写一条，口语评分返回 6 条 top_fixes，
+        // 结果页会变成一长串与分项重复的建议。解析层统一截到 5 条。
+        val raw = """
+            {"FC":7,"LR":7,"GRA":7,"P":7,"overall":7,
+             "top_fixes":["a1","a2","a3","a4","a5","a6"],"improved":"x"}
+        """.trimIndent()
+        val eval = ScoreSanitizer.toSpeakingEval(raw, wordCount = 120)
+        assertEquals(listOf("a1", "a2", "a3", "a4", "a5"), eval.fixes)
+    }
+
+    @Test
     fun `逐句改法里的 null 文本字段被丢弃`() {
         // Android 的 optString 会把 JSON null 变成字面量 "null"，本地模型也会直接写 "null"：
         // 原句为 null 的条目会变成空操作卡，issue 为 null 时卡片背面出现「（null）」。
