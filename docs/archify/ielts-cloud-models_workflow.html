@@ -54,12 +54,12 @@
   <h1>云端模型选择与失败回退</h1>
   <div class="sub">测试连接 → 模型抽屉 → 云端链递归回退 → 本地兜底</div>
   <div class="meta">
-    项目：雅思随身练 F:\projects\ielts-android　·　级别：<b>L1（流程变更）</b>　·　版本：v1.1-implemented　·　更新：2026-11-20
+    项目：雅思随身练 F:\projects\ielts-android　·　级别：<b>L1（流程变更）</b>　·　版本：v1.2-verified　·　更新：2026-11-20
   </div>
 </header>
 
 <main>
-  <p>现状：设置页只有 Base URL / API Key / 单个模型文本框与 local-cloud-auto 三态；云端失败直接回退本地，没有模型级回退。本批把「测试连接 → 选择模型 → 云端逐个失败换下一个 → 全部失败回退本地」做成可确认流程。2026-11-20 已按本图实现：LlmClient 持有模型队列，Routing 增加 onFormatRetry，设置页新增测试连接与模型抽屉。</p>
+  <p>现状：设置页只有 Base URL / API Key / 单个模型文本框与 local-cloud-auto 三态；云端失败直接回退本地，没有模型级回退。本批把「测试连接 → 选择模型 → 云端逐个失败换下一个 → 全部失败回退本地」做成可确认流程。2026-11-20 已按本图实现并在 OPPO PKJ110 真机验证测试连接/抽屉/ping/勾选/保存；同时补了 targetSdk 35 的局域网明文 HTTP 放行。</p>
 
   <div class="legend">
     <span><i style="background:var(--red)"></i>界面入口/展示</span>
@@ -75,7 +75,7 @@
       <div class="detail">Base URL + API Key + 「测试连接」按钮；保留手填模型输入作为兜底入口。key 只存在本机。</div></div>
 
     <div class="node logic"><div class="id">probe</div><div class="name">测试连接</div>
-      <div class="detail">按地址识别协议：Anthropic 网关 GET <code>{base}/v1/models</code>（带 x-api-key），OpenAI 兼容 GET <code>{base}/models</code>（Bearer）。解析 <code>data[].id</code> 与 CC Switch 的 <code>models[].slug</code>。没有列表接口时退化为极短 chat ping（不要求正文，思考占满 token 也算连通），只能手填模型名。成功后自动补测已选模型。</div></div>
+      <div class="detail">按地址识别协议：Anthropic 网关 GET <code>{base}/v1/models</code>（带 x-api-key），OpenAI 兼容 GET <code>{base}/models</code>（Bearer）。解析 <code>data[].id</code> 与 CC Switch 的 <code>models[].slug</code>。没有列表接口时退化为极短 chat ping（不要求正文，思考占满 token 也算连通），只能手填模型名。成功后自动补测已选模型。局域网 http 需 AndroidManifest 的 usesCleartextTraffic 放行（targetSdk 28+ 默认禁止）。</div></div>
 
     <div class="node ui"><div class="id">drawer</div><div class="name">模型抽屉</div>
       <div class="detail">底部抽屉列出探测到的模型；每行可点「测试」发极短 ping，通过（绿）才可勾选；勾选顺序即优先级（①主用、②备份…），最多 8 个，可清空重选。</div></div>
@@ -152,7 +152,7 @@
     <div class="box ask">
       <h3>待办</h3>
       <ul>
-        <li>真机验收：设置页测试连接、抽屉勾选、主模型失败换下一个、全链失败回退本地（见 <code>docs/acceptance-checklist.md</code>）</li>
+        <li>真机已验证：测试连接、抽屉、单模型 ping、勾选顺序、保存；单模型失败换下一个与全链失败回退本地由单测覆盖（网关会自动兜底未知模型名，真机难强制复现）</li>
       </ul>
     </div>
   </div>

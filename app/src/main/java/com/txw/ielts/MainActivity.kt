@@ -258,6 +258,8 @@ class MainActivity : ComponentActivity() {
         val e2eLoadModel = intent?.getBooleanExtra("e2e_loadmodel", false) == true
         // 本地 AI 无点击自测：e2e_ai=outline|sample|vocab，生成结果打到 E2E 日志。
         val e2eAi = intent?.getStringExtra("e2e_ai")
+        // 云端回退自测：e2e_ai=cloud_explain 时可用 e2e_models 覆盖模型链（逗号分隔）。
+        val e2eModels = intent?.getStringExtra("e2e_models")
 
         // 本地评分完成通知（Android 13+ 需要运行时授权；拒绝只影响通知，不影响评分）
         if (android.os.Build.VERSION.SDK_INT >= 33 &&
@@ -285,6 +287,7 @@ class MainActivity : ComponentActivity() {
                             freshStart,
                             e2eLoadModel,
                             e2eAi,
+                            e2eModels,
                         )
                     }
                 }
@@ -418,6 +421,7 @@ private fun App(
     freshStart: Boolean = true,
     e2eLoadModel: Boolean = false,
     e2eAi: String? = null,
+    e2eModels: String? = null,
 ) {
     val context = LocalContext.current
     val isWide = LocalConfiguration.current.screenWidthDp >= 600
@@ -2508,6 +2512,42 @@ private fun App(
                     )
                     val words = t.split(Regex("\\s+")).count { it.isNotBlank() }
                     Log.i(TAG, "E2E: RESULT ai newtopic words=$words t=${t.take(80)}")
+                }
+                "cloud_explain" -> {
+                    // 云端模型链自测：短提示词 + 短输出，专门看「第一个失败换下一个」是否真的发生。
+                    // e2e_models 可覆盖当前设置，例如 "bad-model,ccs-claude-openai--glm-5.3-flash"。
+                    val chain = e2eModels?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
+                        ?.takeIf { it.isNotEmpty() } ?: prefs.cloudModels
+                    val t0 = System.currentTimeMillis()
+                    val client = com.txw.ielts.llm.LlmClient(
+                        prefs.baseUrl, prefs.apiKey, chain,
+                        onBeforeCall = {},
+                        onRetry = { a, m, r -> Log.w(TAG, "E2E: FALLBACK $a/$m $r") },
+                    )
+                    val exp = com.txw.ielts.llm.routeLlm(
+                        channel = "auto",
+                        label = "E2E 云端模型回退",
+                        onCloudFail = { Log.w(TAG, "E2E: CLOUD_FAIL ${it.message}") },
+                        onFormatRetry = {
+                            Log.w(TAG, "E2E: FORMAT_RETRY 换下一个模型")
+                            client.rotateForRetry()
+                        },
+                        cloud = {
+                            client.explainBankWrong(
+                                "According to the passage, when was the museum built?",
+                                "1890",
+                                "1900",
+                                "The passage states that the museum was built in 1890.",
+                            )
+                        },
+                        local = {
+                            Log.w(TAG, "E2E: LOCAL_FALLBACK")
+                            throw IllegalStateException("E2E 不允许回退本地：云端链没有跑通")
+                        },
+                    )
+                    Log.i(TAG, "E2E: RESULT ai cloud_explain cn=${exp.cn.length} en=${exp.en.length} " +
+                        "keys=${exp.keys.size} chain=${chain.joinToString(">")} " +
+                        "ms=${System.currentTimeMillis() - t0}")
                 }
                 "score_writing" -> {
                     val topic = "Some people believe university students should study whatever they like. " +

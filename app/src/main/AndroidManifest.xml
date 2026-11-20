@@ -30,7 +30,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.IeltsSpike">
+        android:theme="@style/Theme.IeltsSpike"
+        android:usesCleartextTraffic="true">
+        <!-- 云端默认走局域网 CC Switch 网关（http://192.168.x.x:15721），targetSdk 28+ 默认禁明文；
+             不放开时测试连接/评分会报 Cleartext HTTP traffic not permitted。外部服务仍建议用 HTTPS。 -->
         <!-- 只用于「分享最近备份」：把 external-files/backup 下的 JSON 以 content:// 交给系统分享。 -->
         <provider
             android:name="androidx.core.content.FileProvider"

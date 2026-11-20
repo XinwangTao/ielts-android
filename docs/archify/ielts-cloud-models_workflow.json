@@ -2,9 +2,9 @@
   "name": "ielts-cloud-models_workflow",
   "title": "云端模型选择与失败回退（测试连接 → 模型抽屉 → 云端链 → 本地兜底）",
   "level": "L1",
-  "version": "v1.1-implemented",
+  "version": "v1.2-verified",
   "updated": "2026-11-20",
-  "context": "雅思随身练 F:\\projects\\ielts-android。现状：设置页只有 Base URL / API Key / 单个模型文本框与 local-cloud-auto 三态；云端失败直接回退本地，没有模型级回退。本批把「测试连接 → 选择模型 → 云端逐个失败换下一个 → 全部失败回退本地」做成可确认流程。2026-11-20 已按本图实现：LlmClient 持有模型队列，Routing 增加 onFormatRetry，设置页新增测试连接与模型抽屉。",
+  "context": "雅思随身练 F:\\projects\\ielts-android。现状：设置页只有 Base URL / API Key / 单个模型文本框与 local-cloud-auto 三态；云端失败直接回退本地，没有模型级回退。本批把「测试连接 → 选择模型 → 云端逐个失败换下一个 → 全部失败回退本地」做成可确认流程。2026-11-20 已按本图实现并在 OPPO PKJ110 真机验证测试连接/抽屉/ping/勾选/保存；同时补了 targetSdk 35 的局域网明文 HTTP 放行。",
   "nodes": [
     {
       "id": "settings",
@@ -16,7 +16,7 @@
       "id": "probe",
       "label": "测试连接",
       "kind": "logic",
-      "detail": "按地址识别协议：Anthropic 网关 GET {base}/v1/models（带 x-api-key），OpenAI 兼容 GET {base}/models（Bearer）。解析 data[].id 与 CC Switch 的 models[].slug。没有列表接口时退化为极短 chat ping（不要求正文，思考占满 token 也算连通），只能手填模型名。成功后自动补测已选模型。"
+      "detail": "按地址识别协议：Anthropic 网关 GET {base}/v1/models（带 x-api-key），OpenAI 兼容 GET {base}/models（Bearer）。解析 data[].id 与 CC Switch 的 models[].slug。没有列表接口时退化为极短 chat ping（不要求正文，思考占满 token 也算连通），只能手填模型名。成功后自动补测已选模型。局域网 http 需 AndroidManifest 的 usesCleartextTraffic 放行（targetSdk 28+ 默认禁止）。"
     },
     {
       "id": "drawer",
@@ -91,6 +91,6 @@
     "一次逻辑请求只扣一次每日额度，模型回退不重复扣"
   ],
   "pending": [
-    "真机验收：设置页测试连接、抽屉勾选、主模型失败换下一个、全链失败回退本地（见 docs/acceptance-checklist.md）"
+    "真机已验证：测试连接、抽屉、单模型 ping、勾选顺序、保存；单模型失败换下一个与全链失败回退本地由单测覆盖（网关会自动兜底未知模型名，真机难强制复现）"
   ]
 }
