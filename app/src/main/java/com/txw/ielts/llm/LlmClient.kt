@@ -2,6 +2,7 @@ package com.txw.ielts.llm
 
 import org.json.JSONArray
 import org.json.JSONObject
+import kotlinx.coroutines.CancellationException
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -322,6 +323,8 @@ class LlmClient(
             val candidate = modelQueue[(start + offset) % modelQueue.size]
             try {
                 return chatOnce(candidate, system, user, maxTokens, requireText)
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 last = e
                 // 401 是 key 级失败，换模型没有意义；其余失败（404/403/429/5xx、
