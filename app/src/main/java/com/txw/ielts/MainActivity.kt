@@ -1247,7 +1247,7 @@ private fun App(
     )
     // 首启引导：把「目标 / AI 通道 / 第一道题」三步算成可渲染状态，缺哪步给按钮。
     // remember 的 key 用 route：从设置页回到首页时就地重算，用户配完不用重启 App。
-    val firstRunPlan = remember(route, networkOnline, sessions, prefs.targetBand, prefs.examDate, prefs.localModel, prefs.apiKey) {
+    val firstRunPlan = remember(route, networkOnline, sessions, prefs.targetBand, prefs.examDate, prefs.localModel, prefs.apiKey, prefs.baseUrl) {
         val localState = runCatching {
             when {
                 LocalLlmEngine.isReady(context, prefs.localModel) -> LocalModelState.READY
@@ -1260,7 +1260,7 @@ private fun App(
             examDate = prefs.examDate,
             localModel = prefs.localModel,
             localModelState = localState,
-            cloudKeyReady = prefs.apiKey.isNotBlank(),
+            cloudReady = FirstRun.cloudConfigured(prefs.baseUrl, prefs.apiKey),
             online = networkOnline,
             practiceCount = sessions.count { it.status == com.txw.ielts.data.StatusLabel.DONE },
         )

@@ -53,19 +53,28 @@ object FirstRun {
     /** 引导只在没看完时自动出现；设置页的「重新查看」由调用方直接切页面，不看这个标记。 */
     fun shouldAutoShow(completed: Boolean): Boolean = !completed
 
+    /**
+     * 云端是否算「已配置」。
+     *
+     * 局域网 CC Switch 网关（192.168./10./127. 等）本来就不校验 key，只看 [apiKey] 是否为空
+     * 会把「已经配好网关、云端实测能用」误判成没准备——首启引导会误导用户去填一个不需要的 key。
+     */
+    fun cloudConfigured(baseUrl: String, apiKey: String): Boolean =
+        baseUrl.isNotBlank() && (apiKey.isNotBlank() || com.txw.ielts.llm.isLanHost(baseUrl))
+
     fun plan(
         targetBand: Float,
         examDate: String,
         localModel: String,
         localModelState: LocalModelState,
-        cloudKeyReady: Boolean,
+        cloudReady: Boolean,
         online: Boolean,
         practiceCount: Int,
         nowMs: Long = System.currentTimeMillis(),
     ): FirstRunPlan {
         val steps = listOf(
             targetStep(targetBand, examDate, nowMs),
-            aiStep(localModel, localModelState, cloudKeyReady, online),
+            aiStep(localModel, localModelState, cloudReady, online),
             practiceStep(practiceCount),
         )
         val pending = steps.count { !it.ready }
@@ -119,7 +128,7 @@ object FirstRun {
     private fun aiStep(
         localModel: String,
         state: LocalModelState,
-        cloudKeyReady: Boolean,
+        cloudReady: Boolean,
         online: Boolean,
     ): GuideStep {
         val title = "确认 AI 评分通道"
@@ -134,20 +143,20 @@ object FirstRun {
                 detail = "本地模型 $localModel 已投递，首次评分会自动拷贝到内部存储（约 1–2 分钟），之后可离线。",
                 ready = true,
             )
-            cloudKeyReady && online -> GuideStep(
+            cloudReady && online -> GuideStep(
                 id = STEP_AI, title = title,
-                detail = "本地模型还没投递，但云端 API 已配置：联网时走云端评分；断网时需要本地模型。",
+                detail = "本地模型还没投递，但云端已配置：联网时走云端评分；断网时需要本地模型。",
                 ready = true,
             )
-            cloudKeyReady -> GuideStep(
+            cloudReady -> GuideStep(
                 id = STEP_AI, title = title,
-                detail = "云端 key 有了但现在没网，本地模型也没投递：此刻评分一定失败。连上网或先投递模型。",
+                detail = "云端已配置但现在没网，本地模型也没投递：此刻评分一定失败。连上网或先投递模型。",
                 ready = false,
                 action = "去设置",
             )
             online -> GuideStep(
                 id = STEP_AI, title = title,
-                detail = "本地模型没投递、云端 API key 也是空的：两条通道都没准备，评分会直接报错。",
+                detail = "本地模型没投递、云端也没配置：两条通道都没准备，评分会直接报错。",
                 ready = false,
                 action = "去设置",
             )

@@ -28,7 +28,7 @@ class FirstRunTest {
         examDate: String = date(30),
         localModel: String = "qwen3-4b-instruct",
         localModelState: LocalModelState = LocalModelState.READY,
-        cloudKeyReady: Boolean = false,
+        cloudReady: Boolean = false,
         online: Boolean = true,
         practiceCount: Int = 0,
     ) = FirstRun.plan(
@@ -36,7 +36,7 @@ class FirstRunTest {
         examDate = examDate,
         localModel = localModel,
         localModelState = localModelState,
-        cloudKeyReady = cloudKeyReady,
+        cloudReady = cloudReady,
         online = online,
         practiceCount = practiceCount,
         nowMs = now,
@@ -110,7 +110,7 @@ class FirstRunTest {
 
     @Test
     fun `没有本地模型但云端 key 在线时仍算可用`() {
-        val ai = plan(localModelState = LocalModelState.MISSING, cloudKeyReady = true, online = true)
+        val ai = plan(localModelState = LocalModelState.MISSING, cloudReady = true, online = true)
             .step(FirstRun.STEP_AI)!!
         assertTrue(ai.ready)
         assertTrue(ai.detail.contains("云端"))
@@ -119,7 +119,7 @@ class FirstRunTest {
 
     @Test
     fun `云端 key 有但断网且无本地模型时判为不可用`() {
-        val ai = plan(localModelState = LocalModelState.MISSING, cloudKeyReady = true, online = false)
+        val ai = plan(localModelState = LocalModelState.MISSING, cloudReady = true, online = false)
             .step(FirstRun.STEP_AI)!!
         assertFalse(ai.ready)
         assertEquals("去设置", ai.action)
@@ -128,16 +128,27 @@ class FirstRunTest {
 
     @Test
     fun `两条通道都没准备时提示会直接报错`() {
-        val ai = plan(localModelState = LocalModelState.MISSING, cloudKeyReady = false, online = true)
+        val ai = plan(localModelState = LocalModelState.MISSING, cloudReady = false, online = true)
             .step(FirstRun.STEP_AI)!!
         assertFalse(ai.ready)
-        assertTrue(ai.detail.contains("api key", ignoreCase = true))
+        assertTrue(ai.detail.contains("云端也没配置"))
         assertEquals("去设置", ai.action)
     }
 
     @Test
+    fun `局域网网关不填 key 也算云端已配置`() {
+        // 2026-11-23 小米实机：内网 CC Switch 网关本来就不校验 key，
+        // 只看 apiKey 是否为空会把已配好的云端误判成「两条通道都没准备」。
+        assertTrue(FirstRun.cloudConfigured("http://192.168.237.7:15721", ""))
+        assertTrue(FirstRun.cloudConfigured("http://127.0.0.1:15721", ""))
+        assertTrue(FirstRun.cloudConfigured("https://open.bigmodel.cn/api/paas/v4", "sk-x"))
+        assertFalse(FirstRun.cloudConfigured("https://open.bigmodel.cn/api/paas/v4", ""))
+        assertFalse(FirstRun.cloudConfigured("", "sk-x"))
+    }
+
+    @Test
     fun `没网也没模型时说明完全无法评分`() {
-        val ai = plan(localModelState = LocalModelState.MISSING, cloudKeyReady = false, online = false)
+        val ai = plan(localModelState = LocalModelState.MISSING, cloudReady = false, online = false)
             .step(FirstRun.STEP_AI)!!
         assertFalse(ai.ready)
         assertTrue(ai.detail.contains("没法评分") || ai.detail.contains("无法评分"))
@@ -160,7 +171,7 @@ class FirstRunTest {
 
     @Test
     fun `待办数只统计未完成的步骤`() {
-        val p = plan(examDate = "", localModelState = LocalModelState.MISSING, cloudKeyReady = false, practiceCount = 0)
+        val p = plan(examDate = "", localModelState = LocalModelState.MISSING, cloudReady = false, practiceCount = 0)
         assertEquals(3, p.pending)
         assertTrue(p.headline.contains("还差 3 步"))
 
