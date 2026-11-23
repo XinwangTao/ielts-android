@@ -175,7 +175,8 @@ fun ResultScreen(
 
         if (session.status == "done" && scoreTookMs > 0) {
             Text(
-                "本地评分耗时约 ${(scoreTookMs / 60_000L).coerceAtLeast(1)} 分钟",
+                // 云端评分也会写 scoreTookMs：不能再写死「本地」，否则联网评分会显示成本地耗时。
+                "评分耗时约 ${(scoreTookMs / 60_000L).coerceAtLeast(1)} 分钟",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
