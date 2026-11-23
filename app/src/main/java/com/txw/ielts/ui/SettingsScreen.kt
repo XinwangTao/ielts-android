@@ -95,7 +95,7 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         IosNavBar("设置", onBack = onBack)
-        Text("云端优先走局域网 CC Switch 网关（默认 http://192.168.237.7:15721，自动识别 Anthropic 协议，内网可不填 key）；填智谱等 OpenAI 兼容地址也能用。key 只存在本机。",
+        Text("云端优先走局域网 CC Switch 网关（默认 ${Prefs.DEFAULT_BASE}，自动识别 Anthropic 协议，内网可不填 key）；填智谱等 OpenAI 兼容地址也能用。key 只存在本机。",
             style = MaterialTheme.typography.bodySmall)
 
         // —— 备考目标：目标分决定首页差距提示，考试日期决定临考时今日任务的收紧节奏 ——
