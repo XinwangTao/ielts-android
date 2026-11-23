@@ -633,7 +633,8 @@ fun WritingScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Button(
+        // 主 CTA 用 Inspira 的 Shimmer Button：只在能提交且未忙碌时扫光，禁用态保持原样。
+        ShimmerButton(
             modifier = Modifier.fillMaxWidth(),
             enabled = !busy && !recording &&
                 if (voiceMode) audioFile != null else typedText.trim().length > 30,

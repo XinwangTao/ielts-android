@@ -443,7 +443,7 @@ fun SpeakingScreen(
             Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
         }
 
-        Button(
+        ShimmerButton(
             modifier = Modifier.fillMaxWidth(),
             enabled = !busy && !recording && audioFile != null && seconds >= 5,
             onClick = { onSubmit(part, question, audioFile!!.absolutePath, seconds) },
@@ -455,18 +455,32 @@ fun SpeakingScreen(
 @Composable
 private fun ProgressRing(progress: Float, valueText: String, labelText: String, color: Color) {
     val track = MaterialTheme.colorScheme.surfaceVariant
+    // DrawScope 里不能读 MaterialTheme，颜色先在这里取好。
+    val accent = MaterialTheme.colorScheme.tertiary
     Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp)) {
-        androidx.compose.foundation.Canvas(Modifier.size(130.dp)) {            drawArc(
+        androidx.compose.foundation.Canvas(Modifier.size(130.dp)) {
+            val stroke = 14f
+            drawArc(
                 color = track,
                 startAngle = 0f, sweepAngle = 360f, useCenter = false,
-                style = Stroke(width = 14f, cap = StrokeCap.Round),
+                style = Stroke(width = stroke, cap = StrokeCap.Round),
             )
+            // Inspira 环形进度：先铺一圈半透明外晕，再用扫掠渐变画进度，比单色弧更有层次。
             drawArc(
-                color = color,
+                color = color.copy(alpha = 0.16f),
                 startAngle = -90f,
                 sweepAngle = 360f * progress.coerceIn(0f, 1f),
                 useCenter = false,
-                style = Stroke(width = 14f, cap = StrokeCap.Round),
+                style = Stroke(width = stroke * 2.1f, cap = StrokeCap.Round),
+            )
+            drawArc(
+                brush = androidx.compose.ui.graphics.Brush.sweepGradient(
+                    listOf(color, accent, color)
+                ),
+                startAngle = -90f,
+                sweepAngle = 360f * progress.coerceIn(0f, 1f),
+                useCenter = false,
+                style = Stroke(width = stroke, cap = StrokeCap.Round),
             )
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

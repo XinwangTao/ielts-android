@@ -101,7 +101,7 @@ fun FirstRunScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Button(
+        ShimmerButton(
             modifier = Modifier.fillMaxWidth(),
             onClick = onDone,
         ) { Text("开始使用") }

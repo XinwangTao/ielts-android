@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -256,6 +257,10 @@ fun ResultScreen(
                 writingDims.filter { (k, _) -> if (isTask1) k != "TR" else k != "TA" }
                     .map { (k, l) -> k to l }
             }
+            // Inspira 的 Glow Border：给总分与四维分单独一圈缓慢旋转的朱砂/墨蓝描边，
+            // 让结果页第一眼落在分数上，而不是和下面的正文混成一片。
+            GlowBorderBox(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
                     "Band " + "%.1f".format(scores.optDouble("overall", 0.0)),
@@ -273,6 +278,8 @@ fun ResultScreen(
                 dims.forEach { (key, label) ->
                     ScoreBar(label, scores.optDouble(key, 0.0), MaterialTheme.colorScheme.primary)
                 }
+            }
+            }
             }
             if (speaking) {
                 val metrics = runCatching { JSONObject(session.fixesJson).optJSONObject("metrics") }.getOrNull()

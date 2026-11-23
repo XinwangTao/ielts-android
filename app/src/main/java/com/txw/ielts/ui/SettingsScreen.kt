@@ -170,7 +170,7 @@ fun SettingsScreen(
         )
         Text("云端模型", style = MaterialTheme.typography.labelLarge)
         Text(
-            "先填地址和 key，点「测试连接」；通过的模型会出现在抽屉里。勾选顺序就是回退顺序：" +
+            "先填地址（内网网关可不填 key），点「测试连接」；通过的模型会出现在抽屉里。勾选顺序就是回退顺序：" +
                 "第一个模型失败自动换下一个，云端全部失败才回退本地。",
             style = MaterialTheme.typography.bodySmall,
         )

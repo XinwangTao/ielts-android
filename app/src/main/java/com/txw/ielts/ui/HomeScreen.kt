@@ -107,6 +107,10 @@ fun HomeScreen(
     }
     val streak = remember(sessions, today) { StreakCalc.currentStreak(sessions) }
 
+    Box(Modifier.fillMaxSize()) {
+    // Inspira 视觉：Aurora 光晕 + 深色模式流星，只铺在扉页区域，底部渐隐回纸面。
+    AuroraBackdrop(Modifier.fillMaxWidth().height(360.dp))
+    MeteorField(Modifier.fillMaxWidth().height(320.dp))
     Column(
         // 页边距与其余 19 个屏保持一致（原来首页是 28dp，切到章节页会横跳 18px）
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp),
@@ -406,6 +410,7 @@ fun HomeScreen(
         }
 
         StreakCalendar(sessions)
+    }
     }
 }
 
