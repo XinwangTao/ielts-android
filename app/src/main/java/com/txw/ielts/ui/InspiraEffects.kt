@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.cos
@@ -203,13 +202,6 @@ fun GlowBorderBox(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val t = rememberInfiniteTransition(label = "glowBorder")
-    val angle by t.animateFloat(
-        initialValue = 0f,
-        targetValue = 360f,
-        animationSpec = infiniteRepeatable(tween(10_000, easing = LinearEasing), RepeatMode.Restart),
-        label = "glowAngle",
-    )
     Box(modifier.clip(shape).background(colors.surface)) {
         Canvas(Modifier.matchParentSize()) {
             val stroke = 1.5.dp.toPx()
@@ -222,22 +214,22 @@ fun GlowBorderBox(
                 cornerRadius = radius,
                 style = Stroke(stroke * 5f),
             )
-            rotate(angle) {
-                drawRoundRect(
-                    brush = Brush.sweepGradient(
-                        colors = listOf(
-                            colors.primary.copy(alpha = 0.85f),
-                            colors.tertiary.copy(alpha = 0.55f),
-                            colors.secondary.copy(alpha = 0.80f),
-                            colors.primary.copy(alpha = 0.85f),
-                        ),
+            // 不能用 rotate 旋转整块画布：旋转后的矩形四角会被卡片裁掉，只剩两条对角线。
+            // 静态扫掠渐变已经能给出四边不同色的层次，不需要再转。
+            drawRoundRect(
+                brush = Brush.sweepGradient(
+                    colors = listOf(
+                        colors.primary.copy(alpha = 0.85f),
+                        colors.tertiary.copy(alpha = 0.55f),
+                        colors.secondary.copy(alpha = 0.80f),
+                        colors.primary.copy(alpha = 0.85f),
                     ),
-                    topLeft = Offset(stroke / 2f, stroke / 2f),
-                    size = Size(size.width - stroke, size.height - stroke),
-                    cornerRadius = radius,
-                    style = Stroke(stroke),
-                )
-            }
+                ),
+                topLeft = Offset(stroke / 2f, stroke / 2f),
+                size = Size(size.width - stroke, size.height - stroke),
+                cornerRadius = radius,
+                style = Stroke(stroke),
+            )
         }
         Column(Modifier.fillMaxWidth().padding(contentPadding), content = content)
     }
